@@ -1,0 +1,29 @@
+# Environment and secrets
+.env
+
+# Data directory (user-specific collection and certs)
+data/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Temp files
+*.tmp
+
+# Test images
+*.HEIC
