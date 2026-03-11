@@ -135,7 +135,11 @@ async function _identifyWithClaude(dataUrl, area) {
     const json = await res.json();
 
     if (json.success && (json.artist || json.title)) {
-      // Claude identified it — show badge then try progressively broader Discogs searches
+      // Build detail line from what Claude found
+      const details = [json.label, json.catalog_number, json.country, json.year]
+        .filter(Boolean).join(' · ');
+
+      // Claude identified it — show badge then try progressively narrower Discogs searches
       area.innerHTML = `
         <div style="position:relative;margin-bottom:10px">
           <img src="${dataUrl}"
@@ -145,10 +149,22 @@ async function _identifyWithClaude(dataUrl, area) {
                     border-radius:8px;padding:9px 13px;font-size:.84rem;margin-bottom:10px">
           <i class="bi bi-stars me-1" style="color:var(--accent)"></i>
           Claude identified: <strong>${esc(json.artist)}${json.artist && json.title ? ' — ' : ''}${esc(json.title)}</strong>
+          ${details ? `<div style="font-size:.76rem;color:var(--muted);margin-top:3px">${esc(details)}</div>` : ''}
         </div>
         <div id="search-results"></div>`;
 
-      // Normalise collaboration separators
+      // If Claude found a barcode, try that first (most precise)
+      if (json.barcode) {
+        window._detectedBarcode = json.barcode;
+        const barcodeData = await searchByBarcode(json.barcode).catch(() => ({ results: [] }));
+        if ((barcodeData.results || []).length > 0) {
+          window._searchResults = barcodeData.results;
+          renderResultsList(barcodeData.results, document.getElementById('search-results'), true);
+          return;
+        }
+      }
+
+      // Build search queries from most specific to broadest
       function colabVariants(s) {
         if (!s) return [];
         const variants = new Set([s]);
@@ -160,16 +176,24 @@ async function _identifyWithClaude(dataUrl, area) {
       }
 
       const artistVariants = colabVariants(json.artist);
-      const combined = artistVariants.map(a => [a, json.title].filter(Boolean).join(' '));
 
-      const queries = [...new Set([
-        ...combined,
-        ...artistVariants,
-        json.title
-      ])].filter(Boolean);
+      // Most specific first: artist + title + catalog number, then + label, then just artist + title
+      const queries = [];
+      if (json.catalog_number) {
+        queries.push(...artistVariants.map(a => [a, json.title, json.catalog_number].filter(Boolean).join(' ')));
+      }
+      if (json.label) {
+        queries.push(...artistVariants.map(a => [a, json.title, json.label].filter(Boolean).join(' ')));
+      }
+      queries.push(...artistVariants.map(a => [a, json.title].filter(Boolean).join(' ')));
+      queries.push(...artistVariants);
+      if (json.title) queries.push(json.title);
+
+      // Deduplicate while preserving order
+      const uniqueQueries = [...new Set(queries)].filter(Boolean);
 
       let found = false;
-      for (const q of queries) {
+      for (const q of uniqueQueries) {
         const data = await searchDiscogs(q).catch(() => ({ results: [] }));
         if ((data.results || []).length > 0) {
           window._searchResults   = data.results;
@@ -181,7 +205,7 @@ async function _identifyWithClaude(dataUrl, area) {
       }
 
       if (!found) {
-        const prefill = [json.artist, json.title].filter(Boolean).join(' ');
+        const prefill = [json.artist, json.title, json.catalog_number].filter(Boolean).join(' ');
         document.getElementById('search-results').innerHTML = `
           <div style="font-size:.8rem;color:var(--muted);margin-bottom:10px">
             No Discogs match found — try refining the search:

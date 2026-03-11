@@ -26,6 +26,7 @@ if _env_file.exists():
             os.environ.setdefault(_key, _value)
 
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
+VISION_MODEL      = os.environ.get("VISION_MODEL", "claude-sonnet-4-6")
 DISCOGS_TOKEN     = os.environ.get("DISCOGS_TOKEN", "")
 DISCOGS_API       = "https://api.discogs.com"
 
