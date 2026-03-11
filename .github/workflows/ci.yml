@@ -1,0 +1,86 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  python-checks:
+    name: Python
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Check syntax (compile all .py files)
+        run: python -m compileall server/ tests/ server.py -q
+
+      - name: Verify all imports resolve
+        run: |
+          python -c "import server.config"
+          python -c "import server.database"
+          python -c "import server.discogs"
+          python -c "import server.images"
+          python -c "import server.handler"
+
+      - name: Run unit tests
+        run: python -m unittest discover -s tests -v
+
+  js-checks:
+    name: JavaScript
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Check JS syntax (parse all files)
+        run: |
+          exit_code=0
+          for f in static/js/*.js; do
+            if ! node --check "$f" 2>&1; then
+              echo "❌ Syntax error in $f"
+              exit_code=1
+            fi
+          done
+          exit $exit_code
+
+  html-validation:
+    name: HTML
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check index.html exists and has expected structure
+        run: |
+          # Verify all JS files referenced in index.html actually exist
+          for js in static/js/*.js; do
+            basename=$(basename "$js")
+            if ! grep -q "$basename" static/index.html; then
+              echo "⚠️  $basename not referenced in index.html"
+            fi
+          done
+
+          # Verify all <script src="js/..."> references have matching files
+          grep -oP 'src="js/[^"]+' static/index.html | sed 's/src="/static\//' | while read -r path; do
+            if [ ! -f "$path" ]; then
+              echo "❌ Missing file: $path"
+              exit 1
+            fi
+          done
+          echo "✅ All script references valid"
