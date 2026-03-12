@@ -1,8 +1,10 @@
 package com.morewax.platform
 
+import androidx.compose.runtime.Composable
 import platform.Foundation.NSURL
 import platform.UIKit.UIApplication
 
-actual fun openUrl(url: String) {
-    UIApplication.sharedApplication.openURL(NSURL.URLWithString(url)!!)
+@Composable
+actual fun openUrlHandler(): (String) -> Unit {
+    return { url -> UIApplication.sharedApplication.openURL(NSURL.URLWithString(url)!!) }
 }

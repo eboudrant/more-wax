@@ -86,14 +86,16 @@ data class Record(
                 addedAt = dto.addedAt.orEmpty(),
             )
 
+        @Suppress("TooGenericExceptionCaught")
         private fun parseJsonList(raw: String?): List<String> {
             if (raw.isNullOrEmpty()) return emptyList()
             return try {
                 json.decodeFromString<List<String>>(raw)
-            } catch (_: Exception) {
+            } catch (e: Exception) {
                 // The server occasionally stores genres/styles as a plain comma-separated
-                // string rather than a JSON array; silently returning empty is preferable
-                // to crashing the entire record mapping over a non-critical field.
+                // string rather than a JSON array; returning empty is preferable to crashing
+                // the entire record mapping over a non-critical field.
+                println("parseJsonList: failed to decode '$raw': $e")
                 emptyList()
             }
         }

@@ -1,8 +1,10 @@
 package com.morewax.platform
 
+import androidx.compose.runtime.Composable
 import java.awt.Desktop
 import java.net.URI
 
-actual fun openUrl(url: String) {
-    Desktop.getDesktop().browse(URI(url))
+@Composable
+actual fun openUrlHandler(): (String) -> Unit {
+    return { url -> Desktop.getDesktop().browse(URI(url)) }
 }

@@ -9,7 +9,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import com.morewax.domain.model.Record
 import com.morewax.domain.repository.RecordsRepository
-import com.morewax.platform.openUrl
+import com.morewax.platform.openUrlHandler
 import com.slack.circuit.codegen.annotations.CircuitInject
 import com.slack.circuit.runtime.Navigator
 import com.slack.circuit.runtime.presenter.Presenter
@@ -36,6 +36,7 @@ class RecordDetailPresenter(
         var error by remember { mutableStateOf<String?>(null) }
         var showDeleteConfirm by remember { mutableStateOf(false) }
         val scope = rememberCoroutineScope()
+        val openUrl = openUrlHandler()
 
         LaunchedEffect(screen.recordId) {
             try {
