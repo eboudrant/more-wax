@@ -6,6 +6,7 @@
     <uses-feature android:name="android.hardware.camera" android:required="false" />
 
     <application
+        android:name=".android.MoreWaxApplication"
         android:allowBackup="true"
         android:label="More'Wax"
         android:supportsRtl="true"

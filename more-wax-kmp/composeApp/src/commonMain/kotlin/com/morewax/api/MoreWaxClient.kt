@@ -29,7 +29,9 @@ class MoreWaxClient(val baseUrl: String = "http://localhost:8765") {
 
     private val http = HttpClient {
         install(ContentNegotiation) { json(json) }
-        install(Logging) { level = LogLevel.ALL }
+        // INFO logs only status lines — avoids dumping full base64 bodies when image
+        // endpoints (upload-cover, convert-image, identify-cover) are called.
+        install(Logging) { level = LogLevel.INFO }
         defaultRequest {
             url(baseUrl)
             contentType(ContentType.Application.Json)

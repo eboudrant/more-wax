@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -35,6 +36,7 @@ import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -53,6 +55,7 @@ import dev.zacsweers.metro.AppScope
 @Composable
 fun CollectionUi(state: CollectionScreen.State, modifier: Modifier = Modifier) {
     val onEvent = state.eventSink
+    val gridState = rememberLazyGridState()
 
     Scaffold(
         modifier = modifier,
@@ -119,9 +122,14 @@ fun CollectionUi(state: CollectionScreen.State, modifier: Modifier = Modifier) {
                         Text(state.error, color = MaterialTheme.colorScheme.error)
                     }
                 state.records.isEmpty() -> EmptyState()
-                else ->
+                else -> {
+                    // Scroll to top whenever filter or sort changes.
+                    // Placed here so it only fires when the grid is actually in the composition —
+                    // calling scrollToItem on an unattached gridState is a no-op.
+                    LaunchedEffect(state.filterText, state.sortBy) { gridState.scrollToItem(0) }
                     LazyVerticalGrid(
                         columns = GridCells.Adaptive(160.dp),
+                        state = gridState,
                         contentPadding = PaddingValues(12.dp),
                         horizontalArrangement = Arrangement.spacedBy(10.dp),
                         verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -133,6 +141,7 @@ fun CollectionUi(state: CollectionScreen.State, modifier: Modifier = Modifier) {
                             }
                         }
                     }
+                }
             }
         }
     }
