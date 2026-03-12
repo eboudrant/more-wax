@@ -111,7 +111,7 @@ kotlin {
 // Force skiko JVM and native runtime to the same version to avoid UnsatisfiedLinkError
 configurations.all {
     resolutionStrategy.force(
-        "org.jetbrains.skiko:skiko:0.9.37.3",
+        "org.jetbrains.skiko:skiko:0.144.4",
         "org.jetbrains.skiko:skiko-awt:0.9.37.3",
     )
 }
