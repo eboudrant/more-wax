@@ -6,7 +6,7 @@ pluginManagement {
     }
 }
 
-dependencyResolution {
+dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
@@ -15,6 +15,4 @@ dependencyResolution {
 
 rootProject.name = "more-wax-kmp"
 
-include(":shared")
-include(":androidApp")
-include(":desktopApp")
+include(":composeApp")
