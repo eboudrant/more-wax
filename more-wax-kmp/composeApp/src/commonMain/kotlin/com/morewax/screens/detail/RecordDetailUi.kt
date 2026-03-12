@@ -70,9 +70,9 @@ fun RecordDetailUi(state: RecordDetailScreen.State, modifier: Modifier = Modifie
                 CircularProgressIndicator()
             }
             state.error != null -> Box(Modifier.fillMaxSize().padding(padding), Alignment.Center) {
-                Text(state.error!!, color = MaterialTheme.colorScheme.error)
+                Text(state.error, color = MaterialTheme.colorScheme.error)
             }
-            state.record != null -> RecordContent(state.record!!, onEvent, Modifier.padding(padding))
+            state.record != null -> RecordContent(state.record, onEvent, Modifier.padding(padding))
         }
 
         if (state.showDeleteConfirm) {
@@ -215,7 +215,12 @@ private fun PriceRow(label: String, price: Double?, currency: String) {
         Row(Modifier.fillMaxWidth().padding(vertical = 1.dp),
             horizontalArrangement = Arrangement.SpaceBetween) {
             Text(label, style = MaterialTheme.typography.bodySmall)
-            Text("$symbol${"%.2f".format(price)}", style = MaterialTheme.typography.bodySmall,
+            val formatted = ((price * 100).toLong() / 100.0).let { rounded ->
+                val whole = rounded.toLong()
+                val frac = ((rounded - whole) * 100 + 0.5).toInt()
+                "$whole.${frac.toString().padStart(2, '0')}"
+            }
+            Text("$symbol$formatted", style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.primary)
         }
     }

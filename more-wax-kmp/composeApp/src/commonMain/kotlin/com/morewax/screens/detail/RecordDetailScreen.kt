@@ -4,7 +4,9 @@ import com.morewax.domain.model.Record
 import com.slack.circuit.runtime.CircuitUiEvent
 import com.slack.circuit.runtime.CircuitUiState
 import com.slack.circuit.runtime.screen.Screen
+import com.morewax.platform.CommonParcelize
 
+@CommonParcelize
 data class RecordDetailScreen(val recordId: Int) : Screen {
 
     data class State(

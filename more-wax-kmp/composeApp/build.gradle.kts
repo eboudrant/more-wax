@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.compose.multiplatform)
     alias(libs.plugins.compose.compiler)
     alias(libs.plugins.android.application)
+    id("org.jetbrains.kotlin.plugin.parcelize")
     alias(libs.plugins.metro)
 }
 
@@ -27,16 +28,41 @@ kotlin {
         }
     }
 
+    compilerOptions {
+        freeCompilerArgs.add("-Xexpect-actual-classes")
+    }
+
+    targets.configureEach {
+        if (platformType == org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType.androidJvm) {
+            compilations.configureEach {
+                compileTaskProvider.configure {
+                    compilerOptions {
+                        freeCompilerArgs.addAll(
+                            "-P",
+                            "plugin:org.jetbrains.kotlin.parcelize:additionalAnnotation=com.morewax.platform.CommonParcelize",
+                        )
+                    }
+                }
+            }
+        }
+    }
+
     // ── Source sets ─────────────────────────────────────────
 
     sourceSets {
         commonMain.dependencies {
             // Compose Multiplatform
+            @Suppress("DEPRECATION")
             implementation(compose.runtime)
+            @Suppress("DEPRECATION")
             implementation(compose.foundation)
+            @Suppress("DEPRECATION")
             implementation(compose.material3)
+            @Suppress("DEPRECATION")
             implementation(compose.materialIconsExtended)
+            @Suppress("DEPRECATION")
             implementation(compose.ui)
+            @Suppress("DEPRECATION")
             implementation(compose.components.resources)
 
             // Circuit
@@ -74,18 +100,8 @@ kotlin {
             }
         }
 
-        val iosX64Main by getting
-        val iosArm64Main by getting
-        val iosSimulatorArm64Main by getting
-        val iosMain by creating {
-            dependsOn(commonMain.get())
-            iosX64Main.dependsOn(this)
-            iosArm64Main.dependsOn(this)
-            iosSimulatorArm64Main.dependsOn(this)
-
-            dependencies {
-                implementation(libs.ktor.client.darwin)
-            }
+        iosMain.dependencies {
+            implementation(libs.ktor.client.darwin)
         }
     }
 }
@@ -102,7 +118,7 @@ configurations.all {
 
 android {
     namespace = "com.morewax"
-    compileSdk = 35
+    compileSdk = 36
     defaultConfig {
         applicationId = "com.morewax"
         minSdk = 26

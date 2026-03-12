@@ -107,7 +107,7 @@ fun CollectionUi(state: CollectionScreen.State, modifier: Modifier = Modifier) {
                     CircularProgressIndicator()
                 }
                 state.error != null -> Box(Modifier.fillMaxSize(), Alignment.Center) {
-                    Text(state.error!!, color = MaterialTheme.colorScheme.error)
+                    Text(state.error, color = MaterialTheme.colorScheme.error)
                 }
                 state.records.isEmpty() -> EmptyState()
                 else -> LazyVerticalGrid(
