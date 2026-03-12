@@ -7,7 +7,10 @@ plugins {
     alias(libs.plugins.kotlin.parcelize)
     alias(libs.plugins.ktfmt)
     alias(libs.plugins.metro)
+    alias(libs.plugins.ksp)
 }
+
+ksp { arg("circuit.codegen.mode", "metro") }
 
 ktfmt { kotlinLangStyle() }
 
@@ -134,6 +137,19 @@ compose.desktop {
             )
             packageName = "MoreWax"
             packageVersion = "1.0.0"
+        }
+    }
+}
+
+// ── KSP circuit-codegen for each target ───────────────────
+
+dependencies {
+    kotlin.targets.names.forEach { target ->
+        val configName = "ksp${target.replaceFirstChar { it.uppercase() }}"
+        try {
+            add(configName, libs.circuit.codegen)
+        } catch (_: Exception) {
+            // Target may not have a KSP configuration
         }
     }
 }

@@ -45,7 +45,10 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.morewax.domain.model.Record
 import com.morewax.domain.model.SortOption
+import com.slack.circuit.codegen.annotations.CircuitInject
+import dev.zacsweers.metro.AppScope
 
+@CircuitInject(CollectionScreen::class, AppScope::class)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CollectionUi(state: CollectionScreen.State, modifier: Modifier = Modifier) {

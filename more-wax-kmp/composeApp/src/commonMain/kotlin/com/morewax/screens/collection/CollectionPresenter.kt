@@ -11,13 +11,19 @@ import com.morewax.domain.model.Record
 import com.morewax.domain.model.SortOption
 import com.morewax.domain.repository.RecordsRepository
 import com.morewax.screens.detail.RecordDetailScreen
+import com.slack.circuit.codegen.annotations.CircuitInject
 import com.slack.circuit.runtime.Navigator
 import com.slack.circuit.runtime.presenter.Presenter
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.Assisted
+import dev.zacsweers.metro.AssistedFactory
+import dev.zacsweers.metro.AssistedInject
 import kotlinx.coroutines.launch
 
+@AssistedInject
 class CollectionPresenter(
     private val repository: RecordsRepository,
-    private val navigator: Navigator,
+    @Assisted private val navigator: Navigator,
 ) : Presenter<CollectionScreen.State> {
 
     @Composable
@@ -91,5 +97,11 @@ class CollectionPresenter(
                     }
             }
         }
+    }
+
+    @CircuitInject(CollectionScreen::class, AppScope::class)
+    @AssistedFactory
+    fun interface Factory {
+        fun create(navigator: Navigator): CollectionPresenter
     }
 }

@@ -5,7 +5,7 @@ import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
 import com.morewax.MoreWaxApp
-import com.morewax.di.createAppGraph
+import com.morewax.di.DesktopAppGraph
 
 fun main() = application {
     Window(
@@ -13,6 +13,6 @@ fun main() = application {
         title = "More\u2019Wax",
         state = rememberWindowState(width = 1024.dp, height = 768.dp),
     ) {
-        MoreWaxApp(createAppGraph())
+        MoreWaxApp(DesktopAppGraph.create())
     }
 }

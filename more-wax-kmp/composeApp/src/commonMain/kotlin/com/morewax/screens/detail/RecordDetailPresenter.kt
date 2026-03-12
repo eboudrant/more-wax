@@ -9,14 +9,20 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import com.morewax.domain.model.Record
 import com.morewax.domain.repository.RecordsRepository
+import com.slack.circuit.codegen.annotations.CircuitInject
 import com.slack.circuit.runtime.Navigator
 import com.slack.circuit.runtime.presenter.Presenter
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.Assisted
+import dev.zacsweers.metro.AssistedFactory
+import dev.zacsweers.metro.AssistedInject
 import kotlinx.coroutines.launch
 
+@AssistedInject
 class RecordDetailPresenter(
-    private val screen: RecordDetailScreen,
+    @Assisted private val screen: RecordDetailScreen,
     private val repository: RecordsRepository,
-    private val navigator: Navigator,
+    @Assisted private val navigator: Navigator,
 ) : Presenter<RecordDetailScreen.State> {
 
     @Composable
@@ -56,5 +62,11 @@ class RecordDetailPresenter(
                 }
             }
         }
+    }
+
+    @CircuitInject(RecordDetailScreen::class, AppScope::class)
+    @AssistedFactory
+    fun interface Factory {
+        fun create(screen: RecordDetailScreen, navigator: Navigator): RecordDetailPresenter
     }
 }

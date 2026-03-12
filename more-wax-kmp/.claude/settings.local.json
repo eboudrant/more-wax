@@ -10,7 +10,13 @@
       "Bash(find ~/.gradle/caches/modules-2/files-2.1/com.slack.circuit -name \"*internal*\" -type f 2>/dev/null | head -5)",
       "Bash(./gradlew :composeApp:dependencies --configuration desktopCompileClasspath 2>&1 | grep -i \"circuit\" | head -20)",
       "Bash(./gradlew :composeApp:compileKotlinDesktop 2>&1 | tail -10)",
-      "Bash(./gradlew :composeApp:compileKotlinDesktop 2>&1 | tail -15)"
+      "Bash(./gradlew :composeApp:compileKotlinDesktop 2>&1 | tail -15)",
+      "WebFetch(domain:mvnrepository.com)",
+      "WebFetch(domain:zacsweers.github.io)",
+      "Bash(./gradlew :composeApp:compileKotlinDesktop 2>&1 | tail -50)",
+      "Bash(./gradlew :composeApp:compileKotlinDesktop 2>&1 | tail -40)",
+      "Bash(./gradlew :composeApp:compileDebugKotlinAndroid 2>&1 | tail -20)",
+      "Bash(./gradlew :composeApp:run 2>&1 | tail -20)"
     ]
   }
 }

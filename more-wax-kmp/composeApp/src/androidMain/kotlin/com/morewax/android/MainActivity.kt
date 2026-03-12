@@ -5,12 +5,12 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import com.morewax.MoreWaxApp
-import com.morewax.di.createAppGraph
+import com.morewax.di.AndroidAppGraph
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        setContent { MoreWaxApp(createAppGraph()) }
+        setContent { MoreWaxApp(AndroidAppGraph.create()) }
     }
 }

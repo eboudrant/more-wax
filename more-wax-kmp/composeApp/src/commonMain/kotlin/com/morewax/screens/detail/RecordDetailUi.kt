@@ -43,7 +43,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.morewax.domain.model.Record
+import com.slack.circuit.codegen.annotations.CircuitInject
+import dev.zacsweers.metro.AppScope
 
+@CircuitInject(RecordDetailScreen::class, AppScope::class)
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun RecordDetailUi(state: RecordDetailScreen.State, modifier: Modifier = Modifier) {
