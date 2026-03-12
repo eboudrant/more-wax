@@ -1,0 +1,30 @@
+naming:
+  FunctionNaming:
+    ignoreAnnotated:
+      - "Composable"
+    excludes:
+      - "**/iosMain/**"
+  MatchingDeclarationName:
+    active: false
+
+complexity:
+  LongMethod:
+    ignoreAnnotated:
+      - "Composable"
+  CyclomaticComplexMethod:
+    ignoreAnnotated:
+      - "Composable"
+  TooManyFunctions:
+    thresholdInClasses: 20
+
+style:
+  ForbiddenComment:
+    active: false
+  MagicNumber:
+    ignorePropertyDeclaration: true
+    ignoreCompanionObjectPropertyDeclaration: true
+    ignoreAnnotated:
+      - "Composable"
+  MaxLineLength:
+    excludes:
+      - "**/build/**"
