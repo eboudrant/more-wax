@@ -16,7 +16,17 @@
       "Bash(./gradlew :composeApp:compileKotlinDesktop 2>&1 | tail -50)",
       "Bash(./gradlew :composeApp:compileKotlinDesktop 2>&1 | tail -40)",
       "Bash(./gradlew :composeApp:compileDebugKotlinAndroid 2>&1 | tail -20)",
-      "Bash(./gradlew :composeApp:run 2>&1 | tail -20)"
+      "Bash(./gradlew :composeApp:run 2>&1 | tail -20)",
+      "Bash(./gradlew :composeApp:detekt --dry-run 2>&1 | tail -10)",
+      "Bash(./gradlew :composeApp:detekt 2>&1 | tail -20)",
+      "Bash(./gradlew :composeApp:tasks --group=verification 2>&1 | grep -i detekt)",
+      "Bash(./gradlew :composeApp:detektMetadataCommonMain 2>&1 | tail -30)",
+      "Bash(./gradlew :composeApp:detektMetadataCommonMain 2>&1 | tail -20)",
+      "Bash(./gradlew :composeApp:detektMetadataCommonMain 2>&1 | grep \"build/generated\")",
+      "Bash(./gradlew clean:*)",
+      "Bash(./gradlew :composeApp:detektMetadataCommonMain 2>&1 | grep -E \"\\\\.kt:\" | head -30)",
+      "Bash(./gradlew :composeApp:detektMetadataCommonMain 2>&1)",
+      "Bash(./gradlew detekt:*)"
     ]
   }
 }

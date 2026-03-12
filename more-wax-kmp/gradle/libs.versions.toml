@@ -8,6 +8,7 @@ ktor = "3.4.1"
 kotlinx-serialization = "1.10.0"
 coil = "3.4.0"
 coroutines = "1.10.2"
+detekt = "1.23.7"
 ksp = "2.3.5"
 ktfmt = "0.25.0"
 
@@ -52,3 +53,4 @@ kotlin-parcelize = { id = "org.jetbrains.kotlin.plugin.parcelize", version.ref =
 ktfmt = { id = "com.ncorti.ktfmt.gradle", version.ref = "ktfmt" }
 metro = { id = "dev.zacsweers.metro", version.ref = "metro" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
+detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt" }

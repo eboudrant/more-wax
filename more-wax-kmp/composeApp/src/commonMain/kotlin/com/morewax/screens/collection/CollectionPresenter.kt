@@ -19,6 +19,7 @@ import dev.zacsweers.metro.Assisted
 import dev.zacsweers.metro.AssistedFactory
 import dev.zacsweers.metro.AssistedInject
 import kotlinx.coroutines.launch
+import kotlinx.io.IOException
 
 @AssistedInject
 class CollectionPresenter(
@@ -38,8 +39,7 @@ class CollectionPresenter(
         LaunchedEffect(Unit) {
             try {
                 records = repository.getCollection()
-            } catch (e: Exception) {
-                e.printStackTrace()
+            } catch (e: IOException) {
                 error = e.message ?: "Failed to load collection"
             }
             isLoading = false
@@ -90,7 +90,7 @@ class CollectionPresenter(
                         isLoading = true
                         try {
                             records = repository.getCollection()
-                        } catch (e: Exception) {
+                        } catch (e: IOException) {
                             error = e.message
                         }
                         isLoading = false

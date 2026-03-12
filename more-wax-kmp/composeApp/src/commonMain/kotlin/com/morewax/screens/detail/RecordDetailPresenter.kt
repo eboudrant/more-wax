@@ -17,6 +17,7 @@ import dev.zacsweers.metro.Assisted
 import dev.zacsweers.metro.AssistedFactory
 import dev.zacsweers.metro.AssistedInject
 import kotlinx.coroutines.launch
+import kotlinx.io.IOException
 
 @AssistedInject
 class RecordDetailPresenter(
@@ -36,7 +37,7 @@ class RecordDetailPresenter(
         LaunchedEffect(screen.recordId) {
             try {
                 record = repository.getRecord(screen.recordId)
-            } catch (e: Exception) {
+            } catch (e: IOException) {
                 error = e.message ?: "Failed to load record"
             }
             isLoading = false

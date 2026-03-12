@@ -11,15 +11,15 @@ import dev.zacsweers.metro.SingleIn
 
 @ContributesTo(AppScope::class)
 interface CircuitProviders {
-    @Multibinds fun presenterFactories(): Set<Presenter.Factory>
+    @Multibinds(allowEmpty = true) fun presenterFactories(): Set<Presenter.Factory>
 
-    @Multibinds fun uiFactories(): Set<Ui.Factory>
+    @Multibinds(allowEmpty = true) fun uiFactories(): Set<Ui.Factory>
 
     @SingleIn(AppScope::class)
     @Provides
     fun provideCircuit(
-        presenterFactories: @JvmSuppressWildcards Set<Presenter.Factory>,
-        uiFactories: @JvmSuppressWildcards Set<Ui.Factory>,
+        presenterFactories: Set<Presenter.Factory>,
+        uiFactories: Set<Ui.Factory>,
     ): Circuit =
         Circuit.Builder()
             .addPresenterFactories(presenterFactories)

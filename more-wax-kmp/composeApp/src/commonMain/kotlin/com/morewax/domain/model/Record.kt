@@ -42,15 +42,18 @@ data class Record(
                     else -> "$priceCurrency "
                 }
             val formatted =
-                ((p * 100).toLong() / 100.0).let { rounded ->
+                ((p * CENTS).toLong() / CENTS_DOUBLE).let { rounded ->
                     val whole = rounded.toLong()
-                    val frac = ((rounded - whole) * 100 + 0.5).toInt()
+                    val frac = ((rounded - whole) * CENTS + ROUND_HALF).toInt()
                     "$whole.${frac.toString().padStart(2, '0')}"
                 }
             return "$symbol$formatted"
         }
 
     companion object {
+        private const val CENTS = 100
+        private const val CENTS_DOUBLE = 100.0
+        private const val ROUND_HALF = 0.5
         private val json = Json { ignoreUnknownKeys = true }
 
         fun fromDto(dto: RecordDto): Record =

@@ -8,9 +8,20 @@ plugins {
     alias(libs.plugins.ktfmt)
     alias(libs.plugins.metro)
     alias(libs.plugins.ksp)
+    alias(libs.plugins.detekt)
 }
 
 ksp { arg("circuit.codegen.mode", "metro") }
+
+detekt {
+    source.setFrom(files("src/"))
+    buildUponDefaultConfig = true
+    config.setFrom(rootProject.files("detekt.yml"))
+}
+
+tasks.withType<io.gitlab.arturbosch.detekt.Detekt>().configureEach {
+    exclude { it.file.absolutePath.contains("/build/") }
+}
 
 ktfmt { kotlinLangStyle() }
 
