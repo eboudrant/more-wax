@@ -1,10 +1,10 @@
 package com.morewax.screens.detail
 
 import com.morewax.domain.model.Record
+import com.morewax.platform.CommonParcelize
 import com.slack.circuit.runtime.CircuitUiEvent
 import com.slack.circuit.runtime.CircuitUiState
 import com.slack.circuit.runtime.screen.Screen
-import com.morewax.platform.CommonParcelize
 
 @CommonParcelize
 data class RecordDetailScreen(val recordId: Int) : Screen {
@@ -19,9 +19,13 @@ data class RecordDetailScreen(val recordId: Int) : Screen {
 
     sealed interface Event : CircuitUiEvent {
         data object Delete : Event
+
         data object ConfirmDelete : Event
+
         data object CancelDelete : Event
+
         data object NavigateBack : Event
+
         data object OpenOnDiscogs : Event
     }
 }

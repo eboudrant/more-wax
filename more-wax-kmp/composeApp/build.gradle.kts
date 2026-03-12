@@ -4,9 +4,12 @@ plugins {
     alias(libs.plugins.compose.multiplatform)
     alias(libs.plugins.compose.compiler)
     alias(libs.plugins.android.application)
-    id("org.jetbrains.kotlin.plugin.parcelize")
+    alias(libs.plugins.kotlin.parcelize)
+    alias(libs.plugins.ktfmt)
     alias(libs.plugins.metro)
 }
+
+ktfmt { kotlinLangStyle() }
 
 kotlin {
     jvmToolchain(21)
@@ -17,20 +20,14 @@ kotlin {
 
     jvm("desktop")
 
-    listOf(
-        iosX64(),
-        iosArm64(),
-        iosSimulatorArm64(),
-    ).forEach { target ->
+    listOf(iosX64(), iosArm64(), iosSimulatorArm64()).forEach { target ->
         target.binaries.framework {
             baseName = "ComposeApp"
             isStatic = true
         }
     }
 
-    compilerOptions {
-        freeCompilerArgs.add("-Xexpect-actual-classes")
-    }
+    compilerOptions { freeCompilerArgs.add("-Xexpect-actual-classes") }
 
     targets.configureEach {
         if (platformType == org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType.androidJvm) {
@@ -52,25 +49,18 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             // Compose Multiplatform
-            @Suppress("DEPRECATION")
-            implementation(compose.runtime)
-            @Suppress("DEPRECATION")
-            implementation(compose.foundation)
-            @Suppress("DEPRECATION")
-            implementation(compose.material3)
-            @Suppress("DEPRECATION")
-            implementation(compose.materialIconsExtended)
-            @Suppress("DEPRECATION")
-            implementation(compose.ui)
-            @Suppress("DEPRECATION")
-            implementation(compose.components.resources)
+            @Suppress("DEPRECATION") implementation(compose.runtime)
+            @Suppress("DEPRECATION") implementation(compose.foundation)
+            @Suppress("DEPRECATION") implementation(compose.material3)
+            @Suppress("DEPRECATION") implementation(compose.materialIconsExtended)
+            @Suppress("DEPRECATION") implementation(compose.ui)
+            @Suppress("DEPRECATION") implementation(compose.components.resources)
 
             // Circuit
             implementation(libs.circuit.foundation)
             implementation(libs.circuit.runtime)
             implementation(libs.circuit.codegen.annotations)
             implementation(libs.circuit.overlay)
-
 
             // Networking
             implementation(libs.ktor.client.core)
@@ -100,9 +90,7 @@ kotlin {
             }
         }
 
-        iosMain.dependencies {
-            implementation(libs.ktor.client.darwin)
-        }
+        iosMain.dependencies { implementation(libs.ktor.client.darwin) }
     }
 }
 

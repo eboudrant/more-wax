@@ -56,13 +56,17 @@ fun CollectionUi(state: CollectionScreen.State, modifier: Modifier = Modifier) {
         topBar = {
             TopAppBar(
                 title = { Text("More\u2019Wax") },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                ),
+                colors =
+                    TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                        titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    ),
                 actions = {
-                    Text("${state.records.size}", style = MaterialTheme.typography.labelLarge,
-                        modifier = Modifier.padding(end = 8.dp))
+                    Text(
+                        "${state.records.size}",
+                        style = MaterialTheme.typography.labelLarge,
+                        modifier = Modifier.padding(end = 8.dp),
+                    )
                     IconButton(onClick = { onEvent(CollectionScreen.Event.Refresh) }) {
                         Icon(Icons.Default.Refresh, "Refresh")
                     }
@@ -73,7 +77,9 @@ fun CollectionUi(state: CollectionScreen.State, modifier: Modifier = Modifier) {
             FloatingActionButton(
                 onClick = { onEvent(CollectionScreen.Event.OpenAddFlow) },
                 containerColor = MaterialTheme.colorScheme.primary,
-            ) { Icon(Icons.Default.Add, "Add record") }
+            ) {
+                Icon(Icons.Default.Add, "Add record")
+            }
         },
     ) { padding ->
         Column(Modifier.padding(padding)) {
@@ -103,24 +109,27 @@ fun CollectionUi(state: CollectionScreen.State, modifier: Modifier = Modifier) {
             Spacer(Modifier.height(4.dp))
 
             when {
-                state.isLoading -> Box(Modifier.fillMaxSize(), Alignment.Center) {
-                    CircularProgressIndicator()
-                }
-                state.error != null -> Box(Modifier.fillMaxSize(), Alignment.Center) {
-                    Text(state.error, color = MaterialTheme.colorScheme.error)
-                }
-                state.records.isEmpty() -> EmptyState()
-                else -> LazyVerticalGrid(
-                    columns = GridCells.Adaptive(160.dp),
-                    contentPadding = PaddingValues(12.dp),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
-                    modifier = Modifier.fillMaxSize(),
-                ) {
-                    items(state.records, key = { it.id }) { record ->
-                        RecordCard(record) { onEvent(CollectionScreen.Event.OpenRecord(record.id)) }
+                state.isLoading ->
+                    Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator() }
+                state.error != null ->
+                    Box(Modifier.fillMaxSize(), Alignment.Center) {
+                        Text(state.error, color = MaterialTheme.colorScheme.error)
                     }
-                }
+                state.records.isEmpty() -> EmptyState()
+                else ->
+                    LazyVerticalGrid(
+                        columns = GridCells.Adaptive(160.dp),
+                        contentPadding = PaddingValues(12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                        modifier = Modifier.fillMaxSize(),
+                    ) {
+                        items(state.records, key = { it.id }) { record ->
+                            RecordCard(record) {
+                                onEvent(CollectionScreen.Event.OpenRecord(record.id))
+                            }
+                        }
+                    }
             }
         }
     }
@@ -139,29 +148,49 @@ private fun RecordCard(record: Record, onClick: () -> Unit) {
                     model = record.coverPath,
                     contentDescription = "${record.artist} \u2013 ${record.title}",
                     contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxWidth().height(160.dp)
-                        .clip(RoundedCornerShape(topStart = 10.dp, topEnd = 10.dp)),
+                    modifier =
+                        Modifier.fillMaxWidth()
+                            .height(160.dp)
+                            .clip(RoundedCornerShape(topStart = 10.dp, topEnd = 10.dp)),
                 )
             } else {
                 Box(Modifier.fillMaxWidth().height(160.dp), Alignment.Center) {
-                    Icon(Icons.Default.Album, null, Modifier.size(64.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f))
+                    Icon(
+                        Icons.Default.Album,
+                        null,
+                        Modifier.size(64.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f),
+                    )
                 }
             }
 
             Column(Modifier.padding(10.dp)) {
-                Text(record.artist, style = MaterialTheme.typography.bodySmall,
-                    maxLines = 1, overflow = TextOverflow.Ellipsis,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text(record.title,
-                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
-                    maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(
+                    record.artist,
+                    style = MaterialTheme.typography.bodySmall,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(
+                    record.title,
+                    style =
+                        MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text(record.year, style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        record.year,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                     record.displayPrice?.let {
-                        Text(it, style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.primary)
+                        Text(
+                            it,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
                     }
                 }
             }
@@ -173,13 +202,23 @@ private fun RecordCard(record: Record, onClick: () -> Unit) {
 private fun EmptyState() {
     Box(Modifier.fillMaxSize(), Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Icon(Icons.Default.Album, null, Modifier.size(80.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f))
+            Icon(
+                Icons.Default.Album,
+                null,
+                Modifier.size(80.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f),
+            )
             Spacer(Modifier.height(16.dp))
-            Text("No records yet", style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text("Tap + to add your first vinyl", style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f))
+            Text(
+                "No records yet",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
+                "Tap + to add your first vinyl",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+            )
         }
     }
 }

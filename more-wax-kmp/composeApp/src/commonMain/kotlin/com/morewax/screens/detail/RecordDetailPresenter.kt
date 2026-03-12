@@ -45,12 +45,15 @@ class RecordDetailPresenter(
             when (event) {
                 RecordDetailScreen.Event.Delete -> showDeleteConfirm = true
                 RecordDetailScreen.Event.CancelDelete -> showDeleteConfirm = false
-                RecordDetailScreen.Event.ConfirmDelete -> scope.launch {
-                    repository.deleteRecord(screen.recordId)
-                    navigator.pop()
-                }
+                RecordDetailScreen.Event.ConfirmDelete ->
+                    scope.launch {
+                        repository.deleteRecord(screen.recordId)
+                        navigator.pop()
+                    }
                 RecordDetailScreen.Event.NavigateBack -> navigator.pop()
-                RecordDetailScreen.Event.OpenOnDiscogs -> { /* TODO: platform URL open */ }
+                RecordDetailScreen.Event.OpenOnDiscogs -> {
+                    /* TODO: platform URL open */
+                }
             }
         }
     }

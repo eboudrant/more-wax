@@ -6,14 +6,12 @@ import com.morewax.api.SearchResultDto
 
 class DiscogsRepository(private val client: MoreWaxClient) {
 
-    suspend fun search(query: String): List<SearchResultDto> =
-        client.searchDiscogs(query).results
+    suspend fun search(query: String): List<SearchResultDto> = client.searchDiscogs(query).results
 
     suspend fun searchByBarcode(barcode: String): List<SearchResultDto> =
         client.searchByBarcode(barcode).results
 
-    suspend fun getRelease(id: String): ReleaseDto =
-        client.getReleaseFull(id)
+    suspend fun getRelease(id: String): ReleaseDto = client.getReleaseFull(id)
 
     suspend fun addToCollection(releaseId: String): Boolean =
         client.addToDiscogsCollection(releaseId).success

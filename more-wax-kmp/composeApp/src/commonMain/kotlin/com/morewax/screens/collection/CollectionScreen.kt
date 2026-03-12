@@ -2,10 +2,10 @@ package com.morewax.screens.collection
 
 import com.morewax.domain.model.Record
 import com.morewax.domain.model.SortOption
+import com.morewax.platform.CommonParcelize
 import com.slack.circuit.runtime.CircuitUiEvent
 import com.slack.circuit.runtime.CircuitUiState
 import com.slack.circuit.runtime.screen.Screen
-import com.morewax.platform.CommonParcelize
 
 @CommonParcelize
 data object CollectionScreen : Screen {
@@ -21,9 +21,13 @@ data object CollectionScreen : Screen {
 
     sealed interface Event : CircuitUiEvent {
         data class SetSort(val option: SortOption) : Event
+
         data class SetFilter(val text: String) : Event
+
         data class OpenRecord(val id: Int) : Event
+
         data object OpenAddFlow : Event
+
         data object Refresh : Event
     }
 }

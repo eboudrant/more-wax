@@ -39,28 +39,31 @@ class CollectionPresenter(
             isLoading = false
         }
 
-        val displayRecords = remember(records, sortBy, filterText) {
-            records
-                .filter { r ->
-                    if (filterText.isBlank()) true
-                    else {
-                        val q = filterText.lowercase()
-                        r.artist.lowercase().contains(q) ||
-                            r.title.lowercase().contains(q) ||
-                            r.label.lowercase().contains(q) ||
-                            r.year.contains(q)
+        val displayRecords =
+            remember(records, sortBy, filterText) {
+                records
+                    .filter { r ->
+                        if (filterText.isBlank()) true
+                        else {
+                            val q = filterText.lowercase()
+                            r.artist.lowercase().contains(q) ||
+                                r.title.lowercase().contains(q) ||
+                                r.label.lowercase().contains(q) ||
+                                r.year.contains(q)
+                        }
                     }
-                }
-                .sortedWith(
-                    when (sortBy) {
-                        SortOption.ARTIST -> compareBy(String.CASE_INSENSITIVE_ORDER) { it.artist }
-                        SortOption.TITLE -> compareBy(String.CASE_INSENSITIVE_ORDER) { it.title }
-                        SortOption.YEAR -> compareByDescending { it.year }
-                        SortOption.RECENT -> compareByDescending { it.addedAt }
-                        SortOption.PRICE -> compareByDescending { it.priceMedian ?: 0.0 }
-                    }
-                )
-        }
+                    .sortedWith(
+                        when (sortBy) {
+                            SortOption.ARTIST ->
+                                compareBy(String.CASE_INSENSITIVE_ORDER) { it.artist }
+                            SortOption.TITLE ->
+                                compareBy(String.CASE_INSENSITIVE_ORDER) { it.title }
+                            SortOption.YEAR -> compareByDescending { it.year }
+                            SortOption.RECENT -> compareByDescending { it.addedAt }
+                            SortOption.PRICE -> compareByDescending { it.priceMedian ?: 0.0 }
+                        }
+                    )
+            }
 
         return CollectionScreen.State(
             records = displayRecords,
@@ -73,13 +76,19 @@ class CollectionPresenter(
                 is CollectionScreen.Event.SetSort -> sortBy = event.option
                 is CollectionScreen.Event.SetFilter -> filterText = event.text
                 is CollectionScreen.Event.OpenRecord -> navigator.goTo(RecordDetailScreen(event.id))
-                is CollectionScreen.Event.OpenAddFlow -> { /* TODO Phase 3 */ }
-                is CollectionScreen.Event.Refresh -> scope.launch {
-                    isLoading = true
-                    try { records = repository.getCollection() }
-                    catch (e: Exception) { error = e.message }
-                    isLoading = false
+                is CollectionScreen.Event.OpenAddFlow -> {
+                    /* TODO Phase 3 */
                 }
+                is CollectionScreen.Event.Refresh ->
+                    scope.launch {
+                        isLoading = true
+                        try {
+                            records = repository.getCollection()
+                        } catch (e: Exception) {
+                            error = e.message
+                        }
+                        isLoading = false
+                    }
             }
         }
     }

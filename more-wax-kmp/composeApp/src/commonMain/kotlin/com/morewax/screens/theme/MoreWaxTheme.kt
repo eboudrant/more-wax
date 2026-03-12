@@ -16,43 +16,42 @@ private val CardDark = Color(0xFF243447)
 private val TextLight = Color(0xFFe8edf2)
 private val TextMuted = Color(0xFF8899aa)
 
-private val DarkColorScheme = darkColorScheme(
-    primary = AccentBlue,
-    onPrimary = Color.White,
-    primaryContainer = NavyBlue,
-    onPrimaryContainer = TextLight,
-    secondary = LightBlue,
-    onSecondary = NavyBlue,
-    background = NavyBlue,
-    onBackground = TextLight,
-    surface = SurfaceDark,
-    onSurface = TextLight,
-    surfaceVariant = CardDark,
-    onSurfaceVariant = TextMuted,
-    error = Color(0xFFE57373),
-    onError = Color.White,
-)
+private val DarkColorScheme =
+    darkColorScheme(
+        primary = AccentBlue,
+        onPrimary = Color.White,
+        primaryContainer = NavyBlue,
+        onPrimaryContainer = TextLight,
+        secondary = LightBlue,
+        onSecondary = NavyBlue,
+        background = NavyBlue,
+        onBackground = TextLight,
+        surface = SurfaceDark,
+        onSurface = TextLight,
+        surfaceVariant = CardDark,
+        onSurfaceVariant = TextMuted,
+        error = Color(0xFFE57373),
+        onError = Color.White,
+    )
 
-private val LightColorScheme = lightColorScheme(
-    primary = AccentBlue,
-    onPrimary = Color.White,
-    primaryContainer = Color(0xFFE3F0FF),
-    onPrimaryContainer = NavyBlue,
-    secondary = DarkBlue,
-    background = Color(0xFFF8FAFC),
-    onBackground = NavyBlue,
-    surface = Color.White,
-    onSurface = NavyBlue,
-    surfaceVariant = Color(0xFFF1F5F9),
-    onSurfaceVariant = Color(0xFF64748B),
-    error = Color(0xFFD32F2F),
-)
+private val LightColorScheme =
+    lightColorScheme(
+        primary = AccentBlue,
+        onPrimary = Color.White,
+        primaryContainer = Color(0xFFE3F0FF),
+        onPrimaryContainer = NavyBlue,
+        secondary = DarkBlue,
+        background = Color(0xFFF8FAFC),
+        onBackground = NavyBlue,
+        surface = Color.White,
+        onSurface = NavyBlue,
+        surfaceVariant = Color(0xFFF1F5F9),
+        onSurfaceVariant = Color(0xFF64748B),
+        error = Color(0xFFD32F2F),
+    )
 
 @Composable
-fun MoreWaxTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
-    content: @Composable () -> Unit,
-) {
+fun MoreWaxTheme(darkTheme: Boolean = isSystemInDarkTheme(), content: @Composable () -> Unit) {
     MaterialTheme(
         colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme,
         content = content,

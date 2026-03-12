@@ -6,11 +6,9 @@ import com.morewax.domain.model.Record
 
 class RecordsRepository(private val client: MoreWaxClient) {
 
-    suspend fun getCollection(): List<Record> =
-        client.listCollection().map(Record::fromDto)
+    suspend fun getCollection(): List<Record> = client.listCollection().map(Record::fromDto)
 
-    suspend fun getRecord(id: Int): Record =
-        Record.fromDto(client.getRecord(id))
+    suspend fun getRecord(id: Int): Record = Record.fromDto(client.getRecord(id))
 
     suspend fun addRecord(dto: RecordDto): Result<Int> {
         val resp = client.addRecord(dto)
@@ -23,11 +21,9 @@ class RecordsRepository(private val client: MoreWaxClient) {
         }
     }
 
-    suspend fun deleteRecord(id: Int): Boolean =
-        client.deleteRecord(id).success
+    suspend fun deleteRecord(id: Int): Boolean = client.deleteRecord(id).success
 
-    suspend fun refreshPrices(): Int =
-        client.refreshPrices().totalStale
+    suspend fun refreshPrices(): Int = client.refreshPrices().totalStale
 }
 
 class DuplicateRecordException(val existing: Record?) : Exception("Duplicate record")

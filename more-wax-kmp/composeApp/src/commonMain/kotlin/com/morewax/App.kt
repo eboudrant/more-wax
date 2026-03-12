@@ -22,22 +22,21 @@ import com.slack.circuit.runtime.ui.Ui
 import com.slack.circuit.runtime.ui.ui
 
 /**
- * Root composable shared across Android, iOS, and Desktop.
- * Wires Circuit navigation with Metro-provided dependencies.
+ * Root composable shared across Android, iOS, and Desktop. Wires Circuit navigation with
+ * Metro-provided dependencies.
  */
 @Composable
 fun MoreWaxApp(appGraph: AppGraph) {
-    val circuit = Circuit.Builder()
-        .addPresenterFactory(MoreWaxPresenterFactory(appGraph))
-        .addUiFactory(MoreWaxUiFactory())
-        .build()
+    val circuit =
+        Circuit.Builder()
+            .addPresenterFactory(MoreWaxPresenterFactory(appGraph))
+            .addUiFactory(MoreWaxUiFactory())
+            .build()
 
     MoreWaxTheme {
         val backStack = rememberSaveableBackStack(CollectionScreen)
         val navigator = rememberCircuitNavigator(backStack, onRootPop = {})
-        CircuitCompositionLocals(circuit) {
-            NavigableCircuitContent(navigator, backStack)
-        }
+        CircuitCompositionLocals(circuit) { NavigableCircuitContent(navigator, backStack) }
     }
 }
 
@@ -46,21 +45,22 @@ private class MoreWaxPresenterFactory(private val graph: AppGraph) : Presenter.F
         screen: Screen,
         navigator: Navigator,
         context: CircuitContext,
-    ): Presenter<*>? = when (screen) {
-        is CollectionScreen -> CollectionPresenter(graph.recordsRepository, navigator)
-        is RecordDetailScreen -> RecordDetailPresenter(screen, graph.recordsRepository, navigator)
-        else -> null
-    }
+    ): Presenter<*>? =
+        when (screen) {
+            is CollectionScreen -> CollectionPresenter(graph.recordsRepository, navigator)
+            is RecordDetailScreen ->
+                RecordDetailPresenter(screen, graph.recordsRepository, navigator)
+            else -> null
+        }
 }
 
 private class MoreWaxUiFactory : Ui.Factory {
-    override fun create(screen: Screen, context: CircuitContext): Ui<*>? = when (screen) {
-        is CollectionScreen -> ui<CollectionScreen.State> { state, modifier ->
-            CollectionUi(state, modifier)
+    override fun create(screen: Screen, context: CircuitContext): Ui<*>? =
+        when (screen) {
+            is CollectionScreen ->
+                ui<CollectionScreen.State> { state, modifier -> CollectionUi(state, modifier) }
+            is RecordDetailScreen ->
+                ui<RecordDetailScreen.State> { state, modifier -> RecordDetailUi(state, modifier) }
+            else -> null
         }
-        is RecordDetailScreen -> ui<RecordDetailScreen.State> { state, modifier ->
-            RecordDetailUi(state, modifier)
-        }
-        else -> null
-    }
 }

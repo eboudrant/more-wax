@@ -39,13 +39,11 @@ data class AddRecordResponse(
     val existing: RecordDto? = null,
 )
 
-@Serializable
-data class SimpleResponse(val success: Boolean = false)
+@Serializable data class SimpleResponse(val success: Boolean = false)
 
 // ── Discogs Search ─────────────────────────────────────────
 
-@Serializable
-data class SearchResponse(val results: List<SearchResultDto> = emptyList())
+@Serializable data class SearchResponse(val results: List<SearchResultDto> = emptyList())
 
 @Serializable
 data class SearchResultDto(
@@ -101,11 +99,14 @@ data class RefreshPricesResponse(
 
 // ── Image Endpoints ────────────────────────────────────────
 
-@Serializable
-data class UploadCoverResponse(val path: String = "", val success: Boolean = false)
+@Serializable data class UploadCoverResponse(val path: String = "", val success: Boolean = false)
 
 @Serializable
-data class ConvertImageResponse(val image: String = "", val success: Boolean = false, val error: String = "")
+data class ConvertImageResponse(
+    val image: String = "",
+    val success: Boolean = false,
+    val error: String = "",
+)
 
 @Serializable
 data class IdentifyCoverResponse(

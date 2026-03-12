@@ -54,9 +54,10 @@ fun RecordDetailUi(state: RecordDetailScreen.State, modifier: Modifier = Modifie
         topBar = {
             TopAppBar(
                 title = { Text("Record Detail") },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                ),
+                colors =
+                    TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer
+                    ),
                 navigationIcon = {
                     IconButton(onClick = { onEvent(RecordDetailScreen.Event.NavigateBack) }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
@@ -66,12 +67,14 @@ fun RecordDetailUi(state: RecordDetailScreen.State, modifier: Modifier = Modifie
         },
     ) { padding ->
         when {
-            state.isLoading -> Box(Modifier.fillMaxSize().padding(padding), Alignment.Center) {
-                CircularProgressIndicator()
-            }
-            state.error != null -> Box(Modifier.fillMaxSize().padding(padding), Alignment.Center) {
-                Text(state.error, color = MaterialTheme.colorScheme.error)
-            }
+            state.isLoading ->
+                Box(Modifier.fillMaxSize().padding(padding), Alignment.Center) {
+                    CircularProgressIndicator()
+                }
+            state.error != null ->
+                Box(Modifier.fillMaxSize().padding(padding), Alignment.Center) {
+                    Text(state.error, color = MaterialTheme.colorScheme.error)
+                }
             state.record != null -> RecordContent(state.record, onEvent, Modifier.padding(padding))
         }
 
@@ -97,7 +100,11 @@ fun RecordDetailUi(state: RecordDetailScreen.State, modifier: Modifier = Modifie
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun RecordContent(record: Record, onEvent: (RecordDetailScreen.Event) -> Unit, modifier: Modifier) {
+private fun RecordContent(
+    record: Record,
+    onEvent: (RecordDetailScreen.Event) -> Unit,
+    modifier: Modifier,
+) {
     Column(modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
         // Cover
         if (record.coverPath.isNotEmpty()) {
@@ -109,16 +116,25 @@ private fun RecordContent(record: Record, onEvent: (RecordDetailScreen.Event) ->
             )
         } else {
             Box(Modifier.fillMaxWidth().height(200.dp), Alignment.Center) {
-                Icon(Icons.Default.Album, null, Modifier.size(80.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f))
+                Icon(
+                    Icons.Default.Album,
+                    null,
+                    Modifier.size(80.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f),
+                )
             }
         }
 
         Column(Modifier.padding(16.dp)) {
-            Text(record.artist, style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text(record.title, style = MaterialTheme.typography.headlineSmall
-                .copy(fontWeight = FontWeight.Bold))
+            Text(
+                record.artist,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
+                record.title,
+                style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+            )
 
             Spacer(Modifier.height(12.dp))
             MetaRow("Year", record.year)
@@ -154,8 +170,11 @@ private fun RecordContent(record: Record, onEvent: (RecordDetailScreen.Event) ->
                 PriceRow("Median", record.priceMedian, record.priceCurrency)
                 PriceRow("High", record.priceHigh, record.priceCurrency)
                 record.numForSale?.let {
-                    Text("$it for sale", style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        "$it for sale",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
             }
 
@@ -181,7 +200,10 @@ private fun RecordContent(record: Record, onEvent: (RecordDetailScreen.Event) ->
                 }
                 Button(
                     onClick = { onEvent(RecordDetailScreen.Event.Delete) },
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                    colors =
+                        ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.error
+                        ),
                 ) {
                     Icon(Icons.Default.Delete, null, Modifier.size(18.dp))
                     Spacer(Modifier.width(6.dp))
@@ -196,10 +218,15 @@ private fun RecordContent(record: Record, onEvent: (RecordDetailScreen.Event) ->
 @Composable
 private fun MetaRow(label: String, value: String) {
     if (value.isNotEmpty()) {
-        Row(Modifier.fillMaxWidth().padding(vertical = 2.dp),
-            horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(label, style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Row(
+            Modifier.fillMaxWidth().padding(vertical = 2.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Text(
+                label,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
             Text(value, style = MaterialTheme.typography.bodySmall)
         }
     }
@@ -208,20 +235,30 @@ private fun MetaRow(label: String, value: String) {
 @Composable
 private fun PriceRow(label: String, price: Double?, currency: String) {
     if (price != null) {
-        val symbol = when (currency) {
-            "USD" -> "$"; "EUR" -> "\u20AC"; "GBP" -> "\u00A3"; "JPY" -> "\u00A5"
-            else -> "$currency "
-        }
-        Row(Modifier.fillMaxWidth().padding(vertical = 1.dp),
-            horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(label, style = MaterialTheme.typography.bodySmall)
-            val formatted = ((price * 100).toLong() / 100.0).let { rounded ->
-                val whole = rounded.toLong()
-                val frac = ((rounded - whole) * 100 + 0.5).toInt()
-                "$whole.${frac.toString().padStart(2, '0')}"
+        val symbol =
+            when (currency) {
+                "USD" -> "$"
+                "EUR" -> "\u20AC"
+                "GBP" -> "\u00A3"
+                "JPY" -> "\u00A5"
+                else -> "$currency "
             }
-            Text("$symbol$formatted", style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.primary)
+        Row(
+            Modifier.fillMaxWidth().padding(vertical = 1.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Text(label, style = MaterialTheme.typography.bodySmall)
+            val formatted =
+                ((price * 100).toLong() / 100.0).let { rounded ->
+                    val whole = rounded.toLong()
+                    val frac = ((rounded - whole) * 100 + 0.5).toInt()
+                    "$whole.${frac.toString().padStart(2, '0')}"
+                }
+            Text(
+                "$symbol$formatted",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.primary,
+            )
         }
     }
 }
