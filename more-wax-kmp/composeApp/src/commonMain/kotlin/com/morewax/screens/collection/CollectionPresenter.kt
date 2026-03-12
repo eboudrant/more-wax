@@ -19,7 +19,6 @@ import dev.zacsweers.metro.Assisted
 import dev.zacsweers.metro.AssistedFactory
 import dev.zacsweers.metro.AssistedInject
 import kotlinx.coroutines.launch
-import kotlinx.io.IOException
 
 @AssistedInject
 class CollectionPresenter(
@@ -27,6 +26,9 @@ class CollectionPresenter(
     @Assisted private val navigator: Navigator,
 ) : Presenter<CollectionScreen.State> {
 
+    @Suppress(
+        "TooGenericExceptionCaught"
+    ) // Ktor throws a mix of ClientRequestException, JsonConvertException, IOException etc.
     @Composable
     override fun present(): CollectionScreen.State {
         var records by remember { mutableStateOf(emptyList<Record>()) }
@@ -39,7 +41,8 @@ class CollectionPresenter(
         LaunchedEffect(Unit) {
             try {
                 records = repository.getCollection()
-            } catch (e: IOException) {
+            } catch (e: Exception) {
+                e.printStackTrace()
                 error = e.message ?: "Failed to load collection"
             }
             isLoading = false
@@ -90,7 +93,8 @@ class CollectionPresenter(
                         isLoading = true
                         try {
                             records = repository.getCollection()
-                        } catch (e: IOException) {
+                        } catch (e: Exception) {
+                            e.printStackTrace()
                             error = e.message
                         }
                         isLoading = false

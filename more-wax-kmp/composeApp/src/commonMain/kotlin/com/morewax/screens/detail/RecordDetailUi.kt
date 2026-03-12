@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -114,8 +115,8 @@ private fun RecordContent(
             AsyncImage(
                 model = record.coverPath,
                 contentDescription = "${record.artist} \u2013 ${record.title}",
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxWidth().height(300.dp),
+                contentScale = ContentScale.Fit,
+                modifier = Modifier.fillMaxWidth().aspectRatio(1f),
             )
         } else {
             Box(Modifier.fillMaxWidth().height(200.dp), Alignment.Center) {
