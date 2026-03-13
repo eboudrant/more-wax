@@ -33,21 +33,7 @@ data class Record(
     val displayPrice: String?
         get() {
             val p = priceMedian ?: priceLow ?: return null
-            val symbol =
-                when (priceCurrency) {
-                    "USD" -> "$"
-                    "EUR" -> "\u20AC"
-                    "GBP" -> "\u00A3"
-                    "JPY" -> "\u00A5"
-                    else -> "$priceCurrency "
-                }
-            val formatted =
-                ((p * CENTS).toLong() / CENTS_DOUBLE).let { rounded ->
-                    val whole = rounded.toLong()
-                    val frac = ((rounded - whole) * CENTS + ROUND_HALF).toInt()
-                    "$whole.${frac.toString().padStart(2, '0')}"
-                }
-            return "$symbol$formatted"
+            return formatPrice(p, priceCurrency)
         }
 
     companion object {
@@ -55,6 +41,25 @@ data class Record(
         private const val CENTS_DOUBLE = 100.0
         private const val ROUND_HALF = 0.5
         private val json = Json { ignoreUnknownKeys = true }
+
+        /** Formats [price] with its [currency] symbol and 2 decimal places. */
+        fun formatPrice(price: Double, currency: String): String {
+            val symbol =
+                when (currency) {
+                    "USD" -> "$"
+                    "EUR" -> "\u20AC"
+                    "GBP" -> "\u00A3"
+                    "JPY" -> "\u00A5"
+                    else -> "$currency "
+                }
+            val formatted =
+                ((price * CENTS).toLong() / CENTS_DOUBLE).let { rounded ->
+                    val whole = rounded.toLong()
+                    val frac = ((rounded - whole) * CENTS + ROUND_HALF).toInt()
+                    "$whole.${frac.toString().padStart(2, '0')}"
+                }
+            return "$symbol$formatted"
+        }
 
         fun fromDto(dto: RecordDto): Record =
             Record(
@@ -81,11 +86,16 @@ data class Record(
                 addedAt = dto.addedAt.orEmpty(),
             )
 
+        @Suppress("TooGenericExceptionCaught")
         private fun parseJsonList(raw: String?): List<String> {
             if (raw.isNullOrEmpty()) return emptyList()
             return try {
                 json.decodeFromString<List<String>>(raw)
-            } catch (_: Exception) {
+            } catch (e: Exception) {
+                // The server occasionally stores genres/styles as a plain comma-separated
+                // string rather than a JSON array; returning empty is preferable to crashing
+                // the entire record mapping over a non-critical field.
+                println("parseJsonList: failed to decode '$raw': $e")
                 emptyList()
             }
         }

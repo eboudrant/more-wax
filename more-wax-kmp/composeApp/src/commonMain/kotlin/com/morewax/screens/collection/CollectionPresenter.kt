@@ -18,6 +18,8 @@ import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.Assisted
 import dev.zacsweers.metro.AssistedFactory
 import dev.zacsweers.metro.AssistedInject
+import io.ktor.client.plugins.ResponseException
+import io.ktor.serialization.JsonConvertException
 import kotlinx.coroutines.launch
 import kotlinx.io.IOException
 
@@ -37,11 +39,7 @@ class CollectionPresenter(
         val scope = rememberCoroutineScope()
 
         LaunchedEffect(Unit) {
-            try {
-                records = repository.getCollection()
-            } catch (e: IOException) {
-                error = e.message ?: "Failed to load collection"
-            }
+            error = loadRecords { records = it }
             isLoading = false
         }
 
@@ -88,16 +86,25 @@ class CollectionPresenter(
                 is CollectionScreen.Event.Refresh ->
                     scope.launch {
                         isLoading = true
-                        try {
-                            records = repository.getCollection()
-                        } catch (e: IOException) {
-                            error = e.message
-                        }
+                        error = loadRecords { records = it }
                         isLoading = false
                     }
             }
         }
     }
+
+    /** Returns an error message string on failure, null on success. */
+    private suspend fun loadRecords(onSuccess: (List<Record>) -> Unit): String? =
+        try {
+            onSuccess(repository.getCollection())
+            null
+        } catch (e: ResponseException) {
+            e.message ?: "Server error"
+        } catch (e: JsonConvertException) {
+            e.message ?: "Invalid response from server"
+        } catch (e: IOException) {
+            e.message ?: "Network error"
+        }
 
     @CircuitInject(CollectionScreen::class, AppScope::class)
     @AssistedFactory

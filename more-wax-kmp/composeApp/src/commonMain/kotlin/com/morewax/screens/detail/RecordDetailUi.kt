@@ -111,12 +111,15 @@ private fun RecordContent(
     Column(modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
         // Cover
         if (record.coverPath.isNotEmpty()) {
-            AsyncImage(
-                model = record.coverPath,
-                contentDescription = "${record.artist} \u2013 ${record.title}",
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxWidth().height(300.dp),
-            )
+            // ~30% of the default 768dp window height
+            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                AsyncImage(
+                    model = record.coverPath,
+                    contentDescription = "${record.artist} \u2013 ${record.title}",
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier.size(220.dp),
+                )
+            }
         } else {
             Box(Modifier.fillMaxWidth().height(200.dp), Alignment.Center) {
                 Icon(
@@ -238,27 +241,13 @@ private fun MetaRow(label: String, value: String) {
 @Composable
 private fun PriceRow(label: String, price: Double?, currency: String) {
     if (price != null) {
-        val symbol =
-            when (currency) {
-                "USD" -> "$"
-                "EUR" -> "\u20AC"
-                "GBP" -> "\u00A3"
-                "JPY" -> "\u00A5"
-                else -> "$currency "
-            }
         Row(
             Modifier.fillMaxWidth().padding(vertical = 1.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
             Text(label, style = MaterialTheme.typography.bodySmall)
-            val formatted =
-                ((price * 100).toLong() / 100.0).let { rounded ->
-                    val whole = rounded.toLong()
-                    val frac = ((rounded - whole) * 100 + 0.5).toInt()
-                    "$whole.${frac.toString().padStart(2, '0')}"
-                }
             Text(
-                "$symbol$formatted",
+                Record.formatPrice(price, currency),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.primary,
             )
