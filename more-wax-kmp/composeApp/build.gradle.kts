@@ -112,7 +112,7 @@ kotlin {
 configurations.all {
     resolutionStrategy.force(
         "org.jetbrains.skiko:skiko:0.9.37.3",
-        "org.jetbrains.skiko:skiko-awt:0.9.37.3",
+        "org.jetbrains.skiko:skiko-awt:0.144.4",
     )
 }
 
