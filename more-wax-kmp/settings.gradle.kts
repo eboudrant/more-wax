@@ -13,6 +13,15 @@ dependencyResolutionManagement {
     }
 }
 
+enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
+
 rootProject.name = "more-wax-kmp"
 
-include(":composeApp")
+include(":app")
+
+include(":core:common")
+include(":core:network")
+include(":core:domain")
+include(":core:navigation")
+include(":feature:collection")
+include(":feature:detail")
