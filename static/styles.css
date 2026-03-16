@@ -225,6 +225,15 @@ body {
   padding: 1px 5px;
   white-space: nowrap;
 }
+.record-rating-badge {
+  font-size: 0.66rem;
+  color: #f59e0b;
+  font-weight: 600;
+  background: rgba(245,158,11,.1);
+  border-radius: 4px;
+  padding: 1px 5px;
+  white-space: nowrap;
+}
 
 /* ── EMPTY STATE ─────────────────────────────────────────── */
 #collection-empty {

@@ -19,14 +19,14 @@ async function loadCollection() {
 // Ask the server to batch-refresh all stale prices (rate-limited server-side).
 // Runs once per session; server processes in background, we poll to get results.
 async function _backgroundRefreshPrices() {
-  const stale = collection.filter(r => r.discogs_id && (!r.price_median || !r.price_high));
+  const stale = collection.filter(r => r.discogs_id && (!r.price_median || !r.price_high || !r.rating_average));
   if (!stale.length) return;
   try {
     const res = await apiPost('/api/collection/refresh-prices', {});
     if (res.total_stale > 0) {
       console.log(`Background price refresh started: ${res.total_stale} stale records`);
       // Poll for fresh data after estimated completion (1.5s per record, check halfway + end)
-      const delay = Math.min(res.total_stale * 1500, 30000);
+      const delay = Math.min(res.total_stale * 2500, 45000);
       setTimeout(async () => {
         try {
           collection = await apiGet('/api/collection');
@@ -105,6 +105,7 @@ function renderCollection() {
           <div class="record-artist">${esc(r.artist)}</div>
           <div class="record-meta-row">
             <span class="record-year">${r.year || ''}</span>
+            ${ratingBadge(r)}
             ${r.price_median && !isNaN(parseFloat(r.price_median))
               ? `<span class="record-price-badge">${r.price_currency || 'USD'}&nbsp;${parseFloat(r.price_median).toFixed(0)} <span style="font-size:.7em;opacity:.7;font-weight:400">med</span></span>`
               : r.price_low && !isNaN(parseFloat(r.price_low))
