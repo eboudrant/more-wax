@@ -158,7 +158,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
             "discogs_id", "title", "artist", "year", "label",
             "catalog_number", "format", "genres", "styles",
             "country", "notes", "cover_image_url", "local_cover", "barcode",
-            "price_low", "price_median", "price_high", "price_currency", "num_for_sale"
+            "price_low", "price_median", "price_high", "price_currency", "num_for_sale",
+            "rating_average", "rating_count"
         )
         record = {k: data[k] for k in allowed if k in data}
         record.setdefault("title",  "")
@@ -178,7 +179,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
         allowed = ("title", "artist", "year", "label", "notes",
                    "local_cover", "cover_image_url",
                    "price_low", "price_median", "price_high",
-                   "price_currency", "num_for_sale")
+                   "price_currency", "num_for_sale",
+                   "rating_average", "rating_count")
         fields = {k: data[k] for k in allowed if k in data}
         ok = db_update(rid, fields)
         self.send_json({"success": ok})
@@ -225,7 +227,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
     def _api_refresh_all_prices(self):
         """Refresh prices for all stale records. Runs in background thread."""
         records = db_list()
-        stale = [r for r in records if r.get("discogs_id") and (not r.get("price_median") or not r.get("price_high"))]
+        stale = [r for r in records if r.get("discogs_id") and (not r.get("price_median") or not r.get("price_high") or not r.get("rating_average"))]
 
         if not stale:
             self.send_json({"updated": 0, "total_stale": 0})
@@ -235,15 +237,16 @@ class Handler(http.server.BaseHTTPRequestHandler):
             updated = 0
             for r in stale:
                 try:
-                    prices = discogs_refresh_prices(r["discogs_id"])
-                    if any(prices.get(k) for k in ("price_low", "price_median", "price_high")):
+                    needs_rating = not r.get("rating_average")
+                    prices = discogs_refresh_prices(r["discogs_id"], fetch_rating=needs_rating)
+                    if any(prices.get(k) for k in ("price_low", "price_median", "price_high", "rating_average")):
                         db_update(r["id"], prices)
                         updated += 1
                 except Exception as e:
                     if "429" in str(e):
                         print(f"  ⚠️ Rate limit hit after {updated} updates, stopping")
                         break
-                time.sleep(1.5)  # respect rate limits
+                time.sleep(2.5)  # respect rate limits (3 calls per record when rating needed)
             print(f"  📊 Background price refresh done: {updated}/{len(stale)} updated")
 
         t = threading.Thread(target=_do_refresh, daemon=True)

@@ -32,7 +32,7 @@ function _renderDetailBody(r) {
         ${metaRow('Format',  r.format)}
         ${metaRow('Country', r.country)}
         ${metaRow('Barcode', r.barcode)}
-        <div id="detail-rating-area">${typeof ratingStars === 'function' ? ratingStars(r.rating_average, r.rating_count) : ''}</div>
+        <div id="detail-rating-area">${ratingStars(r.rating_average, r.rating_count)}</div>
         <div id="detail-price-area">${hasPrices ? priceRow(r) : (r.discogs_id ? '<div class="meta-row" style="color:var(--muted);font-size:.82rem"><i class="bi bi-arrow-repeat me-1"></i>Fetching prices…</div>' : '')}</div>
 
         ${genres.length ? `
@@ -229,7 +229,7 @@ async function _refreshDetailPrices(r) {
       const priceArea = document.getElementById('detail-price-area');
       if (priceArea) priceArea.innerHTML = priceRow(r);
       const ratingArea = document.getElementById('detail-rating-area');
-      if (ratingArea && typeof ratingStars === 'function') ratingArea.innerHTML = ratingStars(r.rating_average, r.rating_count);
+      if (ratingArea) ratingArea.innerHTML = ratingStars(r.rating_average, r.rating_count);
 
       // Update just this card's badges in-place (no full re-render)
       _updateCardBadge(r);
@@ -261,15 +261,13 @@ function _updateCardBadge(r) {
   if (priceBadge) priceBadge.outerHTML = newPriceBadge;
   else if (newPriceBadge) metaRowEl.insertAdjacentHTML('beforeend', newPriceBadge);
 
-  // Update rating badge (if rating feature is present)
-  if (typeof ratingBadge === 'function') {
-    const rBadge = card.querySelector('.record-rating-badge');
-    const newRatingBadge = ratingBadge(r);
-    if (rBadge) rBadge.outerHTML = newRatingBadge;
-    else if (newRatingBadge) {
-      const yearEl = card.querySelector('.record-year');
-      if (yearEl) yearEl.insertAdjacentHTML('afterend', newRatingBadge);
-    }
+  // Update rating badge
+  const rBadge = card.querySelector('.record-rating-badge');
+  const newRatingBadge = ratingBadge(r);
+  if (rBadge) rBadge.outerHTML = newRatingBadge;
+  else if (newRatingBadge) {
+    const yearEl = card.querySelector('.record-year');
+    if (yearEl) yearEl.insertAdjacentHTML('afterend', newRatingBadge);
   }
 }
 

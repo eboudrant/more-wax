@@ -57,6 +57,40 @@ function priceRow(r, compact = false) {
     </div>`;
 }
 
+function ratingStars(avg, count, compact = false) {
+  const n = parseFloat(avg);
+  if (!n || isNaN(n)) return '';
+  const c = parseInt(count) || 0;
+
+  // Build 5 stars: full, half, empty
+  let stars = '';
+  for (let i = 1; i <= 5; i++) {
+    if (n >= i)           stars += '<i class="bi bi-star-fill" style="color:#f59e0b"></i>';
+    else if (n >= i - 0.5) stars += '<i class="bi bi-star-half" style="color:#f59e0b"></i>';
+    else                   stars += '<i class="bi bi-star" style="color:var(--border)"></i>';
+  }
+
+  if (compact) {
+    return `<span style="font-size:.72rem;display:inline-flex;align-items:center;gap:3px" title="${n.toFixed(2)}/5 from ${c} ratings">${stars}<span style="color:var(--muted);font-size:.68rem">${n.toFixed(1)}</span></span>`;
+  }
+
+  return `
+    <div class="meta-row">
+      <span class="label">Rating</span>
+      <span class="value" style="display:flex;align-items:center;gap:6px;font-size:.85rem">
+        ${stars}
+        <span style="font-weight:600">${n.toFixed(2)}</span>
+        <span style="color:var(--muted);font-size:.75rem">(${c} votes)</span>
+      </span>
+    </div>`;
+}
+
+function ratingBadge(r) {
+  const n = parseFloat(r.rating_average);
+  if (!n || isNaN(n)) return '';
+  return `<span class="record-rating-badge" title="${n.toFixed(2)}/5"><i class="bi bi-star-fill" style="color:#f59e0b;font-size:.6em"></i> ${n.toFixed(1)}</span>`;
+}
+
 function metaRow(label, value) {
   if (!value) return '';
   return `
