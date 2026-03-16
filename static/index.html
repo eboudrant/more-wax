@@ -85,13 +85,19 @@
   <div class="modal-dialog modal-lg modal-dialog-scrollable">
     <div class="modal-content">
       <div class="modal-header">
+        <div class="detail-nav">
+          <button class="btn btn-sm btn-ghost" id="detail-prev" onclick="_navigateDetail(-1)" title="Previous">
+            <i class="bi bi-chevron-left"></i>
+          </button>
+          <span class="detail-nav-pos" id="detail-pos"></span>
+          <button class="btn btn-sm btn-ghost" id="detail-next" onclick="_navigateDetail(1)" title="Next">
+            <i class="bi bi-chevron-right"></i>
+          </button>
+        </div>
         <h5 class="modal-title" id="detail-title">Record Detail</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body" id="detail-body"></div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-ghost" data-bs-dismiss="modal">Close</button>
-      </div>
     </div>
   </div>
 </div>

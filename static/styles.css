@@ -278,8 +278,38 @@ body {
   border-top: 1px solid var(--border);
   padding: 12px 16px;
 }
-.modal-title { font-weight: 700; color: var(--accent); font-size: 1rem; }
+.modal-title { font-weight: 700; color: var(--accent); font-size: 1rem; flex: 1; min-width: 0; }
 .btn-close { filter: invert(1); }
+
+/* ── DETAIL NAV (pager arrows + position) ─────────────────── */
+.detail-nav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-right: 10px;
+  flex-shrink: 0;
+}
+.detail-nav .btn { padding: 2px 6px; font-size: .85rem; line-height: 1; }
+.detail-nav .btn:disabled { opacity: .25; pointer-events: none; }
+.detail-nav-pos {
+  font-size: .72rem;
+  color: var(--muted);
+  min-width: 42px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+/* ── DETAIL SLIDE TRANSITIONS ─────────────────────────────── */
+#detail-body { will-change: transform, opacity; }
+.detail-slide-out-left  { animation: slideOutLeft  150ms ease-in forwards; }
+.detail-slide-out-right { animation: slideOutRight 150ms ease-in forwards; }
+.detail-slide-in-right  { animation: slideInRight  200ms ease-out; }
+.detail-slide-in-left   { animation: slideInLeft   200ms ease-out; }
+
+@keyframes slideOutLeft  { to { transform: translateX(-40px); opacity: 0; } }
+@keyframes slideOutRight { to { transform: translateX(40px);  opacity: 0; } }
+@keyframes slideInRight  { from { transform: translateX(40px);  opacity: 0; } }
+@keyframes slideInLeft   { from { transform: translateX(-40px); opacity: 0; } }
 
 /* Full-screen modals on small screens */
 @media (max-width: 575px) {
