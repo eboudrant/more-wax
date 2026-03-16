@@ -131,6 +131,12 @@ def discogs_release_full(release_id: str) -> dict:
             barcode_val = ident.get("value", "")
             break
 
+    # Community rating
+    community = release.get("community") or {}
+    rating_info = community.get("rating") or {}
+    rating_average = rating_info.get("average", 0)
+    rating_count = rating_info.get("count", 0)
+
     return {
         "discogs_id":      str(release.get("id", "")),
         "title":           release.get("title", ""),
@@ -149,14 +155,21 @@ def discogs_release_full(release_id: str) -> dict:
         "price_high":      price_high,
         "price_currency":  price_currency,
         "num_for_sale":    num_for_sale,
+        "rating_average":  str(rating_average) if rating_average else "",
+        "rating_count":    str(rating_count) if rating_count else "",
         "already_in_discogs": already_in_discogs,
     }
 
 
-def discogs_refresh_prices(release_id: str) -> dict:
-    """Fetch just the prices for a release (stats + suggestions)."""
+def discogs_refresh_prices(release_id: str, fetch_rating: bool = True) -> dict:
+    """Fetch prices (and optionally rating) for a release.
+
+    Set fetch_rating=False to skip the extra /releases/ call when the
+    rating is already known — saves one API hit per record.
+    """
     prices = {"price_low": "", "price_median": "", "price_high": "",
-              "price_currency": "USD", "num_for_sale": ""}
+              "price_currency": "USD", "num_for_sale": "",
+              "rating_average": "", "rating_count": ""}
     try:
         stats = _discogs_request("GET", f"/marketplace/stats/{release_id}")
         lp = stats.get("lowest_price") or {}
@@ -179,6 +192,21 @@ def discogs_refresh_prices(release_id: str) -> dict:
             prices["price_high"] = str(nm["value"])
     except Exception as e:
         print(f"  ⚠️ [discogs] suggestions failed for {release_id}: {e}")
+
+    # Only fetch rating when needed (costs one extra API call)
+    if fetch_rating:
+        try:
+            release = _discogs_request("GET", f"/releases/{release_id}")
+            community = release.get("community") or {}
+            rating_info = community.get("rating") or {}
+            avg = rating_info.get("average", 0)
+            cnt = rating_info.get("count", 0)
+            if avg:
+                prices["rating_average"] = str(avg)
+            if cnt:
+                prices["rating_count"] = str(cnt)
+        except Exception as e:
+            print(f"  ⚠️ [discogs] release rating failed for {release_id}: {e}")
 
     return prices
 

@@ -242,6 +242,7 @@ function renderConfirmStep() {
         ${metaRow('Format',  r.format)}
         ${metaRow('Country', r.country)}
         ${r.barcode ? metaRow('Barcode', r.barcode) : ''}
+        ${ratingStars(r.rating_average, r.rating_count)}
         ${priceRow(r, true)}
 
         ${genres.length ? `

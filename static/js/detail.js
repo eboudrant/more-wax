@@ -28,6 +28,7 @@ function _renderDetailBody(r) {
         ${metaRow('Format',  r.format)}
         ${metaRow('Country', r.country)}
         ${metaRow('Barcode', r.barcode)}
+        <div id="detail-rating-area">${ratingStars(r.rating_average, r.rating_count)}</div>
         <div id="detail-price-area">${hasPrices ? priceRow(r) : (r.discogs_id ? '<div class="meta-row" style="color:var(--muted);font-size:.82rem"><i class="bi bi-arrow-repeat me-1"></i>Fetching prices…</div>' : '')}</div>
 
         ${genres.length ? `
@@ -69,8 +70,8 @@ async function showDetail(id) {
   _renderDetailBody(r);
   new bootstrap.Modal(document.getElementById('detail-modal')).show();
 
-  // Auto-refresh prices if any are missing and we have a Discogs ID
-  if (r.discogs_id && (!r.price_median || !r.price_high)) {
+  // Auto-refresh prices/rating if any are missing and we have a Discogs ID
+  if (r.discogs_id && (!r.price_median || !r.price_high || !r.rating_average)) {
     _refreshDetailPrices(r);
   }
 }
@@ -81,23 +82,26 @@ async function _refreshDetailPrices(r) {
     if (prices.error) throw new Error(prices.error);
 
     let changed = false;
-    for (const k of ['price_low', 'price_median', 'price_high', 'price_currency', 'num_for_sale']) {
+    for (const k of ['price_low', 'price_median', 'price_high', 'price_currency', 'num_for_sale', 'rating_average', 'rating_count']) {
       if (prices[k]) { r[k] = prices[k]; changed = true; }
     }
 
     if (changed) {
-      // Persist fresh prices to backend
+      // Persist fresh prices + rating to backend
       await apiPut(`/api/collection/${r.id}`, {
         price_low: r.price_low || '', price_median: r.price_median || '',
         price_high: r.price_high || '', price_currency: r.price_currency || 'USD',
-        num_for_sale: r.num_for_sale || ''
+        num_for_sale: r.num_for_sale || '',
+        rating_average: r.rating_average || '', rating_count: r.rating_count || ''
       });
 
-      // Update the price area in the modal if it's still open
+      // Update the price + rating areas in the modal if it's still open
       const priceArea = document.getElementById('detail-price-area');
       if (priceArea) priceArea.innerHTML = priceRow(r);
+      const ratingArea = document.getElementById('detail-rating-area');
+      if (ratingArea) ratingArea.innerHTML = ratingStars(r.rating_average, r.rating_count);
 
-      // Update just this card's price badge in-place (no full re-render)
+      // Update just this card's badges in-place (no full re-render)
       _updateCardBadge(r);
     }
   } catch (e) {
@@ -113,17 +117,28 @@ async function _refreshDetailPrices(r) {
 function _updateCardBadge(r) {
   const card = document.querySelector(`[data-record-id="${r.id}"]`);
   if (!card) return;
-  const cur = r.price_currency || 'USD';
-  const badge = card.querySelector('.record-price-badge');
   const metaRowEl = card.querySelector('.record-meta-row');
   if (!metaRowEl) return;
-  const newBadge = r.price_median && !isNaN(parseFloat(r.price_median))
+
+  // Update price badge
+  const cur = r.price_currency || 'USD';
+  const priceBadge = card.querySelector('.record-price-badge');
+  const newPriceBadge = r.price_median && !isNaN(parseFloat(r.price_median))
     ? `<span class="record-price-badge">${cur}&nbsp;${parseFloat(r.price_median).toFixed(0)} <span style="font-size:.7em;opacity:.7;font-weight:400">med</span></span>`
     : r.price_low && !isNaN(parseFloat(r.price_low))
       ? `<span class="record-price-badge" style="opacity:.75">${cur}&nbsp;${parseFloat(r.price_low).toFixed(0)} <span style="font-size:.7em;opacity:.7;font-weight:400">low</span></span>`
       : '';
-  if (badge) badge.outerHTML = newBadge;
-  else if (newBadge) metaRowEl.insertAdjacentHTML('beforeend', newBadge);
+  if (priceBadge) priceBadge.outerHTML = newPriceBadge;
+  else if (newPriceBadge) metaRowEl.insertAdjacentHTML('beforeend', newPriceBadge);
+
+  // Update rating badge
+  const rBadge = card.querySelector('.record-rating-badge');
+  const newRatingBadge = ratingBadge(r);
+  if (rBadge) rBadge.outerHTML = newRatingBadge;
+  else if (newRatingBadge) {
+    const yearEl = card.querySelector('.record-year');
+    if (yearEl) yearEl.insertAdjacentHTML('afterend', newRatingBadge);
+  }
 }
 
 async function confirmDelete(id) {
