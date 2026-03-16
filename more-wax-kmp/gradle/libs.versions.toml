@@ -1,5 +1,5 @@
 [versions]
-kotlin = "2.3.10"
+kotlin = "2.3.20"
 compose-multiplatform = "1.10.2"
 agp = "8.13.2"
 circuit = "0.33.1"
