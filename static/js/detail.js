@@ -4,61 +4,52 @@
 function _renderDetailBody(r) {
   const cover    = r.local_cover || r.cover_image_url;
   const coverHtml = cover
-    ? `<img src="${esc(cover)}" class="detail-cover mb-3"
+    ? `<img src="${esc(cover)}" class="detail-cover"
             onerror="this.style.display='none'">`
-    : `<div class="cover-placeholder-large mb-3">
+    : `<div class="cover-placeholder-large">
          <i class="bi bi-vinyl display-1"></i>
        </div>`;
 
   const genres = parseList(r.genres);
   const styles = parseList(r.styles);
+  const tags = [...new Set([...genres, ...styles])];
   const hasPrices = r.price_median || r.price_high || r.price_low;
 
-  document.getElementById('detail-title').textContent = r.title;
   document.getElementById('detail-body').innerHTML = `
-    <div class="row g-4">
-      <div class="col-md-4 text-center">${coverHtml}</div>
-      <div class="col-md-8">
-        <h4 class="mb-0">${esc(r.title)}</h4>
-        <h5 class="text-muted mb-3">${esc(r.artist)}</h5>
-
-        ${metaRow('Year',    r.year)}
-        ${metaRow('Label',   r.label)}
-        ${metaRow('Cat #',   r.catalog_number)}
-        ${metaRow('Format',  r.format)}
-        ${metaRow('Country', r.country)}
-        ${metaRow('Barcode', r.barcode)}
-        <div id="detail-rating-area">${ratingStars(r.rating_average, r.rating_count)}</div>
-        <div id="detail-price-area">${hasPrices ? priceRow(r) : (r.discogs_id ? '<div class="meta-row" style="color:var(--muted);font-size:.82rem"><i class="bi bi-arrow-repeat me-1"></i>Fetching prices…</div>' : '')}</div>
-
-        ${genres.length ? `
-          <div class="meta-row">
-            <span class="label">Genres</span>
-            <span class="value">${genres.map(g => `<span class="genre-pill">${esc(g)}</span>`).join('')}</span>
-          </div>` : ''}
-        ${styles.length ? `
-          <div class="meta-row">
-            <span class="label">Styles</span>
-            <span class="value">${styles.map(s => `<span class="genre-pill">${esc(s)}</span>`).join('')}</span>
-          </div>` : ''}
-
-        ${r.notes ? `
-          <div class="mt-3">
-            <div class="label mb-1" style="color:var(--muted);font-size:.82rem">Notes</div>
-            <div style="font-size:.88rem">${esc(r.notes)}</div>
-          </div>` : ''}
-
-        <div class="mt-4 d-flex gap-2 flex-wrap">
-          ${r.discogs_id
-            ? `<a href="https://www.discogs.com/release/${r.discogs_id}" target="_blank"
-                  class="btn btn-sm btn-ghost">
-                 <i class="bi bi-box-arrow-up-right me-1"></i>View on Discogs
-               </a>`
-            : ''}
-          <button class="btn btn-sm btn-danger" onclick="confirmDelete(${r.id})">
-            <i class="bi bi-trash me-1"></i>Remove
-          </button>
+    <button type="button" class="detail-close-btn" data-bs-dismiss="modal" aria-label="Close">&times;</button>
+    ${coverHtml}
+    <div class="detail-info">
+      <div class="d-flex align-items-start gap-2">
+        <div class="flex-grow-1">
+          <h4 class="mb-0">${esc(r.title)}</h4>
+          <h5 class="mb-2" style="color:#9ca3af">${esc(r.artist)}</h5>
+          ${tags.length ? `<div class="mb-3 d-flex flex-wrap gap-2">${tags.map(t => `<span class="genre-pill">${esc(t)}</span>`).join('')}</div>` : ''}
         </div>
+        <button class="btn btn-sm btn-ghost flex-shrink-0" onclick="_copyDetailInfo(this, ${r.id})" title="Copy artist and title">
+          <i class="bi bi-clipboard"></i>
+        </button>
+        ${r.discogs_id ? `<a href="https://www.discogs.com/release/${r.discogs_id}" target="_blank" class="btn btn-sm btn-ghost flex-shrink-0" title="View on Discogs"><i class="bi bi-box-arrow-up-right"></i></a>` : ''}
+      </div>
+
+      ${metaRow('Year',    r.year)}
+      ${metaRow('Label',   r.label)}
+      ${metaRow('Cat #',   r.catalog_number)}
+      ${metaRow('Format',  r.format)}
+      ${metaRow('Country', r.country)}
+      ${metaRow('Barcode', r.barcode)}
+      <div id="detail-rating-area">${ratingStars(r.rating_average, r.rating_count)}</div>
+      <div id="detail-price-area">${hasPrices ? priceRow(r) : (r.discogs_id ? '<div class="meta-row" style="color:var(--muted);font-size:.82rem"><i class="bi bi-arrow-repeat me-1"></i>Fetching prices…</div>' : '')}</div>
+
+      ${r.notes ? `
+        <div class="mt-3">
+          <div class="label mb-1" style="color:var(--muted);font-size:.82rem">Notes</div>
+          <div style="font-size:.88rem">${esc(r.notes)}</div>
+        </div>` : ''}
+
+      <div class="mt-4 d-flex justify-content-end">
+        <button class="btn btn-sm btn-danger" onclick="confirmDelete(${r.id})">
+          <i class="bi bi-trash me-1"></i>Remove
+        </button>
       </div>
     </div>`;
 }
@@ -139,6 +130,45 @@ function _updateCardBadge(r) {
     const yearEl = card.querySelector('.record-year');
     if (yearEl) yearEl.insertAdjacentHTML('afterend', newRatingBadge);
   }
+}
+
+function _copyDetailInfo(btn, id) {
+  const r = collection.find(x => x.id === id);
+  if (!r) return;
+  const text = `${r.artist} - ${r.title}`;
+
+  function onSuccess() {
+    const icon = btn.querySelector('i');
+    icon.className = 'bi bi-clipboard-check';
+    btn.classList.add('text-success');
+    setTimeout(() => { icon.className = 'bi bi-clipboard'; btn.classList.remove('text-success'); }, 1500);
+  }
+
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(text).then(onSuccess).catch(() => _fallbackCopy(text, onSuccess));
+  } else {
+    _fallbackCopy(text, onSuccess);
+  }
+}
+
+function _fallbackCopy(text, cb) {
+  // Temporarily disable Bootstrap modal's enforceFocus so textarea can receive focus
+  const modalEl = document.getElementById('detail-modal');
+  const modal = bootstrap.Modal.getInstance(modalEl);
+  if (modal) { modal._config.focus = false; modalEl.removeEventListener('focusin', modal._focustrap?._handleFocusin); }
+
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.setAttribute('readonly', '');
+  ta.style.cssText = 'position:absolute;left:-9999px;top:-9999px';
+  modalEl.appendChild(ta);
+  ta.focus();
+  ta.select();
+  const ok = document.execCommand('copy');
+  modalEl.removeChild(ta);
+
+  if (modal) { modal._config.focus = true; }
+  if (ok) cb();
 }
 
 async function confirmDelete(id) {
