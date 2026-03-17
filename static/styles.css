@@ -1,12 +1,12 @@
 /* More'Wax – Mobile-first styles */
 
 :root {
-  --bg:        #0a0e1a;
-  --surface:   #111827;
-  --surface2:  #1a2235;
-  --border:    #253044;
-  --accent:    #60a5fa;
-  --accent2:   #3b82f6;
+  --bg:        #000000;
+  --surface:   #0a0a0a;
+  --surface2:  #161616;
+  --border:    #2a2a2a;
+  --accent:    #d1d5db;
+  --accent2:   #9ca3af;
   --text:      #e2e8f0;
   --muted:     #7b8ba3;
   --danger:    #f87171;
@@ -289,6 +289,27 @@ body {
 }
 .modal-title { font-weight: 700; color: var(--accent); font-size: 1rem; }
 .btn-close { filter: invert(1); }
+#detail-modal .modal-body { padding: 0; }
+#detail-modal .detail-info { padding: 16px; }
+.detail-close-btn {
+  position: sticky;
+  top: 8px;
+  float: right;
+  z-index: 10;
+  margin: 8px 8px -40px 0;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(0,0,0,.55);
+  color: #fff;
+  font-size: 1.2rem;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 
 /* Full-screen modals on small screens */
 @media (max-width: 575px) {
@@ -455,9 +476,15 @@ body {
 
 .detail-cover {
   width: 100%;
-  max-height: 260px;
-  object-fit: cover;
-  border-radius: 8px;
+  display: block;
+  border-radius: 0;
+}
+@media (min-width: 576px) {
+  .detail-cover {
+    max-height: 360px;
+    object-fit: contain;
+    background: #000;
+  }
 }
 .cover-placeholder-large {
   width: 100%;
@@ -511,6 +538,9 @@ body {
   border: 1px solid var(--border);
   color: var(--muted);
   min-height: var(--touch);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 .btn-ghost:hover { border-color: var(--text); color: var(--text); }
 

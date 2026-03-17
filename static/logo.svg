@@ -1,83 +1,27 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
-  <defs>
-    <radialGradient id="vinyl-grad" cx="50%" cy="50%" r="50%">
-      <stop offset="0%" stop-color="#1a1a2e"/>
-      <stop offset="30%" stop-color="#0f0f1a"/>
-      <stop offset="100%" stop-color="#0a0a12"/>
-    </radialGradient>
-    <radialGradient id="label-grad" cx="50%" cy="50%" r="50%">
-      <stop offset="0%" stop-color="#60a5fa"/>
-      <stop offset="100%" stop-color="#3b82f6"/>
-    </radialGradient>
-  </defs>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <!-- Label circle -->
+  <circle cx="100" cy="100" r="98" fill="#f0f0f0"/>
+  <circle cx="100" cy="100" r="98" fill="none" stroke="#ddd" stroke-width="1.5"/>
 
-  <!-- Vinyl record -->
-  <circle cx="200" cy="200" r="190" fill="url(#vinyl-grad)" stroke="#2a2a3e" stroke-width="2"/>
+  <!-- Inner ring -->
+  <circle cx="100" cy="100" r="82" fill="none" stroke="#ccc" stroke-width="0.6" opacity="0.7"/>
 
-  <!-- Grooves -->
-  <circle cx="200" cy="200" r="175" fill="none" stroke="#1a1a30" stroke-width="0.5" opacity="0.6"/>
-  <circle cx="200" cy="200" r="165" fill="none" stroke="#1a1a30" stroke-width="0.5" opacity="0.6"/>
-  <circle cx="200" cy="200" r="155" fill="none" stroke="#1a1a30" stroke-width="0.5" opacity="0.6"/>
-  <circle cx="200" cy="200" r="145" fill="none" stroke="#1a1a30" stroke-width="0.5" opacity="0.6"/>
-  <circle cx="200" cy="200" r="135" fill="none" stroke="#1a1a30" stroke-width="0.5" opacity="0.6"/>
-  <circle cx="200" cy="200" r="125" fill="none" stroke="#1a1a30" stroke-width="0.5" opacity="0.6"/>
-  <circle cx="200" cy="200" r="115" fill="none" stroke="#1a1a30" stroke-width="0.5" opacity="0.6"/>
-  <circle cx="200" cy="200" r="105" fill="none" stroke="#1a1a30" stroke-width="0.5" opacity="0.6"/>
-
-  <!-- Vinyl shine -->
-  <ellipse cx="160" cy="160" rx="80" ry="60" fill="white" opacity="0.03" transform="rotate(-30 160 160)"/>
-
-  <!-- Center label -->
-  <circle cx="200" cy="200" r="72" fill="url(#label-grad)"/>
-  <circle cx="200" cy="200" r="70" fill="url(#label-grad)" stroke="#7dd3fc" stroke-width="1.5" opacity="0.9"/>
-
-  <!-- Label inner ring -->
-  <circle cx="200" cy="200" r="58" fill="none" stroke="#1e3a5f" stroke-width="0.8" opacity="0.5"/>
-
-  <!-- Spindle hole -->
-  <circle cx="200" cy="200" r="6" fill="#0a0e1a"/>
-  <circle cx="200" cy="200" r="6" fill="none" stroke="#253044" stroke-width="1"/>
-
-  <!--
-    Hand-drawn block letterforms — Mo'Wax / Blue Note / Swifty style
-    Ultra-condensed, heavy, geometric, tight spacing
-    Each letter is a hand-built SVG path
-  -->
-  <g id="wordmark" fill="#0a0e1a" opacity="0.92">
-
-    <!-- ═══ MORE ═══ (top line, y: 170–194) -->
-
-    <!-- M -->
-    <path d="M 148,194 L 148,170 L 154,170 L 159,182 L 164,170 L 170,170 L 170,194 L 165,194 L 165,178 L 160,189 L 158,189 L 153,178 L 153,194 Z"/>
-
-    <!-- O -->
-    <path d="M 174,170 L 188,170 L 188,194 L 174,194 Z M 179,175 L 179,189 L 183,189 L 183,175 Z" fill-rule="evenodd"/>
-
-    <!-- R -->
-    <path d="M 192,170 L 206,170 L 206,180 L 201,182 L 206,194 L 200,194 L 196,182 L 197,182 L 197,175 L 201,175 L 201,178 L 197,178 L 197,194 L 192,194 Z"/>
-
-    <!-- E -->
-    <path d="M 210,170 L 224,170 L 224,175 L 215,175 L 215,179 L 222,179 L 222,184 L 215,184 L 215,189 L 224,189 L 224,194 L 210,194 Z"/>
-
-    <!-- Apostrophe -->
-    <rect x="228" y="170" width="4" height="8" rx="1"/>
-
-    <!-- ═══ WAX ═══ (bottom line, y: 200–228) -->
-
-    <!-- W -->
-    <path d="M 147,200 L 153,200 L 156,218 L 160,206 L 164,206 L 168,218 L 171,200 L 177,200 L 170,228 L 164,228 L 162,220 L 160,228 L 154,228 Z"/>
-
-    <!-- A -->
-    <path d="M 180,228 L 186,200 L 194,200 L 200,228 L 194,228 L 193,222 L 187,222 L 186,228 Z M 188,217 L 192,217 L 190,207 Z" fill-rule="evenodd"/>
-
-    <!-- X -->
-    <path d="M 204,200 L 211,200 L 216,210 L 221,200 L 228,200 L 220,214 L 228,228 L 221,228 L 216,218 L 211,228 L 204,228 L 212,214 Z"/>
-
+  <!-- Record name: MORE'WAX -->
+  <g fill="#111">
+    <!-- MORE' — top -->
+    <text font-family="'Helvetica Neue', Arial, sans-serif" font-weight="800" font-size="24" letter-spacing="2" text-anchor="middle" x="100" y="72">MORE'</text>
+    <!-- WAX — bottom, larger -->
+    <text font-family="'Helvetica Neue', Arial, sans-serif" font-weight="900" font-size="36" letter-spacing="4" text-anchor="middle" x="100" y="155">WAX</text>
   </g>
 
-  <!-- Ring text -->
-  <path id="label-ring" d="M 200 132 A 68 68 0 1 1 199.99 132" fill="none"/>
-  <text font-family="'Helvetica Neue', Arial, sans-serif" font-size="7" fill="#1e3a5f" opacity="0.6" letter-spacing="3">
-    <textPath href="#label-ring" startOffset="10%">VINYL COLLECTION MANAGER</textPath>
-  </text>
+  <!-- Thin separator lines -->
+  <line x1="55" y1="78" x2="145" y2="78" stroke="#bbb" stroke-width="0.6" opacity="0.5"/>
+  <line x1="55" y1="120" x2="145" y2="120" stroke="#bbb" stroke-width="0.6" opacity="0.5"/>
+
+  <!-- Small label info text -->
+  <text font-family="'Helvetica Neue', Arial, sans-serif" font-size="6" fill="#999" text-anchor="middle" x="100" y="170" letter-spacing="2">VINYL COLLECTION</text>
+
+  <!-- Spindle hole -->
+  <circle cx="100" cy="100" r="5" fill="#333"/>
+  <circle cx="100" cy="100" r="5" fill="none" stroke="#bbb" stroke-width="0.8"/>
 </svg>
