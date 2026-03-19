@@ -1,6 +1,6 @@
 [versions]
 kotlin = "2.3.20"
-compose-multiplatform = "1.10.2"
+compose-multiplatform = "1.10.3"
 agp = "8.13.2"
 circuit = "0.33.1"
 metro = "0.11.4"
