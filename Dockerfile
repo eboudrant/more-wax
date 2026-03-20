@@ -14,6 +14,8 @@ COPY server.py .
 
 RUN mkdir -p data && chown -R morewax:morewax /app
 
+ENV PYTHONUNBUFFERED=1
+
 USER morewax
 
 EXPOSE 8765 8766
