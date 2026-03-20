@@ -12,7 +12,8 @@ import urllib.error
 import urllib.parse
 from pathlib import Path
 
-from server.config import DATA_DIR, STATIC_DIR
+import server.discogs as _discogs_mod
+from server.config import ANTHROPIC_API_KEY, DATA_DIR, DISCOGS_TOKEN, STATIC_DIR
 from server.database import (
     _db_add_unlocked,
     _lock,
@@ -129,6 +130,15 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 self.send_file(f)
             else:
                 self._404()
+        elif p == "/api/status":
+            self.send_json(
+                {
+                    "discogs_connected": _discogs_mod._discogs_username is not None,
+                    "discogs_username": _discogs_mod._discogs_username,
+                    "discogs_token_set": bool(DISCOGS_TOKEN),
+                    "anthropic_key_set": bool(ANTHROPIC_API_KEY),
+                }
+            )
         elif p == "/api/collection":
             self.send_json(db_list())
         elif p.startswith("/api/collection/"):

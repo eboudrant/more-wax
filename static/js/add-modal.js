@@ -2,6 +2,41 @@
 //  SCANNER — full-screen camera-first add flow
 // ─────────────────────────────────────────────────────────────────
 
+// ── API key dialog ───────────────────────────────────────────
+function _showApiKeyDialog() {
+  // Avoid duplicates
+  if (document.getElementById('apikey-dialog')) return;
+  const overlay = document.createElement('div');
+  overlay.id = 'apikey-dialog';
+  overlay.style.cssText = `
+    position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center;
+    background:rgba(0,0,0,.6);backdrop-filter:blur(4px);
+  `;
+  overlay.innerHTML = `
+    <div style="background:var(--surface,#1c1c1e);border:1px solid var(--outline-v,#333);
+                border-radius:16px;padding:28px 24px;max-width:360px;width:90%;text-align:center">
+      <div style="font-size:2rem;margin-bottom:8px">🔑</div>
+      <h3 style="margin:0 0 8px;color:var(--on-surface,#fff);font-size:1.1rem">API Key Required</h3>
+      <p style="margin:0 0 16px;color:var(--muted,#aaa);font-size:.88rem;line-height:1.5">
+        Photo identification uses the Anthropic Claude API.<br>
+        Add your key to <code style="background:var(--surface-top,#2a2a2c);padding:2px 6px;border-radius:4px;font-size:.82rem">
+        .env</code> and restart the server.
+      </p>
+      <a href="https://console.anthropic.com/" target="_blank" rel="noopener"
+         style="display:inline-block;margin-bottom:12px;color:var(--accent,#d4a574);font-size:.85rem;text-decoration:underline">
+        Get an API key →
+      </a><br>
+      <button onclick="document.getElementById('apikey-dialog').remove()"
+              style="margin-top:4px;padding:10px 28px;border-radius:10px;border:none;
+                     background:var(--accent,#d4a574);color:#000;font-weight:600;font-size:.9rem;cursor:pointer">
+        OK
+      </button>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+}
+
 // ── Open / Close ─────────────────────────────────────────────
 function openScanner() {
   selectedRelease       = null;
@@ -103,6 +138,9 @@ function switchScannerMode(mode) {
     bottomA.classList.remove('hidden');
     startQuaggaPolling();
   } else if (mode === 'photo') {
+    if (_serverStatus && !_serverStatus.anthropic_key_set) {
+      _showApiKeyDialog(); return;
+    }
     frame.classList.add('photo-mode');
     frameWrap.classList.remove('hidden');
     scanLine.style.display = 'none';

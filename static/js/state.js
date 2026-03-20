@@ -13,3 +13,4 @@ let currentView     = 'dashboard'; // active view: dashboard | collection
 let scannerMode     = 'barcode';   // barcode | photo | search
 let quaggaPollTimer = null;        // interval ID for barcode polling
 let scannerOpen     = false;       // is scanner view visible?
+let _serverStatus   = null;       // cached /api/status response
