@@ -15,8 +15,21 @@ _lock = threading.Lock()
 
 def _load() -> dict:
     if DB_FILE.exists():
-        with open(DB_FILE) as f:
-            return json.load(f)
+        try:
+            with open(DB_FILE) as f:
+                data = json.load(f)
+            if isinstance(data, dict) and "records" in data:
+                return data
+            print(f"  ⚠️ [db] Invalid structure in {DB_FILE}, resetting")
+        except (json.JSONDecodeError, OSError) as e:
+            print(f"  ⚠️ [db] Failed to load {DB_FILE}: {e}")
+            # Back up corrupted file before resetting
+            backup = DB_FILE.with_suffix(".json.bak")
+            try:
+                DB_FILE.rename(backup)
+                print(f"  ⚠️ [db] Corrupted file backed up to {backup}")
+            except OSError:
+                pass
     return {"records": [], "next_id": 1}
 
 
@@ -31,7 +44,7 @@ def db_list() -> list:
     with _lock:
         return sorted(
             _load()["records"],
-            key=lambda r: (r.get("artist", "").lower(), r.get("title", "").lower())
+            key=lambda r: (r.get("artist", "").lower(), r.get("title", "").lower()),
         )
 
 
@@ -44,7 +57,7 @@ def db_get(rid: int):
 def db_find_duplicate(record: dict):
     """Return an existing record that looks like a duplicate, or None."""
     discogs_id = str(record.get("discogs_id", "")).strip()
-    barcode    = str(record.get("barcode",    "")).strip()
+    barcode = str(record.get("barcode", "")).strip()
     data = _load()
     for r in data["records"]:
         if discogs_id and str(r.get("discogs_id", "")).strip() == discogs_id:
@@ -56,13 +69,18 @@ def db_find_duplicate(record: dict):
 
 def db_add(record: dict) -> int:
     with _lock:
-        data = _load()
-        record["id"] = data["next_id"]
-        record["added_at"] = datetime.now(timezone.utc).isoformat()
-        data["next_id"] += 1
-        data["records"].append(record)
-        _save(data)
-        return record["id"]
+        return _db_add_unlocked(record)
+
+
+def _db_add_unlocked(record: dict) -> int:
+    """Add a record — caller MUST already hold _lock."""
+    data = _load()
+    record["id"] = data["next_id"]
+    record["added_at"] = datetime.now(timezone.utc).isoformat()
+    data["next_id"] += 1
+    data["records"].append(record)
+    _save(data)
+    return record["id"]
 
 
 def db_update(rid: int, fields: dict) -> bool:

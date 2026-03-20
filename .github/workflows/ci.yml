@@ -36,6 +36,46 @@ jobs:
       - name: Run unit tests
         run: python -m unittest discover -s tests -v
 
+  python-lint:
+    name: Python Lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      - name: Install ruff
+        run: pip install ruff
+
+      - name: Lint with ruff
+        run: ruff check server/ tests/ server.py
+
+      - name: Check formatting
+        run: ruff format --check server/ tests/ server.py
+
+  python-security:
+    name: Python Security
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      - name: Install bandit
+        run: pip install bandit
+
+      - name: Security scan
+        run: bandit -r server/ -ll --skip B104
+        # B104 = binding to 0.0.0.0 (intentional for local network access)
+
   js-checks:
     name: JavaScript
     runs-on: ubuntu-latest
@@ -59,6 +99,31 @@ jobs:
           done
           exit $exit_code
 
+      - name: Check for common JS issues
+        run: |
+          exit_code=0
+
+          # Check for console.log left in production code (allow console.warn/error)
+          if grep -rn "console\.log" static/js/ --include="*.js" | grep -v "// debug"; then
+            echo "⚠️  console.log found in JS files (consider removing for production)"
+          fi
+
+          # Check for TODO/FIXME/HACK comments
+          if grep -rn "TODO\|FIXME\|HACK\|XXX" static/js/ --include="*.js"; then
+            echo "⚠️  Found TODO/FIXME markers in JS files"
+          fi
+
+          # Check for eval() usage (security risk)
+          if grep -rn "\beval(" static/js/ --include="*.js"; then
+            echo "❌ eval() found in JS files — security risk"
+            exit_code=1
+          fi
+
+          # Check for innerHTML with unsanitised user input patterns
+          # (Just a warning, not a blocker — esc() is used in this codebase)
+
+          exit $exit_code
+
   html-validation:
     name: HTML
     runs-on: ubuntu-latest
@@ -77,13 +142,91 @@ jobs:
           done
 
           # Verify all <script src="js/..."> references have matching files
-          grep -oP 'src="js/[^"]+' static/index.html | sed 's/src="/static\//' | while read -r path; do
+          grep -oP 'src="[^"]*\.js"' static/index.html | sed 's/src="//;s/"//' | while read -r ref; do
+            # Skip external CDN URLs
+            case "$ref" in http://*|https://*) continue ;; esac
+            # Handle both /static/js/... and js/... paths
+            path="${ref#/}"
             if [ ! -f "$path" ]; then
-              echo "❌ Missing file: $path"
+              echo "❌ Missing file: $path (referenced in index.html)"
               exit 1
             fi
           done
           echo "✅ All script references valid"
+
+  screenshot-tests:
+    name: Screenshot Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+
+      - name: Install Playwright
+        run: |
+          npm install
+          npx playwright install chromium --with-deps
+
+      - name: Create .env for test server
+        run: |
+          echo "DISCOGS_TOKEN=test-token" > .env
+          mkdir -p data/covers
+
+      - name: Check for existing Linux snapshots
+        id: snapshots
+        run: |
+          if ls tests/screenshots/views.spec.js-snapshots/*-linux.png 1>/dev/null 2>&1; then
+            echo "exist=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exist=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Generate baseline snapshots (first run only)
+        if: steps.snapshots.outputs.exist == 'false'
+        run: npx playwright test --update-snapshots
+        env:
+          CI: true
+
+      - name: Run screenshot tests
+        if: steps.snapshots.outputs.exist == 'true'
+        run: npx playwright test
+        env:
+          CI: true
+
+      - name: Upload new Linux snapshots for committing
+        if: steps.snapshots.outputs.exist == 'false'
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-snapshots
+          path: tests/screenshots/views.spec.js-snapshots/*-linux.png
+          retention-days: 30
+
+      - name: Upload test artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            test-results/
+            playwright-report/
+          retention-days: 14
+
+      - name: Upload screenshot diffs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshot-diffs
+          path: tests/screenshots/**/*-diff.png
+          retention-days: 14
 
   kmp-checks:
     name: KMP

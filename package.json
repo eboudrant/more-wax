@@ -1,0 +1,11 @@
+{
+  "name": "more-wax",
+  "private": true,
+  "scripts": {
+    "test:screenshots": "playwright test",
+    "test:screenshots:update": "playwright test --update-snapshots"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.52.0"
+  }
+}

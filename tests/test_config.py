@@ -7,7 +7,6 @@ import unittest
 
 
 class TestConfig(unittest.TestCase):
-
     def test_paths_exist_as_path_objects(self):
         from server.config import BASE_DIR, STATIC_DIR, DATA_DIR, COVERS_DIR, DB_FILE
         from pathlib import Path
@@ -28,10 +27,12 @@ class TestConfig(unittest.TestCase):
 
     def test_discogs_api_url(self):
         from server.config import DISCOGS_API
+
         self.assertEqual(DISCOGS_API, "https://api.discogs.com")
 
     def test_vision_model_has_default(self):
         from server.config import VISION_MODEL
+
         # Should be a non-empty string (either from .env or default)
         self.assertIsInstance(VISION_MODEL, str)
         self.assertTrue(len(VISION_MODEL) > 0)
