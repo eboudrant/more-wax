@@ -32,6 +32,6 @@ module.exports = defineConfig({
     command: 'python3 server.py',
     port: 8765,
     reuseExistingServer: true,
-    timeout: 10_000,
+    timeout: 30_000,
   },
 });

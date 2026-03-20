@@ -75,9 +75,6 @@ def main():
             "ℹ️  ANTHROPIC_API_KEY is not set — cover photo identification will be disabled."
         )
 
-    # Fetch Discogs identity on startup (non-blocking if it fails)
-    discogs_fetch_identity()
-
     http_server = http.server.ThreadingHTTPServer(("0.0.0.0", HTTP_PORT), Handler)
     https_server = _start_https(HTTPS_PORT)
 
@@ -91,6 +88,9 @@ def main():
     print("\n    To open on iPhone, find your Mac's IP in System Settings → Wi-Fi")
     print(f"    then open https://[your-mac-ip]:{HTTPS_PORT} in Safari\n")
     print("    Press Ctrl+C to stop\n")
+
+    # Fetch Discogs identity in background (don't block server startup)
+    threading.Thread(target=discogs_fetch_identity, daemon=True).start()
 
     if https_server:
         t = threading.Thread(target=https_server.serve_forever, daemon=True)
