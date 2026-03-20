@@ -14,7 +14,8 @@ from pathlib import Path
 
 from server.config import DATA_DIR, STATIC_DIR
 from server.database import (
-    _lock, db_add, db_delete, db_find_duplicate, db_get, db_list, db_update,
+    _db_add_unlocked, _lock, db_add, db_delete, db_find_duplicate, db_get,
+    db_list, db_update,
 )
 from server.discogs import (
     discogs_add_to_collection, discogs_refresh_prices, discogs_release_full,
@@ -22,12 +23,32 @@ from server.discogs import (
 )
 from server.images import convert_image, identify_cover, upload_cover
 
+MAX_BODY_BYTES = 20 * 1024 * 1024  # 20 MB cap on request bodies
+
 
 class Handler(http.server.BaseHTTPRequestHandler):
 
     def log_message(self, fmt, *args):
         status = args[1] if len(args) > 1 else "?"
-        print(f"  {self.command:6s} {self.path}  →  {status}")
+        # Sanitise path for log output (strip control chars)
+        safe_path = self.path.replace("\n", "").replace("\r", "")
+        print(f"  {self.command:6s} {safe_path}  →  {status}")
+
+    # ── path safety ───────────────────────────────────────────
+
+    @staticmethod
+    def _safe_resolve(base: Path, untrusted: str) -> Path | None:
+        """Resolve *untrusted* relative to *base* and ensure it stays inside.
+
+        Returns the resolved Path, or None if the result escapes the base
+        directory (path traversal attempt).
+        """
+        resolved = (base / untrusted).resolve()
+        try:
+            resolved.relative_to(base.resolve())
+            return resolved
+        except ValueError:
+            return None
 
     # ── low-level helpers ────────────────────────────────────────
 
@@ -56,12 +77,18 @@ class Handler(http.server.BaseHTTPRequestHandler):
         self.send_header("Content-Type",   mime or "application/octet-stream")
         self.send_header("Content-Length", str(len(data)))
         self.send_header("Cache-Control",  "no-cache")
+        self._cors_headers()
         self.end_headers()
         self.wfile.write(data)
 
     def read_json(self) -> dict:
-        n = int(self.headers.get("Content-Length", 0))
-        if n == 0:
+        try:
+            n = int(self.headers.get("Content-Length", 0))
+        except (ValueError, TypeError):
+            return {}
+        if n <= 0:
+            return {}
+        if n > MAX_BODY_BYTES:
             return {}
         raw = self.rfile.read(n)
         try:
@@ -85,11 +112,17 @@ class Handler(http.server.BaseHTTPRequestHandler):
         if p in ("/", "/index.html"):
             self.send_file(STATIC_DIR / "index.html")
         elif p.startswith("/static/"):
-            f = STATIC_DIR / p[8:]
-            self.send_file(f) if f.exists() else self._404()
+            f = self._safe_resolve(STATIC_DIR, p[8:])
+            if f and f.exists():
+                self.send_file(f)
+            else:
+                self._404()
         elif p.startswith("/covers/"):
-            f = DATA_DIR / p[1:]
-            self.send_file(f) if f.exists() else self._404()
+            f = self._safe_resolve(DATA_DIR, p[1:])
+            if f and f.exists():
+                self.send_file(f)
+            else:
+                self._404()
         elif p == "/api/collection":
             self.send_json(db_list())
         elif p.startswith("/api/collection/"):
@@ -167,11 +200,11 @@ class Handler(http.server.BaseHTTPRequestHandler):
 
         with _lock:
             dup = db_find_duplicate(record)
-        if dup:
+            if dup:
                 self.send_json({"duplicate": True, "existing": dup}, 409)
                 return
+            new_id = _db_add_unlocked(record)
 
-        new_id = db_add(record)
         self.send_json({"id": new_id, "success": True}, 201)
 
     def _api_update(self, rid: int):
@@ -187,6 +220,13 @@ class Handler(http.server.BaseHTTPRequestHandler):
 
     # ── Discogs endpoints ────────────────────────────────────────
 
+    def _send_discogs_error(self, e: Exception):
+        """Unified error response for Discogs API failures."""
+        if isinstance(e, urllib.error.HTTPError):
+            self.send_json({"error": f"Discogs {e.code}"}, e.code if e.code < 500 else 502)
+        else:
+            self.send_json({"error": str(e)}, 502)
+
     def _api_discogs_search(self):
         qs = urllib.parse.urlparse(self.path).query
         params = urllib.parse.parse_qs(qs)
@@ -198,10 +238,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
         try:
             results = discogs_search(q=q, barcode=barcode)
             self.send_json({"results": results})
-        except urllib.error.HTTPError as e:
-            self.send_json({"error": f"Discogs {e.code}"}, e.code if e.code < 500 else 502)
         except Exception as e:
-            self.send_json({"error": str(e)}, 502)
+            self._send_discogs_error(e)
 
     def _api_discogs_release(self, release_id: str):
         if not release_id or not release_id.isdigit():
@@ -210,19 +248,15 @@ class Handler(http.server.BaseHTTPRequestHandler):
         try:
             data = discogs_release_full(release_id)
             self.send_json(data)
-        except urllib.error.HTTPError as e:
-            self.send_json({"error": f"Discogs {e.code}"}, e.code if e.code < 500 else 502)
         except Exception as e:
-            self.send_json({"error": str(e)}, 502)
+            self._send_discogs_error(e)
 
     def _api_discogs_prices(self, release_id: str):
         try:
             prices = discogs_refresh_prices(release_id)
             self.send_json(prices)
-        except urllib.error.HTTPError as e:
-            self.send_json({"error": f"Discogs {e.code}"}, e.code if e.code < 500 else 502)
         except Exception as e:
-            self.send_json({"error": str(e)}, 502)
+            self._send_discogs_error(e)
 
     def _api_refresh_all_prices(self):
         """Refresh prices for all stale records. Runs in background thread."""

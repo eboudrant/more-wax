@@ -126,5 +126,94 @@ class TestUploadCoverPaths(unittest.TestCase):
         mock_db_update.assert_not_called()
 
 
+class TestUploadCoverValidation(unittest.TestCase):
+    """Test input validation added to upload_cover."""
+
+    def test_empty_image_data(self):
+        from server.images import upload_cover
+        result = upload_cover("", "1")
+        self.assertFalse(result["success"])
+        self.assertIn("No image", result["error"])
+
+    def test_invalid_base64(self):
+        from server.images import upload_cover
+        result = upload_cover("not-valid-base64!!!", "1")
+        self.assertFalse(result["success"])
+        self.assertIn("Invalid base64", result["error"])
+
+    @mock.patch("server.images.db_update")
+    @mock.patch("server.images.COVERS_DIR")
+    def test_record_id_sanitised(self, mock_covers_dir, mock_db_update):
+        """Path traversal in record_id must be stripped."""
+        import tempfile
+        from pathlib import Path
+
+        tmp_dir = Path(tempfile.mkdtemp())
+        mock_covers_dir.__truediv__ = lambda self, x: tmp_dir / x
+
+        raw_b64 = base64.b64encode(b"fake-image-data").decode()
+        from server.images import upload_cover
+        result = upload_cover(raw_b64, "../../../etc/passwd")
+        self.assertTrue(result["success"])
+        # The filename should NOT contain path separators
+        self.assertNotIn("..", result["path"])
+        self.assertNotIn("/etc/", result["path"])
+
+
+class TestConvertImageValidation(unittest.TestCase):
+    """Test input validation for convert_image."""
+
+    def test_empty_image_data(self):
+        from server.images import convert_image
+        result = convert_image("")
+        self.assertFalse(result["success"])
+
+    def test_invalid_base64(self):
+        from server.images import convert_image
+        result = convert_image("not!!valid!!base64")
+        self.assertFalse(result["success"])
+        self.assertIn("Invalid base64", result["error"])
+
+
+class TestCodeFenceParsing(unittest.TestCase):
+    """Test that code-fence stripping doesn't crash on edge cases."""
+
+    def _call_identify(self, claude_response_text):
+        api_response = json.dumps({
+            "content": [{"type": "text", "text": claude_response_text}]
+        }).encode()
+        img_data = "data:image/jpeg;base64,/9j/4AAQSkZJRg=="
+
+        with mock.patch("server.images.ANTHROPIC_API_KEY", "test-key"), \
+             mock.patch("server.images.VISION_MODEL", "claude-sonnet-4-6"), \
+             mock.patch("urllib.request.urlopen") as mock_urlopen:
+            mock_resp = mock.MagicMock()
+            mock_resp.read.return_value = api_response
+            mock_resp.__enter__ = mock.MagicMock(return_value=mock_resp)
+            mock_resp.__exit__ = mock.MagicMock(return_value=False)
+            mock_urlopen.return_value = mock_resp
+
+            from server.images import identify_cover
+            return identify_cover(img_data)
+
+    def test_triple_backtick_only(self):
+        """Single ``` with no closing should not crash."""
+        result = self._call_identify('```')
+        self.assertFalse(result["success"])
+
+    def test_code_fence_no_json_label(self):
+        """Code fence without 'json' label should still parse."""
+        result = self._call_identify(
+            '```\n{"artist": "Test", "title": "Album"}\n```'
+        )
+        self.assertTrue(result["success"])
+        self.assertEqual(result["artist"], "Test")
+
+    def test_malformed_json_in_fence(self):
+        """Malformed JSON inside code fence should not crash."""
+        result = self._call_identify('```json\n{not json}\n```')
+        self.assertFalse(result["success"])
+
+
 if __name__ == "__main__":
     unittest.main()

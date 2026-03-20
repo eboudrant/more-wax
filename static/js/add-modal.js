@@ -29,9 +29,6 @@ function openScanner() {
   document.addEventListener('keydown', _scannerEscHandler);
 }
 
-// Legacy alias
-function openAddModal() { openScanner(); }
-
 function closeScanner() {
   scannerOpen = false;
   stopScannerCamera();
@@ -55,9 +52,6 @@ function closeScanner() {
   if (currentView === 'dashboard') renderDashboard();
   if (currentView === 'collection') renderCollection();
 }
-
-// Legacy alias
-function closeAddModal() { closeScanner(); }
 
 function _scannerEscHandler(e) {
   if (e.key === 'Escape') {

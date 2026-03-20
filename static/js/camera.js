@@ -44,9 +44,6 @@ function stopScannerCamera() {
   if (video) video.srcObject = null;
 }
 
-// Legacy alias
-function stopCamera() { stopScannerCamera(); }
-
 
 // ── Quagga barcode polling ───────────────────────────────────
 let _quaggaLastCode  = null;

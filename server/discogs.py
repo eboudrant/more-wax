@@ -40,6 +40,31 @@ def _discogs_request(method: str, path: str, params: dict = None) -> dict:
         raise
 
 
+def _parse_prices(stats: dict, suggestions: dict) -> dict:
+    """Extract price fields from Discogs marketplace stats and price suggestions."""
+    prices = {"price_low": "", "price_median": "", "price_high": "",
+              "price_currency": "USD", "num_for_sale": ""}
+
+    if stats:
+        lp = stats.get("lowest_price") or {}
+        if lp.get("value") is not None:
+            prices["price_low"] = str(lp["value"])
+            prices["price_currency"] = lp.get("currency", "USD")
+        if stats.get("num_for_sale") is not None:
+            prices["num_for_sale"] = str(stats["num_for_sale"])
+
+    if suggestions:
+        vgp = suggestions.get("Very Good Plus (VG+)") or {}
+        if vgp.get("value") is not None:
+            prices["price_median"] = str(vgp["value"])
+            prices["price_currency"] = vgp.get("currency", prices["price_currency"])
+        nm = suggestions.get("Near Mint (NM or M-)") or suggestions.get("Mint (M)") or {}
+        if nm.get("value") is not None:
+            prices["price_high"] = str(nm["value"])
+
+    return prices
+
+
 def discogs_search(q: str = "", barcode: str = "") -> list:
     """Search Discogs for releases by text or barcode."""
     params = {"type": "release"}
@@ -90,27 +115,7 @@ def discogs_release_full(release_id: str) -> dict:
     sugg    = f_suggestions.result()
     coll    = f_collection.result()
 
-    # Parse prices
-    price_low = price_median = price_high = ""
-    price_currency = "USD"
-    num_for_sale = ""
-
-    if stats:
-        lp = stats.get("lowest_price") or {}
-        if lp.get("value") is not None:
-            price_low      = str(lp["value"])
-            price_currency = lp.get("currency", "USD")
-        if stats.get("num_for_sale") is not None:
-            num_for_sale = str(stats["num_for_sale"])
-
-    if sugg:
-        vgp = sugg.get("Very Good Plus (VG+)") or {}
-        if vgp.get("value") is not None:
-            price_median   = str(vgp["value"])
-            price_currency = vgp.get("currency", price_currency)
-        nm = sugg.get("Near Mint (NM or M-)") or sugg.get("Mint (M)") or {}
-        if nm.get("value") is not None:
-            price_high = str(nm["value"])
+    prices = _parse_prices(stats, sugg)
 
     # Collection status
     already_in_discogs = False
@@ -150,11 +155,11 @@ def discogs_release_full(release_id: str) -> dict:
         "country":         release.get("country", ""),
         "cover_image_url": (release.get("images") or [{}])[0].get("uri", ""),
         "barcode":         barcode_val,
-        "price_low":       price_low,
-        "price_median":    price_median,
-        "price_high":      price_high,
-        "price_currency":  price_currency,
-        "num_for_sale":    num_for_sale,
+        "price_low":       prices["price_low"],
+        "price_median":    prices["price_median"],
+        "price_high":      prices["price_high"],
+        "price_currency":  prices["price_currency"],
+        "num_for_sale":    prices["num_for_sale"],
         "rating_average":  str(rating_average) if rating_average else "",
         "rating_count":    str(rating_count) if rating_count else "",
         "already_in_discogs": already_in_discogs,
@@ -167,31 +172,21 @@ def discogs_refresh_prices(release_id: str, fetch_rating: bool = True) -> dict:
     Set fetch_rating=False to skip the extra /releases/ call when the
     rating is already known — saves one API hit per record.
     """
-    prices = {"price_low": "", "price_median": "", "price_high": "",
-              "price_currency": "USD", "num_for_sale": "",
-              "rating_average": "", "rating_count": ""}
+    stats = {}
     try:
         stats = _discogs_request("GET", f"/marketplace/stats/{release_id}")
-        lp = stats.get("lowest_price") or {}
-        if lp.get("value") is not None:
-            prices["price_low"]      = str(lp["value"])
-            prices["price_currency"] = lp.get("currency", "USD")
-        if stats.get("num_for_sale") is not None:
-            prices["num_for_sale"] = str(stats["num_for_sale"])
     except Exception as e:
         print(f"  ⚠️ [discogs] stats failed for {release_id}: {e}")
 
+    sugg = {}
     try:
         sugg = _discogs_request("GET", f"/marketplace/price_suggestions/{release_id}")
-        vgp = sugg.get("Very Good Plus (VG+)") or {}
-        if vgp.get("value") is not None:
-            prices["price_median"]   = str(vgp["value"])
-            prices["price_currency"] = vgp.get("currency", prices["price_currency"])
-        nm = sugg.get("Near Mint (NM or M-)") or sugg.get("Mint (M)") or {}
-        if nm.get("value") is not None:
-            prices["price_high"] = str(nm["value"])
     except Exception as e:
         print(f"  ⚠️ [discogs] suggestions failed for {release_id}: {e}")
+
+    prices = _parse_prices(stats, sugg)
+    prices["rating_average"] = ""
+    prices["rating_count"] = ""
 
     # Only fetch rating when needed (costs one extra API call)
     if fetch_rating:

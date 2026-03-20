@@ -22,6 +22,15 @@ __pycache__/
 *.swo
 *~
 
+# Node.js
+node_modules/
+package-lock.json
+
+# Playwright
+test-results/
+playwright-report/
+blob-report/
+
 # Temp files
 *.tmp
 

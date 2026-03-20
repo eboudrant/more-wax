@@ -3,7 +3,10 @@
 //  Snap or upload → detect barcode or Claude Vision → results
 // ─────────────────────────────────────────────────────────────────
 
+let _photoSearchToken = 0;  // incremented on each search to discard stale results
+
 function processSearchPhotoForScanner(dataUrl, fileName) {
+  _photoSearchToken++;
   openSheet();
   const body   = document.getElementById('scanner-sheet-body');
   const header = document.getElementById('scanner-sheet-header');
@@ -51,8 +54,10 @@ function processSearchPhotoForScanner(dataUrl, fileName) {
 }
 
 async function _scannerFetchResults(query, isBarcode, bodyEl) {
+  const myToken = _photoSearchToken;
   try {
     const data    = isBarcode ? await searchByBarcode(query) : await searchDiscogs(query);
+    if (myToken !== _photoSearchToken) return;  // stale result
     const results = data.results || [];
     window._searchResults   = results;
     window._detectedBarcode = isBarcode ? query : null;
@@ -71,6 +76,7 @@ async function _scannerFetchResults(query, isBarcode, bodyEl) {
 }
 
 async function _identifyWithClaudeForScanner(dataUrl, bodyEl) {
+  const myToken = _photoSearchToken;
   bodyEl.innerHTML = `
     <div class="relative mb-3">
       <img src="${dataUrl}" class="w-full max-h-[180px] object-contain rounded-lg bg-black">
@@ -88,6 +94,7 @@ async function _identifyWithClaudeForScanner(dataUrl, bodyEl) {
       headers: { 'Content-Type': 'application/json' },
       body:    JSON.stringify({ image: dataUrl })
     });
+    if (myToken !== _photoSearchToken) return;  // stale result
     const json = await res.json();
 
     if (json.success && (json.artist || json.title)) {
