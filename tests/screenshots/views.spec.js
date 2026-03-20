@@ -1,5 +1,6 @@
 // @ts-check
 const { test, expect } = require('@playwright/test');
+const { mockApi } = require('./fixtures');
 
 // ── Helper: wait for the collection to load ────────────────────
 async function waitForCollection(page) {
@@ -8,7 +9,7 @@ async function waitForCollection(page) {
     () => typeof collection !== 'undefined' && collection.length > 0,
     { timeout: 8_000 }
   ).catch(() => {
-    // Collection may be empty in CI — that's fine
+    // Collection may be empty — that's fine for some tests
   });
   // Let any CSS transitions / Tailwind JIT settle
   await page.waitForTimeout(500);
@@ -25,6 +26,7 @@ function isDesktop(page) {
 
 test.describe('Dashboard', () => {
   test('renders correctly', async ({ page }) => {
+    await mockApi(page);
     await page.goto('/');
     await waitForCollection(page);
 
@@ -40,6 +42,7 @@ test.describe('Dashboard', () => {
   });
 
   test('shows total pressings count', async ({ page }) => {
+    await mockApi(page);
     await page.goto('/');
     await waitForCollection(page);
 
@@ -55,6 +58,7 @@ test.describe('Dashboard', () => {
 
 test.describe('Collection', () => {
   test('renders grid', async ({ page }) => {
+    await mockApi(page);
     await page.goto('/#collection');
     await waitForCollection(page);
 
@@ -63,6 +67,7 @@ test.describe('Collection', () => {
   });
 
   test('filter input is visible', async ({ page }) => {
+    await mockApi(page);
     await page.goto('/#collection');
     await waitForCollection(page);
 
@@ -70,6 +75,7 @@ test.describe('Collection', () => {
   });
 
   test('sort dropdown defaults to Recently Added', async ({ page }) => {
+    await mockApi(page);
     await page.goto('/#collection');
     await waitForCollection(page);
 
@@ -85,6 +91,7 @@ test.describe('Collection', () => {
 
 test.describe('Scanner', () => {
   test.beforeEach(async ({ page }) => {
+    await mockApi(page);
     await page.goto('/');
     await waitForCollection(page);
     await page.evaluate(() => openScanner());
@@ -124,15 +131,9 @@ test.describe('Scanner', () => {
     await page.fill('#scanner-search-input', 'Daft Punk');
     await page.evaluate(() => scannerDoSearch());
 
-    // Wait for sheet — Discogs API may be slow or unavailable in CI
-    try {
-      await page.waitForSelector('#scanner-sheet.sheet-open', { timeout: 15_000 });
-      await page.waitForTimeout(800);
-      await expect(page).toHaveScreenshot('scanner-results.png');
-    } catch {
-      // Discogs API unavailable (no real token in CI) — skip screenshot
-      test.skip();
-    }
+    await page.waitForSelector('#scanner-sheet.sheet-open', { timeout: 10_000 });
+    await page.waitForTimeout(800);
+    await expect(page).toHaveScreenshot('scanner-results.png');
   });
 
   test('closes cleanly', async ({ page }) => {
@@ -154,14 +155,9 @@ test.describe('Scanner', () => {
 
 test.describe('Detail Modal', () => {
   test('opens when a record is selected', async ({ page }) => {
+    await mockApi(page);
     await page.goto('/#collection');
     await waitForCollection(page);
-
-    const hasRecords = await page.evaluate(() => collection.length > 0);
-    if (!hasRecords) {
-      test.skip();
-      return;
-    }
 
     // Open via JS function (avoids z-index click issues on desktop)
     await page.evaluate(() => showDetail(collection[0].id));
@@ -186,6 +182,7 @@ test.describe('Navigation (mobile)', () => {
       return;
     }
 
+    await mockApi(page);
     await page.goto('/');
     await waitForCollection(page);
 
