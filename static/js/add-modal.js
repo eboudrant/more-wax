@@ -1,250 +1,148 @@
 // ─────────────────────────────────────────────────────────────────
-//  ADD MODAL — entry point & step router
+//  SCANNER — full-screen camera-first add flow
 // ─────────────────────────────────────────────────────────────────
-function openAddModal() {
+
+// ── Open / Close ─────────────────────────────────────────────
+function openScanner() {
   selectedRelease       = null;
   capturedPhoto         = null;
   window._searchResults = [];
   window._detectedBarcode = null;
+  scannerOpen = true;
 
-  AppModal.show('add-modal', { staticBackdrop: true });
-  showStep('method');
+  const el = document.getElementById('view-scanner');
+  el.classList.remove('hidden');
+  el.style.display = 'flex';
+
+  // Hide header & bottom nav
+  document.querySelector('header').style.display = 'none';
+  document.getElementById('bottom-nav').style.display = 'none';
+
+  // Push history so back button closes scanner
+  history.pushState({ scanner: true }, '', location.hash);
+
+  // Start camera, default to barcode mode
+  startScannerCamera();
+  switchScannerMode('barcode');
+
+  // Escape key handler
+  document.addEventListener('keydown', _scannerEscHandler);
 }
 
-function closeAddModal() {
-  stopCamera();
-  AppModal.hide('add-modal');
+// Legacy alias
+function openAddModal() { openScanner(); }
+
+function closeScanner() {
+  scannerOpen = false;
+  stopScannerCamera();
+  closeSheet();
+
+  const el = document.getElementById('view-scanner');
+  el.classList.add('hidden');
+  el.style.display = '';
+
+  // Restore header & bottom nav
+  document.querySelector('header').style.display = '';
+  document.getElementById('bottom-nav').style.display = '';
+
+  // Hide search panel
+  document.getElementById('scanner-search-panel').classList.add('hidden');
+  document.getElementById('scanner-dim').classList.add('hidden');
+
+  document.removeEventListener('keydown', _scannerEscHandler);
+
+  // Re-render current view
+  if (currentView === 'dashboard') renderDashboard();
+  if (currentView === 'collection') renderCollection();
 }
 
-// ─────────────────────────────────────────────────────────────────
-//  STEP ROUTER
-// ─────────────────────────────────────────────────────────────────
-function showStep(step) {
-  const body   = document.getElementById('add-modal-body');
-  const footer = document.getElementById('add-modal-footer');
+// Legacy alias
+function closeAddModal() { closeScanner(); }
 
-  // ── method ──────────────────────────────────────────────────
-  if (step === 'method') {
-    stopCamera();
-    body.innerHTML = `
-      <p class="text-on-surface-v text-sm mb-4">
-        How would you like to add a record?
-      </p>
-      <div class="grid grid-cols-3 gap-3">
-        <div class="method-card" onclick="showStep('photo')">
-          <i class="bi bi-image text-3xl text-primary mb-2"></i>
-          <h6 class="font-bold text-sm text-on-surface">Photo</h6>
-          <small class="text-xs text-on-surface-v leading-tight">Snap or upload a photo of the cover or barcode</small>
-        </div>
-        <div class="method-card" onclick="showStep('camera')">
-          <i class="bi bi-upc-scan text-3xl text-primary mb-2"></i>
-          <h6 class="font-bold text-sm text-on-surface">Live scan</h6>
-          <small class="text-xs text-on-surface-v leading-tight">Point camera at the barcode — detects automatically</small>
-        </div>
-        <div class="method-card" onclick="showStep('search')">
-          <i class="bi bi-search text-3xl text-primary mb-2"></i>
-          <h6 class="font-bold text-sm text-on-surface">Search</h6>
-          <small class="text-xs text-on-surface-v leading-tight">Type artist, album or label name</small>
-        </div>
-      </div>`;
-    footer.innerHTML = `
-      <button class="btn-ghost-new" onclick="closeAddModal()">Cancel</button>`;
-  }
-
-  // ── photo (snap or upload to identify) ──────────────────────
-  else if (step === 'photo') {
-    stopCamera();
-    body.innerHTML = `
-      <p class="text-on-surface-v text-sm mb-3">
-        Take or upload a photo of the sleeve or barcode.
-        The app will try to detect the barcode automatically.
-      </p>
-      <div class="flex gap-3 mb-3">
-        <div id="photo-cam-btn" onclick="startSearchCamera()"
-             class="flex-1 border-2 border-dashed border-outline-v/40 rounded-xl p-5 text-center cursor-pointer transition-colors hover:border-primary">
-          <i class="bi bi-camera-fill text-3xl text-primary"></i>
-          <div class="mt-2 font-semibold text-sm text-on-surface">Take photo</div>
-          <div class="text-xs text-on-surface-v mt-1">Use camera</div>
-        </div>
-        <div onclick="document.getElementById('search-photo-input').click()"
-             class="flex-1 border-2 border-dashed border-outline-v/40 rounded-xl p-5 text-center cursor-pointer transition-colors hover:border-primary">
-          <i class="bi bi-upload text-3xl text-primary"></i>
-          <div class="mt-2 font-semibold text-sm text-on-surface">Upload photo</div>
-          <div class="text-xs text-on-surface-v mt-1">From your library</div>
-        </div>
-        <input type="file" id="search-photo-input" accept="image/*,.heic,.heif"
-               class="hidden" onchange="handleSearchPhotoUpload(event)">
-      </div>
-
-      <div id="search-cam-wrap" class="hidden">
-        <video id="search-cam-video" autoplay playsinline muted
-               class="w-full rounded-xl bg-black max-h-[300px] object-cover"></video>
-        <button onclick="snapSearchPhoto()" class="btn-primary-new w-full mt-2">
-          <i class="bi bi-camera mr-1"></i>Snap photo
-        </button>
-      </div>
-
-      <div id="photo-analysis"></div>`;
-
-    footer.innerHTML = `
-      <button class="btn-ghost-new" onclick="showStep('method')">
-        <i class="bi bi-arrow-left mr-1"></i>Back
-      </button>`;
-  }
-
-  // ── camera scan ─────────────────────────────────────────────
-  else if (step === 'camera') {
-    body.innerHTML = `
-      <p class="text-on-surface-v text-sm mb-3">
-        Hold the barcode steady inside the frame — it detects automatically.
-      </p>
-      <div id="camera-viewport">
-        <video id="camera-video" autoplay playsinline muted></video>
-        <div id="camera-overlay">
-          <div class="scan-frame"></div>
-        </div>
-        <div id="barcode-status">Starting camera…</div>
-      </div>
-      <p class="text-center mt-3 text-xs text-on-surface-v">
-        No barcode visible?
-        <a href="#" class="text-primary hover:underline" onclick="showStep('search');return false">Search manually</a>
-      </p>`;
-    footer.innerHTML = `
-      <button class="btn-ghost-new" onclick="showStep('method')">
-        <i class="bi bi-arrow-left mr-1"></i>Back
-      </button>`;
-    startCameraScan();
-  }
-
-  // ── text search ─────────────────────────────────────────────
-  else if (step === 'search') {
-    stopCamera();
-    body.innerHTML = `
-      <div class="flex gap-2 mb-3">
-        <input id="search-input"
-               class="flex-1 bg-transparent border-b border-outline-v/40 py-2 px-0 text-on-surface font-body focus:outline-none focus:border-primary transition-colors placeholder:text-outline"
-               placeholder="Artist, album, label…"
-               onkeydown="if(event.key==='Enter') doSearch()">
-        <button class="btn-primary-new px-4" onclick="doSearch()">
-          <i class="bi bi-search"></i>
-        </button>
-      </div>
-      <div id="search-results"></div>`;
-    footer.innerHTML = `
-      <button class="btn-ghost-new" onclick="showStep('method')">
-        <i class="bi bi-arrow-left mr-1"></i>Back
-      </button>`;
-    setTimeout(() => document.getElementById('search-input')?.focus(), 120);
-  }
-
-  // ── confirm ─────────────────────────────────────────────────
-  else if (step === 'confirm') {
-    renderConfirmStep();
+function _scannerEscHandler(e) {
+  if (e.key === 'Escape') {
+    const sheet = document.getElementById('scanner-sheet');
+    if (!sheet.classList.contains('sheet-open')) {
+      closeScanner();
+    } else {
+      closeSheet();
+    }
   }
 }
 
-// ─────────────────────────────────────────────────────────────────
-//  CONFIRM STEP
-// ─────────────────────────────────────────────────────────────────
-function renderConfirmStep() {
-  const r      = selectedRelease;
-  const body   = document.getElementById('add-modal-body');
-  const footer = document.getElementById('add-modal-footer');
+// Back button support
+window.addEventListener('popstate', () => {
+  if (scannerOpen) {
+    closeScanner();
+  }
+});
 
-  const genres = parseList(r.genres);
-  const styles = parseList(r.styles);
 
-  body.innerHTML = `
-    <div class="grid grid-cols-1 sm:grid-cols-[160px_1fr] gap-4">
+// ── Mode Switching ───────────────────────────────────────────
+function switchScannerMode(mode) {
+  scannerMode = mode;
 
-      <!-- Cover column -->
-      <div>
-        <div id="cover-preview-wrap" class="mb-2">
-          ${r.cover_image_url
-            ? `<img src="${esc(r.cover_image_url)}" id="cover-preview"
-                    class="w-full rounded-lg max-h-[200px] object-cover"
-                    onerror="this.style.display='none'">`
-            : `<div class="w-full h-40 bg-surface-high rounded-lg flex items-center justify-center text-outline-v">
-                 <i class="bi bi-vinyl text-5xl"></i>
-               </div>`}
-        </div>
+  // Update toggle buttons
+  document.querySelectorAll('.scanner-mode-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.mode === mode);
+  });
 
-        <div id="capture-section">
-          <div class="flex gap-2">
-            <div onclick="openCaptureCamera()"
-                 class="flex-1 border-2 border-dashed border-outline-v/40 rounded-lg p-3 text-center cursor-pointer transition-colors hover:border-primary">
-              <i class="bi bi-camera text-xl text-primary"></i>
-              <div class="text-xs text-on-surface-v mt-1">Camera</div>
-            </div>
-            <div onclick="document.getElementById('cover-file-input').click()"
-                 class="flex-1 border-2 border-dashed border-outline-v/40 rounded-lg p-3 text-center cursor-pointer transition-colors hover:border-primary">
-              <i class="bi bi-upload text-xl text-primary"></i>
-              <div class="text-xs text-on-surface-v mt-1">Upload</div>
-            </div>
-          </div>
-          <input type="file" id="cover-file-input" accept="image/*,.heic,.heif"
-                 class="hidden" onchange="handleFileUpload(event)">
-        </div>
-        <video id="capture-video" autoplay playsinline muted
-               class="hidden w-full rounded-lg mt-2"></video>
-        <button id="snap-btn" onclick="snapPhoto()"
-                class="hidden btn-primary-new w-full mt-2 text-sm">
-          <i class="bi bi-camera mr-1"></i>Snap photo
-        </button>
-      </div>
+  const frame     = document.getElementById('scanner-frame');
+  const scanLine  = document.getElementById('scanner-scan-line');
+  const shutter   = document.getElementById('scanner-shutter');
+  const uploadBtn = document.getElementById('scanner-upload-btn');
+  const guidance  = document.getElementById('scanner-guidance');
+  const frameWrap = document.getElementById('scanner-frame-wrap');
+  const dim       = document.getElementById('scanner-dim');
+  const searchP   = document.getElementById('scanner-search-panel');
+  const bottomA   = document.getElementById('scanner-bottom-area');
 
-      <!-- Info column -->
-      <div class="space-y-2">
-        <h5 class="font-headline font-bold text-xl text-on-surface">${esc(r.title)}</h5>
-        <div class="text-on-surface-v font-headline italic">${esc(r.artist)}</div>
-
-        ${r.already_in_discogs ? `
-          <div class="bg-primary/10 border border-primary/30 rounded-lg px-3 py-2 text-sm text-primary">
-            <i class="bi bi-exclamation-triangle mr-1"></i>
-            Already in your Discogs collection — Discogs sync will be skipped.
-          </div>` : ''}
-
-        ${metaRow('Year',    r.year)}
-        ${metaRow('Label',   r.label)}
-        ${metaRow('Cat #',   r.catalog_number)}
-        ${metaRow('Format',  r.format)}
-        ${metaRow('Country', r.country)}
-        ${r.barcode ? metaRow('Barcode', r.barcode) : ''}
-        ${ratingStars(r.rating_average, r.rating_count)}
-        ${priceRow(r, true)}
-
-        ${genres.length ? `
-          <div class="flex flex-wrap gap-1.5 pt-1">
-            ${genres.map(g => `<span class="bg-surface-high px-2 py-0.5 rounded text-xs font-label text-on-surface-v">${esc(g)}</span>`).join('')}
-          </div>` : ''}
-
-        ${styles.length ? `
-          <div class="flex flex-wrap gap-1.5">
-            ${styles.map(s => `<span class="bg-surface-high px-2 py-0.5 rounded text-xs font-label text-on-surface-v">${esc(s)}</span>`).join('')}
-          </div>` : ''}
-
-        <div class="pt-2">
-          <label class="text-xs text-on-surface-v block mb-1">Personal notes</label>
-          <textarea id="notes-input" rows="3"
-                    class="w-full bg-transparent border-b border-outline-v/40 py-2 px-0 text-sm text-on-surface focus:outline-none focus:border-primary transition-colors placeholder:text-outline resize-y"
-                    placeholder="Condition, purchase price, where you bought it…"></textarea>
-        </div>
-      </div>
-    </div>`;
-
-  footer.innerHTML = `
-    <button class="btn-ghost-new" onclick="showStep('search')">
-      <i class="bi bi-arrow-left mr-1"></i>Back
-    </button>
-    <button id="save-btn" class="btn-primary-new" onclick="saveRecord()">
-      <i class="bi bi-plus-circle mr-1"></i>Add to Collection
-    </button>`;
+  if (mode === 'barcode') {
+    frame.classList.remove('photo-mode');
+    frameWrap.classList.remove('hidden');
+    scanLine.style.display = '';
+    shutter.classList.add('hidden');
+    uploadBtn.classList.add('hidden');
+    guidance.textContent = 'Align barcode within frame';
+    dim.classList.add('hidden');
+    searchP.classList.add('hidden');
+    bottomA.classList.remove('hidden');
+    startQuaggaPolling();
+  } else if (mode === 'photo') {
+    frame.classList.add('photo-mode');
+    frameWrap.classList.remove('hidden');
+    scanLine.style.display = 'none';
+    shutter.classList.remove('hidden');
+    uploadBtn.classList.remove('hidden');
+    guidance.textContent = 'Center artwork within the frame';
+    dim.classList.add('hidden');
+    searchP.classList.add('hidden');
+    bottomA.classList.remove('hidden');
+    stopQuaggaPolling();
+  } else if (mode === 'search') {
+    frameWrap.classList.add('hidden');
+    shutter.classList.add('hidden');
+    uploadBtn.classList.add('hidden');
+    dim.classList.remove('hidden');
+    searchP.classList.remove('hidden');
+    bottomA.classList.add('hidden');
+    stopQuaggaPolling();
+    setTimeout(() => document.getElementById('scanner-search-input')?.focus(), 200);
+  }
 }
 
-// ─────────────────────────────────────────────────────────────────
-//  COVER PHOTO — FILE UPLOAD (in confirm step)
-// ─────────────────────────────────────────────────────────────────
-async function handleFileUpload(event) {
+
+// ── Photo capture from scanner ───────────────────────────────
+function scannerSnapPhoto() {
+  const dataUrl = captureFromScanner();
+  if (!dataUrl) {
+    toast('Camera not available', 'error');
+    return;
+  }
+  processSearchPhotoForScanner(dataUrl, 'snapshot.jpg');
+}
+
+function handleScannerPhotoUpload(event) {
   const file = event.target.files?.[0];
   if (!file) return;
 
@@ -256,50 +154,346 @@ async function handleFileUpload(event) {
     return;
   }
 
-  if (isHeic) {
-    document.getElementById('cover-preview-wrap').innerHTML = `
-      <div class="h-28 flex items-center justify-center text-on-surface-v text-sm gap-2">
-        <div class="w-5 h-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin"></div> Converting HEIC…
-      </div>`;
-  }
+  openSheet();
+  const body = document.getElementById('scanner-sheet-body');
+  body.innerHTML = `
+    <div class="flex flex-col items-center py-8">
+      <div class="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+      <p class="mt-3 text-sm text-on-surface-v">${isHeic ? 'Converting HEIC…' : 'Processing photo…'}</p>
+    </div>`;
+
+  (async () => {
+    try {
+      const dataUrl = await imageFileToDataUrl(file);
+      processSearchPhotoForScanner(dataUrl, file.name);
+    } catch (e) {
+      closeSheet();
+      toast(e.message, 'error');
+    }
+  })();
+
+  event.target.value = '';
+}
+
+
+// ── Search (scanner mode) ────────────────────────────────────
+function scannerDoSearch() {
+  const q = document.getElementById('scanner-search-input')?.value?.trim();
+  if (!q) return;
+  scannerFetchAndShowResults(q, false);
+}
+
+async function scannerFetchAndShowResults(query, isBarcode) {
+  openSheet();
+  const body = document.getElementById('scanner-sheet-body');
+
+  body.innerHTML = `
+    <div class="text-center py-8 text-on-surface-v">
+      <div class="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin inline-block"></div>
+      <p class="mt-3 text-sm">Searching Discogs…</p>
+    </div>`;
 
   try {
-    capturedPhoto = await imageFileToDataUrl(file);
+    const data    = isBarcode ? await searchByBarcode(query) : await searchDiscogs(query);
+    const results = data.results || [];
 
-    document.getElementById('capture-section').style.display = 'none';
-    document.getElementById('cover-preview-wrap').innerHTML = `
-      <img src="${capturedPhoto}" class="w-full rounded-lg max-h-[200px] object-cover">
-      <div class="text-xs text-on-surface-v mt-1.5 text-center">
-        <i class="bi bi-check-circle mr-1 text-green"></i>${esc(file.name)}
-        ${isHeic ? '<span class="text-primary"> · converted to JPEG</span>' : ''}
-        &nbsp;·&nbsp;
-        <a href="#" class="text-primary hover:underline" onclick="resetCoverSection();return false">Change</a>
+    window._searchResults   = results;
+    window._detectedBarcode = isBarcode ? query : null;
+
+    if (results.length === 0) {
+      body.innerHTML = `
+        <div class="text-center py-8 text-on-surface-v">
+          <i class="bi bi-emoji-frown text-4xl"></i>
+          <p class="mt-3">No results${isBarcode ? ' for this barcode' : ''}.</p>
+        </div>`;
+      document.getElementById('scanner-sheet-footer').innerHTML = `
+        <button class="btn-ghost-new w-full" onclick="closeSheet(); switchScannerMode('search')">
+          Try a manual search
+        </button>`;
+      return;
+    }
+
+    showResultsInSheet(results, isBarcode);
+  } catch (e) {
+    body.innerHTML = `
+      <div class="text-center py-6 text-danger">
+        <i class="bi bi-exclamation-triangle text-3xl"></i>
+        <p class="mt-2">Discogs error: ${esc(e.message)}</p>
       </div>`;
+  }
+}
 
+
+// ── Bottom Sheet ─────────────────────────────────────────────
+function openSheet() {
+  const sheet    = document.getElementById('scanner-sheet');
+  const backdrop = document.getElementById('scanner-sheet-backdrop');
+
+  backdrop.classList.remove('hidden');
+  sheet.style.transform = 'translateY(5%)';
+  sheet.classList.add('sheet-open');
+
+  _initSheetDrag();
+}
+
+function closeSheet() {
+  const sheet    = document.getElementById('scanner-sheet');
+  const backdrop = document.getElementById('scanner-sheet-backdrop');
+
+  sheet.style.transform = 'translateY(100%)';
+  sheet.classList.remove('sheet-open');
+  backdrop.classList.add('hidden');
+
+  setTimeout(() => {
+    document.getElementById('scanner-sheet-header').innerHTML = '';
+    document.getElementById('scanner-sheet-body').innerHTML = '';
+    document.getElementById('scanner-sheet-footer').innerHTML = '';
+  }, 400);
+}
+
+let _sheetDragState = null;
+
+function _initSheetDrag() {
+  const handle = document.getElementById('scanner-sheet-handle');
+  if (!handle) return;
+
+  handle.ontouchstart = (e) => {
+    _sheetDragState = { startY: e.touches[0].clientY };
+    document.getElementById('scanner-sheet').style.transition = 'none';
+  };
+  handle.ontouchmove = (e) => {
+    if (!_sheetDragState) return;
+    const dy = e.touches[0].clientY - _sheetDragState.startY;
+    if (dy > 0) {
+      document.getElementById('scanner-sheet').style.transform = `translateY(calc(12% + ${dy}px))`;
+    }
+  };
+  handle.ontouchend = (e) => {
+    if (!_sheetDragState) return;
+    const dy = (e.changedTouches[0]?.clientY || 0) - _sheetDragState.startY;
+    _sheetDragState = null;
+    const sheet = document.getElementById('scanner-sheet');
+    sheet.style.transition = '';
+    if (dy > 100) {
+      closeSheet();
+    } else {
+      sheet.style.transform = 'translateY(12%)';
+    }
+  };
+}
+
+
+// ── Results in Sheet ─────────────────────────────────────────
+function showResultsInSheet(results, isBarcode) {
+  openSheet();
+
+  const header = document.getElementById('scanner-sheet-header');
+  const body   = document.getElementById('scanner-sheet-body');
+  const footer = document.getElementById('scanner-sheet-footer');
+
+  header.innerHTML = `
+    <div>
+      <h2 class="font-headline text-2xl font-bold text-on-surface">Matches Found</h2>
+      <p class="font-label text-[10px] uppercase tracking-widest text-primary font-bold">
+        ${results.length} result${results.length !== 1 ? 's' : ''} identified
+      </p>
+    </div>
+    <button onclick="closeSheet()" class="p-3 bg-surface-high rounded-full text-on-surface-v hover:text-on-surface transition-colors">
+      <i class="bi bi-x-lg"></i>
+    </button>`;
+
+  body.innerHTML = `
+    <div class="space-y-3">
+      ${results.map((r, i) => {
+        const thumb = r.cover_image || r.thumb || '';
+        const year  = r.year || '';
+        const label = Array.isArray(r.label) ? r.label[0] : (r.label || '');
+        return `
+          <div class="group flex items-center gap-4 p-4 bg-surface-low rounded-2xl cursor-pointer transition-all hover:bg-surface active:bg-surface-high" onclick="scannerSelectRelease(${i})">
+            ${thumb
+              ? `<img class="w-20 h-20 object-cover rounded-lg flex-shrink-0 shadow-md" src="${esc(thumb)}" alt=""
+                      onerror="this.outerHTML='<div class=\\'w-20 h-20 bg-surface-high rounded-lg flex items-center justify-center text-outline-v flex-shrink-0\\'><i class=\\'bi bi-vinyl text-2xl\\'></i></div>'">`
+              : `<div class="w-20 h-20 bg-surface-high rounded-lg flex items-center justify-center text-outline-v flex-shrink-0"><i class="bi bi-vinyl text-2xl"></i></div>`}
+            <div class="flex-1 min-w-0">
+              <h3 class="font-headline text-lg font-bold text-on-surface truncate">${esc(r.title)}</h3>
+              <p class="font-body text-sm text-on-surface-v">${esc(r.artist || '')}</p>
+              <p class="font-label text-[10px] text-outline mt-1 uppercase tracking-tight">
+                ${[year, label].filter(Boolean).join(' \u2022 ')}
+              </p>
+            </div>
+            <div class="w-10 h-10 rounded-full bg-surface-high text-outline flex items-center justify-center flex-shrink-0 group-hover:bg-primary group-hover:text-on-primary transition-all">
+              <i class="bi bi-plus"></i>
+            </div>
+          </div>`;
+      }).join('')}
+    </div>`;
+
+  footer.innerHTML = `
+    <button class="w-full py-4 bg-outline-v/20 text-on-surface-v rounded-full font-label text-xs uppercase tracking-widest font-bold active:scale-[0.98] transition-all" onclick="closeSheet(); switchScannerMode('search')">
+      None of these match
+    </button>`;
+}
+
+async function scannerSelectRelease(idx) {
+  const stub = window._searchResults[idx];
+  const body = document.getElementById('scanner-sheet-body');
+
+  body.innerHTML = `
+    <div class="text-center py-8 text-on-surface-v">
+      <div class="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin inline-block"></div>
+      <p class="mt-3 text-sm">Loading release details…</p>
+    </div>`;
+
+  try {
+    const release = await getReleaseFull(stub.id);
+    if (release.error) throw new Error(release.error);
+
+    if (window._detectedBarcode) release.barcode = window._detectedBarcode;
+    if (!release.cover_image_url) {
+      release.cover_image_url = stub.cover_image || stub.thumb || '';
+    }
+
+    selectedRelease = release;
+    showConfirmInSheet();
+  } catch (e) {
+    body.innerHTML = `
+      <div class="text-center py-6 text-danger">
+        Error loading release: ${esc(e.message)}
+        <br><button class="text-primary hover:underline mt-2" onclick="closeSheet()">Go back</button>
+      </div>`;
+  }
+}
+
+
+// ── Confirm in Sheet ─────────────────────────────────────────
+function showConfirmInSheet() {
+  const r = selectedRelease;
+  if (!r) return;
+
+  const header = document.getElementById('scanner-sheet-header');
+  const body   = document.getElementById('scanner-sheet-body');
+  const footer = document.getElementById('scanner-sheet-footer');
+
+  const genres = parseList(r.genres);
+  const styles = parseList(r.styles);
+  const cover  = r.cover_image_url;
+
+  header.innerHTML = `
+    <div>
+      <h2 class="font-headline text-xl font-bold text-on-surface">Confirm &amp; Add</h2>
+    </div>
+    <button onclick="closeSheet()" class="p-3 bg-surface-high rounded-full text-on-surface-v hover:text-on-surface transition-colors">
+      <i class="bi bi-x-lg"></i>
+    </button>`;
+
+  body.innerHTML = `
+    <div class="space-y-4">
+      <div id="scanner-cover-wrap">
+        ${cover
+          ? `<img src="${esc(cover)}" class="w-full rounded-xl max-h-[200px] object-cover shadow-lg" onerror="this.style.display='none'">`
+          : `<div class="w-full h-40 bg-surface-high rounded-xl flex items-center justify-center text-outline-v">
+               <i class="bi bi-vinyl text-5xl"></i>
+             </div>`}
+      </div>
+
+      <div id="scanner-capture-section" class="flex gap-2">
+        <button onclick="_scannerCaptureCover()"
+                class="flex-1 border-2 border-dashed border-outline-v/40 rounded-lg p-3 text-center cursor-pointer transition-colors hover:border-primary">
+          <i class="bi bi-camera text-xl text-primary"></i>
+          <div class="text-xs text-on-surface-v mt-1">Snap cover</div>
+        </button>
+        <button onclick="document.getElementById('scanner-cover-input').click()"
+                class="flex-1 border-2 border-dashed border-outline-v/40 rounded-lg p-3 text-center cursor-pointer transition-colors hover:border-primary">
+          <i class="bi bi-upload text-xl text-primary"></i>
+          <div class="text-xs text-on-surface-v mt-1">Upload</div>
+        </button>
+        <input type="file" id="scanner-cover-input" accept="image/*,.heic,.heif" class="hidden" onchange="_scannerHandleCoverUpload(event)">
+      </div>
+
+      <div class="space-y-1">
+        <h3 class="font-headline font-bold text-xl text-on-surface">${esc(r.title)}</h3>
+        <div class="text-on-surface-v font-headline italic">${esc(r.artist)}</div>
+      </div>
+
+      ${r.already_in_discogs ? `
+        <div class="bg-primary/10 border border-primary/30 rounded-lg px-3 py-2 text-sm text-primary">
+          <i class="bi bi-exclamation-triangle mr-1"></i>
+          Already in your Discogs collection — sync will be skipped.
+        </div>` : ''}
+
+      <div class="space-y-1">
+        ${metaRow('Year',    r.year)}
+        ${metaRow('Label',   r.label)}
+        ${metaRow('Cat #',   r.catalog_number)}
+        ${metaRow('Format',  r.format)}
+        ${metaRow('Country', r.country)}
+        ${r.barcode ? metaRow('Barcode', r.barcode) : ''}
+        ${ratingStars(r.rating_average, r.rating_count)}
+        ${priceRow(r, true)}
+      </div>
+
+      ${genres.length || styles.length ? `
+        <div class="flex flex-wrap gap-1.5">
+          ${[...genres, ...styles].map(t => `<span class="bg-surface-high px-2 py-0.5 rounded text-xs font-label text-on-surface-v">${esc(t)}</span>`).join('')}
+        </div>` : ''}
+
+      <div>
+        <label class="text-xs text-on-surface-v block mb-1">Personal notes</label>
+        <textarea id="notes-input" rows="2"
+                  class="w-full bg-transparent border-b border-outline-v/40 py-2 px-0 text-sm text-on-surface focus:outline-none focus:border-primary transition-colors placeholder:text-outline resize-y"
+                  placeholder="Condition, purchase price, where you bought it…"></textarea>
+      </div>
+    </div>`;
+
+  footer.innerHTML = `
+    <div class="flex gap-3">
+      <button class="btn-ghost-new flex-1" onclick="closeSheet()">
+        <i class="bi bi-arrow-left mr-1"></i>Back
+      </button>
+      <button id="save-btn" class="btn-primary-new flex-1" onclick="saveRecord()">
+        <i class="bi bi-plus-circle mr-1"></i>Add to Collection
+      </button>
+    </div>`;
+}
+
+function _scannerCaptureCover() {
+  const dataUrl = captureFromScanner();
+  if (!dataUrl) {
+    toast('Camera not available — try uploading', 'error');
+    return;
+  }
+  capturedPhoto = dataUrl;
+  document.getElementById('scanner-cover-wrap').innerHTML = `
+    <img src="${dataUrl}" class="w-full rounded-xl max-h-[200px] object-cover shadow-lg">`;
+  document.getElementById('scanner-capture-section').style.display = 'none';
+  toast('Cover photo captured ✓', 'success');
+}
+
+async function _scannerHandleCoverUpload(event) {
+  const file = event.target.files?.[0];
+  if (!file) return;
+  const isHeic = file.type === 'image/heic' || file.type === 'image/heif'
+              || /\.hei[cf]$/i.test(file.name);
+  if (!isHeic && !file.type.startsWith('image/')) {
+    toast('Please select an image file', 'error');
+    return;
+  }
+  try {
+    capturedPhoto = await imageFileToDataUrl(file);
+    document.getElementById('scanner-cover-wrap').innerHTML = `
+      <img src="${capturedPhoto}" class="w-full rounded-xl max-h-[200px] object-cover shadow-lg">`;
+    document.getElementById('scanner-capture-section').style.display = 'none';
     toast('Photo uploaded ✓', 'success');
   } catch (err) {
     toast(err.message, 'error');
-    resetCoverSection();
   }
 }
 
-function resetCoverSection() {
-  capturedPhoto = null;
-  document.getElementById('capture-section').style.display = 'block';
-  const r = selectedRelease;
-  document.getElementById('cover-preview-wrap').innerHTML = r?.cover_image_url
-    ? `<img src="${esc(r.cover_image_url)}" class="w-full rounded-lg max-h-[200px] object-cover" onerror="this.style.display='none'">`
-    : `<div class="w-full h-40 bg-surface-high rounded-lg flex items-center justify-center text-outline-v">
-         <i class="bi bi-vinyl text-5xl"></i>
-       </div>`;
-}
 
-// ─────────────────────────────────────────────────────────────────
-//  DUPLICATE WARNING
-// ─────────────────────────────────────────────────────────────────
+// ── Duplicate Warning ────────────────────────────────────────
 function _showDuplicateWarning(existing) {
-  const body   = document.getElementById('add-modal-body');
-  const footer = document.getElementById('add-modal-footer');
+  const body   = document.getElementById('scanner-sheet-body');
+  const footer = document.getElementById('scanner-sheet-footer');
 
   const cover = existing.local_cover || existing.cover_image_url || '';
   body.innerHTML = `
@@ -319,17 +513,18 @@ function _showDuplicateWarning(existing) {
     </div>`;
 
   footer.innerHTML = `
-    <button class="btn-ghost-new" onclick="closeAddModal()">Close</button>
-    <button class="btn-primary-new" onclick="showStep('method')">
-      <i class="bi bi-arrow-left mr-1"></i>Start over
-    </button>`;
+    <div class="flex gap-3">
+      <button class="btn-ghost-new flex-1" onclick="closeScanner()">Close</button>
+      <button class="btn-primary-new flex-1" onclick="closeSheet(); switchScannerMode('barcode')">
+        <i class="bi bi-arrow-left mr-1"></i>Start over
+      </button>
+    </div>`;
 }
 
-// ─────────────────────────────────────────────────────────────────
-//  SAVE RECORD
-// ─────────────────────────────────────────────────────────────────
+
+// ── Save Record ──────────────────────────────────────────────
 async function saveRecord() {
-  const notes  = document.getElementById('notes-input')?.value?.trim() || '';
+  const notes   = document.getElementById('notes-input')?.value?.trim() || '';
   const saveBtn = document.getElementById('save-btn');
   if (saveBtn) {
     saveBtn.disabled = true;
@@ -372,7 +567,7 @@ async function saveRecord() {
       discogsMsg = ok ? ' + added to Discogs!' : ' (Discogs sync failed — check console)';
     }
 
-    closeAddModal();
+    closeScanner();
     await loadCollection();
     toast(`✓ "${selectedRelease.title}" added${discogsMsg}`, 'success');
   } catch (e) {

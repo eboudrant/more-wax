@@ -1,130 +1,142 @@
 // ─────────────────────────────────────────────────────────────────
-//  CAMERA / BARCODE SCANNING
+//  CAMERA — persistent stream for scanner view
 // ─────────────────────────────────────────────────────────────────
-async function startCameraScan() {
-  const statusEl = document.getElementById('barcode-status');
+
+// ── Start / Stop camera ──────────────────────────────────────
+async function startScannerCamera() {
+  const video   = document.getElementById('scanner-video');
+  const errEl   = document.getElementById('scanner-cam-error');
+  const frameEl = document.getElementById('scanner-frame-wrap');
+
   try {
     cameraStream = await navigator.mediaDevices.getUserMedia({
       video: {
         facingMode: { ideal: 'environment' },
-        width:  { ideal: 1280 },
-        height: { ideal: 720 }
+        width:  { ideal: 1920 },
+        height: { ideal: 1080 }
       }
     });
-    const video = document.getElementById('camera-video');
     video.srcObject = cameraStream;
     await video.play();
-    if (statusEl) statusEl.textContent = 'Point the barcode at the yellow frame…';
-    initQuagga();
+    if (errEl) errEl.classList.add('hidden');
+    if (frameEl) frameEl.classList.remove('hidden');
   } catch (err) {
-    const httpsHint = _httpsHint();
-    if (statusEl) statusEl.innerHTML =
-      `⚠ Camera unavailable: ${esc(err.message)}${httpsHint}`;
+    console.warn('Camera unavailable:', err.message);
+    if (errEl) {
+      errEl.classList.remove('hidden');
+      const hint = _httpsHint();
+      if (hint) errEl.innerHTML = `<p class="text-on-surface-v text-sm mb-3">Camera unavailable: ${esc(err.message)}${hint}</p>
+        <button onclick="document.getElementById('scanner-file-input').click()" class="btn-primary-new"><i class="bi bi-upload mr-1"></i>Upload a photo instead</button>`;
+    }
+    // Keep frame visible for layout, just hide the scan line
+    const sl = document.getElementById('scanner-scan-line');
+    if (sl) sl.style.display = 'none';
   }
 }
 
-function initQuagga() {
-  Quagga.init({
-    inputStream: {
-      name:        'Live',
-      type:        'LiveStream',
-      target:      document.getElementById('camera-viewport'),
-      constraints: { facingMode: 'environment' }
-    },
-    decoder: {
-      readers: ['ean_reader', 'ean_8_reader', 'upc_reader', 'upc_e_reader',
-                'code_128_reader', 'code_39_reader']
-    },
-    locate: true
-  }, err => {
-    if (err) {
-      const s = document.getElementById('barcode-status');
-      if (s) s.textContent = 'Barcode engine error: ' + err;
-      return;
-    }
-    isScanning = true;
-    Quagga.start();
-  });
-
-  // confidence threshold to avoid false positives
-  let lastCode = null, lastCount = 0;
-  Quagga.onDetected(async result => {
-    if (!isScanning) return;
-    const code = result.codeResult.code;
-    if (!code) return;
-
-    if (code === lastCode) {
-      lastCount++;
-    } else {
-      lastCode  = code;
-      lastCount = 1;
-    }
-    if (lastCount < 3) return;   // require 3 consistent reads
-
-    isScanning = false;
-    Quagga.stop();
-    stopCamera();
-
-    const s = document.getElementById('barcode-status');
-    if (s) s.textContent = `✓ Barcode: ${code}`;
-
-    toast(`Barcode detected: ${code}`);
-    await fetchAndShowResults(code, true);
-  });
-}
-
-function stopCamera() {
-  isScanning = false;
-  try { Quagga.stop(); } catch (_) {}
+function stopScannerCamera() {
+  stopQuaggaPolling();
   if (cameraStream) {
     cameraStream.getTracks().forEach(t => t.stop());
     cameraStream = null;
   }
+  const video = document.getElementById('scanner-video');
+  if (video) video.srcObject = null;
 }
 
-// ─────────────────────────────────────────────────────────────────
-//  COVER PHOTO CAPTURE
-// ─────────────────────────────────────────────────────────────────
-async function openCaptureCamera() {
-  const captureSection = document.getElementById('capture-section');
-  const video          = document.getElementById('capture-video');
-  const snapBtn        = document.getElementById('snap-btn');
-  if (!video) return;
+// Legacy alias
+function stopCamera() { stopScannerCamera(); }
 
-  captureSection.style.display = 'none';
-  try {
-    cameraStream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: { ideal: 'environment' } }
+
+// ── Quagga barcode polling ───────────────────────────────────
+let _quaggaLastCode  = null;
+let _quaggaLastCount = 0;
+
+function startQuaggaPolling() {
+  stopQuaggaPolling();
+  _quaggaLastCode  = null;
+  _quaggaLastCount = 0;
+  isScanning = true;
+
+  const video  = document.getElementById('scanner-video');
+  const canvas = document.getElementById('scanner-canvas');
+  if (!video || !canvas || !cameraStream) return;
+
+  quaggaPollTimer = setInterval(() => {
+    if (!isScanning || !cameraStream) { stopQuaggaPolling(); return; }
+    if (video.readyState < video.HAVE_CURRENT_DATA) return;
+
+    // Draw current frame to canvas
+    canvas.width  = video.videoWidth;
+    canvas.height = video.videoHeight;
+    canvas.getContext('2d').drawImage(video, 0, 0);
+
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+
+    Quagga.decodeSingle({
+      decoder: {
+        readers: ['ean_reader', 'ean_8_reader', 'upc_reader', 'upc_e_reader',
+                  'code_128_reader', 'code_39_reader']
+      },
+      locate: true,
+      src: dataUrl
+    }, (result) => {
+      const code = result?.codeResult?.code;
+      if (!code || !isScanning) return;
+
+      if (code === _quaggaLastCode) {
+        _quaggaLastCount++;
+      } else {
+        _quaggaLastCode  = code;
+        _quaggaLastCount = 1;
+      }
+
+      // Require 3 consistent reads
+      if (_quaggaLastCount >= 3) {
+        isScanning = false;
+        stopQuaggaPolling();
+        toast(`Barcode detected: ${code}`);
+        scannerFetchAndShowResults(code, true);
+      }
     });
-    video.srcObject = cameraStream;
-    video.style.display = 'block';
-    snapBtn.style.display = 'block';
-    await video.play();
-  } catch (e) {
-    captureSection.style.display = 'block';
-    toast('Camera error: ' + e.message + _httpsHintPlain(), 'error');
-  }
+  }, 250);
 }
 
-function snapPhoto() {
-  const video = document.getElementById('capture-video');
-  if (!video) return;
+function stopQuaggaPolling() {
+  if (quaggaPollTimer) {
+    clearInterval(quaggaPollTimer);
+    quaggaPollTimer = null;
+  }
+  isScanning = false;
+}
 
-  const canvas = document.createElement('canvas');
+
+// ── Frame capture ────────────────────────────────────────────
+function captureFromScanner() {
+  const video  = document.getElementById('scanner-video');
+  const canvas = document.getElementById('scanner-canvas');
+  if (!video || !canvas || !cameraStream) return null;
+  if (video.readyState < video.HAVE_CURRENT_DATA) return null;
+
   canvas.width  = video.videoWidth;
   canvas.height = video.videoHeight;
   canvas.getContext('2d').drawImage(video, 0, 0);
-  capturedPhoto = canvas.toDataURL('image/jpeg', 0.85);
+  return canvas.toDataURL('image/jpeg', 0.92);
+}
 
-  // Stop camera
-  stopCamera();
-  video.style.display = 'none';
-  document.getElementById('snap-btn').style.display = 'none';
 
-  // Show preview
-  document.getElementById('cover-preview-wrap').innerHTML = `
-    <img src="${capturedPhoto}"
-         style="width:100%;border-radius:8px;max-height:200px;object-fit:cover">`;
+// ── Flashlight toggle ────────────────────────────────────────
+let _flashOn = false;
 
-  toast('Cover photo captured ✓', 'success');
+async function toggleFlashlight() {
+  if (!cameraStream) return;
+  try {
+    const track = cameraStream.getVideoTracks()[0];
+    _flashOn = !_flashOn;
+    await track.applyConstraints({ advanced: [{ torch: _flashOn }] });
+    const btn = document.getElementById('scanner-flash-btn');
+    if (btn) btn.classList.toggle('text-amber', _flashOn);
+  } catch (_) {
+    // torch not supported on this device
+  }
 }
