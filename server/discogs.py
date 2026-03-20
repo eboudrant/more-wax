@@ -36,7 +36,7 @@ def _discogs_request(method: str, path: str, params: dict = None) -> dict:
         },
     )
     try:
-        with urllib.request.urlopen(req, timeout=15) as resp:  # noqa: S310
+        with urllib.request.urlopen(req, timeout=15) as resp:  # nosec B310 -- scheme validated above
             rate_remain = resp.headers.get("X-Discogs-Ratelimit-Remaining", "?")
             body = json.loads(resp.read())
             print(f"  ✅ [discogs] {tag} → OK (rate remaining: {rate_remain})")
