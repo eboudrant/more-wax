@@ -9,8 +9,6 @@ More'Wax is a self-hosted web app for managing your vinyl record collection. It 
 ### Option A: Setup wizard (recommended)
 
 ```bash
-git clone https://github.com/boudra/more-wax.git
-cd more-wax
 ./setup.sh        # checks Python, prompts for API tokens, validates everything
 python3 server.py
 ```
@@ -18,8 +16,6 @@ python3 server.py
 ### Option B: Docker
 
 ```bash
-git clone https://github.com/boudra/more-wax.git
-cd more-wax
 cp .env.example .env
 # Edit .env and add your Discogs token (required) and Anthropic API key (optional)
 docker compose up
@@ -28,8 +24,6 @@ docker compose up
 ### Option C: Manual
 
 ```bash
-git clone https://github.com/boudra/more-wax.git
-cd more-wax
 cp .env.example .env
 # Edit .env and add your Discogs token (required) and Anthropic API key (optional)
 python3 server.py
