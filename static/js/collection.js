@@ -73,55 +73,30 @@ function sortedFiltered() {
 function renderCollection() {
   const grid  = document.getElementById('collection-grid');
   const empty = document.getElementById('collection-empty');
-  const count = document.getElementById('collection-count');
   const badge = document.getElementById('nav-badge');
+  const subtitle = document.getElementById('collection-subtitle');
 
   document.getElementById('loading').style.display = 'none';
 
   const label = `${collection.length} record${collection.length !== 1 ? 's' : ''}`;
-  count.textContent = label;
   badge.textContent = label;
+  if (subtitle) subtitle.textContent = `Curating ${collection.length} physical pressings in your library.`;
 
   const items = sortedFiltered();
 
   if (items.length === 0) {
     grid.innerHTML = '';
-    empty.style.display = 'block';
+    empty.classList.remove('hidden');
     return;
   }
-  empty.style.display = 'none';
+  empty.classList.add('hidden');
 
-  grid.innerHTML = items.map(r => {
-    const cover = r.local_cover || r.cover_image_url;
-    const img   = cover
-      ? `<img src="${esc(cover)}" alt="" loading="lazy"
-              onerror="this.parentElement.innerHTML='<div class=cover-placeholder><i class=\\'bi bi-vinyl\\'></i></div>'">`
-      : `<div class="cover-placeholder"><i class="bi bi-vinyl"></i></div>`;
-    return `
-      <div class="record-card" data-record-id="${r.id}" onclick="showDetail(${r.id})">
-        <div class="record-cover">${img}</div>
-        <div class="record-info">
-          <div class="record-title">${esc(r.title)}</div>
-          <div class="record-artist">${esc(r.artist)}</div>
-          <div class="record-meta-row">
-            <span class="record-year">${r.year || ''}</span>
-            ${ratingBadge(r)}
-            ${r.price_median && !isNaN(parseFloat(r.price_median))
-              ? `<span class="record-price-badge">${r.price_currency || 'USD'}&nbsp;${parseFloat(r.price_median).toFixed(0)} <span style="font-size:.7em;opacity:.7;font-weight:400">med</span></span>`
-              : r.price_low && !isNaN(parseFloat(r.price_low))
-                ? `<span class="record-price-badge" style="opacity:.75">${r.price_currency || 'USD'}&nbsp;${parseFloat(r.price_low).toFixed(0)} <span style="font-size:.7em;opacity:.7;font-weight:400">low</span></span>`
-                : ''}
-          </div>
-        </div>
-      </div>`;
-  }).join('');
+  grid.innerHTML = items.map(r => recordCardHtml(r)).join('');
 }
 
 function filterCollection() { renderCollection(); }
 
 function setSort(key) {
   currentSort = key;
-  document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
-  document.getElementById('sort-' + key)?.classList.add('active');
   renderCollection();
 }

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -7,73 +7,220 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="More'Wax">
-  <meta name="theme-color" content="#000000">
+  <meta name="theme-color" content="#131313">
   <link rel="icon" type="image/svg+xml" href="/static/logo.svg">
   <link rel="apple-touch-icon" href="/static/logo.svg">
   <title>More'Wax — Vinyl Collection</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            'bg':           '#131313',
+            'surface':      '#201f1f',
+            'surface-low':  '#1c1b1b',
+            'surface-high': '#2a2a2a',
+            'surface-top':  '#353534',
+            'primary':      '#fddcb1',
+            'primary-dim':  '#e1c198',
+            'primary-ctr':  '#e0c097',
+            'on-primary':   '#402d0f',
+            'on-surface':   '#e5e2e1',
+            'on-surface-v': '#d1c4b8',
+            'outline':      '#9a8f83',
+            'outline-v':    '#4e453c',
+            'danger':       '#f87171',
+            'green':        '#4ade80',
+            'amber':        '#f59e0b',
+          },
+          fontFamily: {
+            'headline': ['"Noto Serif"', 'Georgia', 'serif'],
+            'body':     ['Manrope', 'system-ui', 'sans-serif'],
+            'label':    ['Manrope', 'system-ui', 'sans-serif'],
+          },
+        },
+      },
+    };
+  </script>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif:ital,wght@0,400;0,700;1,400;1,700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Bootstrap Icons (kept for icon set) -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
   <link rel="stylesheet" href="/static/styles.css">
 </head>
-<body>
+<body class="bg-bg text-on-surface font-body min-h-screen">
 
-<!-- ── NAVBAR ───────────────────────────────────────────────── -->
-<nav class="navbar">
-  <span class="navbar-brand"><img src="/static/logo.svg" alt="More'Wax" style="height:28px;width:28px;vertical-align:middle;margin-right:6px;border-radius:50%"> More'Wax</span>
-  <span id="nav-badge" class="badge" style="background:var(--surface2);color:var(--muted);border:1px solid var(--border)">Loading…</span>
-</nav>
-
-<!-- ── TOOLBAR ──────────────────────────────────────────────── -->
-<div id="toolbar">
-  <i class="bi bi-search" style="color:var(--muted)"></i>
-  <input id="filter-input" type="text" placeholder="Filter by artist, title, year…" oninput="filterCollection()">
-  <button class="sort-btn active" id="sort-artist" onclick="setSort('artist')">Artist</button>
-  <button class="sort-btn" id="sort-title"  onclick="setSort('title')">Title</button>
-  <button class="sort-btn" id="sort-year"   onclick="setSort('year')">Year</button>
-  <button class="sort-btn" id="sort-added"  onclick="setSort('added')">Recent</button>
-  <button class="sort-btn" id="sort-price"  onclick="setSort('price')">Price</button>
-  <span id="collection-count"></span>
-</div>
-
-<!-- ── MAIN CONTENT ─────────────────────────────────────────── -->
-<div id="main-content">
-  <div id="loading" class="spinner-wrapper"><div class="spinner-border"></div></div>
-  <div id="collection-empty">
-    <i class="bi bi-vinyl"></i>
-    <h4>No records yet</h4>
-    <p>Tap <strong>+</strong> to add your first vinyl</p>
+<!-- ── HEADER ───────────────────────────────────────────────── -->
+<header class="sticky top-0 z-50 w-full flex justify-between items-center px-6 py-3 bg-bg/80 backdrop-blur-xl border-b border-outline-v/10">
+  <div class="flex items-center gap-3">
+    <img src="/static/logo.svg" alt="More'Wax" class="h-8 w-8 rounded-full">
+    <h1 class="font-headline italic font-bold text-on-surface tracking-tighter text-xl">More'Wax</h1>
   </div>
-  <div id="collection-grid"></div>
+  <div class="flex items-center gap-4">
+    <!-- Desktop nav links -->
+    <nav class="hidden md:flex items-center gap-6 font-body text-sm font-medium mr-4">
+      <a href="#dashboard" class="nav-link-top" data-view="dashboard">Home</a>
+      <a href="#collection" class="nav-link-top" data-view="collection">Collection</a>
+      <a href="#" class="nav-link-top" onclick="openAddModal();return false">Add</a>
+    </nav>
+    <span id="nav-badge" class="text-xs px-2 py-0.5 rounded-full bg-surface-high text-outline font-label">Loading…</span>
+  </div>
+</header>
+
+<!-- ── VIEW: DASHBOARD ─────────────────────────────────────── -->
+<div id="view-dashboard" class="view">
+  <main class="px-6 pt-8 pb-32 max-w-7xl mx-auto">
+    <!-- Hero Stats Bento -->
+    <section class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
+      <div class="md:col-span-2 bg-surface rounded-xl p-8 relative overflow-hidden">
+        <div class="relative z-10">
+          <span class="font-label text-xs uppercase tracking-[0.2em] text-on-surface-v mb-2 block">Estimated Collection Value</span>
+          <h2 id="dash-value" class="font-headline font-bold text-5xl md:text-6xl text-primary tracking-tight mb-4">—</h2>
+          <div class="flex items-center gap-2 text-sm text-on-surface-v">
+            <span class="italic opacity-80">Synced with Discogs Market</span>
+          </div>
+        </div>
+        <div class="absolute -right-12 -bottom-12 w-64 h-64 bg-primary/5 rounded-full blur-3xl"></div>
+      </div>
+      <div class="bg-surface-high rounded-xl p-8 flex flex-col justify-between border-l-4 border-primary">
+        <div>
+          <span class="font-label text-xs uppercase tracking-[0.2em] text-on-surface-v mb-2 block">Total Pressings</span>
+          <h2 id="dash-count" class="font-headline font-bold text-5xl text-on-surface">0</h2>
+        </div>
+        <div class="mt-8">
+          <button onclick="openAddModal()" class="w-full bg-gradient-to-br from-primary to-primary-ctr text-on-primary py-3 rounded-full font-bold text-sm flex items-center justify-center gap-2 active:scale-95 transition-transform">
+            <i class="bi bi-plus-circle-fill"></i> Add New Vinyl
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Search -->
+    <section class="mb-20">
+      <div class="relative max-w-2xl">
+        <input id="dash-search" type="text"
+               class="w-full bg-transparent border-b border-outline-v/40 py-4 font-headline text-2xl text-on-surface focus:outline-none focus:border-primary transition-colors placeholder:text-outline/40"
+               placeholder="Search your vault by artist, album…"
+               onkeydown="if(event.key==='Enter'){navigateTo('collection');document.getElementById('filter-input').value=this.value;filterCollection()}">
+        <i class="bi bi-search absolute right-0 top-1/2 -translate-y-1/2 text-primary"></i>
+      </div>
+    </section>
+
+    <!-- Recently Archived -->
+    <section class="mb-16">
+      <div class="flex justify-between items-baseline mb-10">
+        <h3 class="font-headline font-bold text-3xl text-on-surface">Recently Archived</h3>
+        <a href="#collection" class="font-label text-xs uppercase tracking-[0.1em] text-primary-dim hover:opacity-80 transition-opacity">View Entire Collection</a>
+      </div>
+      <div id="dash-recent" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-8">
+        <!-- Filled by dashboard.js -->
+      </div>
+    </section>
+
+    <!-- Discogs Info -->
+    <section class="mt-24 pt-16 border-t border-outline-v/10">
+      <div class="bg-surface-low rounded-xl p-8 text-center md:text-left">
+        <h4 class="font-headline font-bold text-2xl text-on-surface mb-2">Authenticated Metadata</h4>
+        <p class="text-on-surface-v text-sm max-w-xl">Every record in your vault is cross-referenced with the <span class="font-bold text-on-surface">Discogs API</span>. We track pressing variations, current market median prices, and master release history automatically.</p>
+      </div>
+    </section>
+  </main>
 </div>
 
-<!-- ── FAB ─────────────────────────────────────────────────── -->
-<button id="fab" onclick="openAddModal()" title="Add record">
-  <i class="bi bi-plus-lg"></i>
-</button>
+<!-- ── VIEW: COLLECTION ────────────────────────────────────── -->
+<div id="view-collection" class="view hidden">
+  <main class="px-6 pt-8 pb-32 max-w-7xl mx-auto w-full">
+    <!-- Collection Header & Filters -->
+    <section class="mb-12">
+      <div class="flex flex-col md:flex-row md:items-end justify-between gap-6">
+        <div>
+          <h2 class="font-headline font-bold text-4xl tracking-tight text-on-surface mb-2">Vaulted Selection</h2>
+          <p id="collection-subtitle" class="font-body text-on-surface-v">Curating your library.</p>
+        </div>
+        <div class="flex flex-wrap items-center gap-4">
+          <div class="relative group">
+            <span class="absolute left-0 bottom-0 w-full h-px bg-outline-v/40 group-focus-within:bg-primary transition-colors"></span>
+            <input id="filter-input" type="text"
+                   class="bg-transparent border-none focus:ring-0 font-body py-2 px-0 w-64 placeholder:text-outline text-on-surface"
+                   placeholder="Filter by Artist or Genre..."
+                   oninput="filterCollection()">
+          </div>
+          <div id="sort-controls" class="flex items-center gap-2 bg-surface-high px-4 py-2 rounded-lg">
+            <i class="bi bi-sort-down text-primary text-sm"></i>
+            <select id="sort-select" class="bg-transparent border-none focus:ring-0 font-label text-xs font-bold uppercase tracking-wider text-on-surface-v cursor-pointer" onchange="setSort(this.value)">
+              <option value="artist">Artist A-Z</option>
+              <option value="title">Title</option>
+              <option value="year">Year</option>
+              <option value="added">Recently Added</option>
+              <option value="price">Price</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Loading -->
+    <div id="loading" class="text-center py-12 text-outline">
+      <div class="inline-block w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin"></div>
+    </div>
+
+    <!-- Empty state -->
+    <div id="collection-empty" class="hidden text-center py-20 text-outline">
+      <i class="bi bi-vinyl text-5xl text-outline-v block mb-4"></i>
+      <h4 class="text-on-surface-v font-medium text-lg">No records yet</h4>
+      <p class="text-outline mt-2">Tap <strong class="text-primary">Add</strong> to add your first vinyl</p>
+    </div>
+
+    <!-- Grid -->
+    <div id="collection-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-12">
+    </div>
+  </main>
+</div>
 
 <!-- ── TOAST CONTAINER ──────────────────────────────────────── -->
 <div id="toast-container"></div>
 
+<!-- ── BOTTOM NAV (mobile) ─────────────────────────────────── -->
+<nav id="bottom-nav" class="md:hidden fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 pb-6 pt-3 bg-surface/80 backdrop-blur-xl shadow-[0_-4px_20px_rgba(14,14,14,0.4)]">
+  <a href="#dashboard" data-view="dashboard" class="bottom-nav-item active">
+    <i class="bi bi-house-fill text-xl"></i>
+    <span class="font-label text-[10px] uppercase tracking-[0.1em] font-bold">Home</span>
+  </a>
+  <a href="#collection" data-view="collection" class="bottom-nav-item">
+    <i class="bi bi-collection-fill text-xl"></i>
+    <span class="font-label text-[10px] uppercase tracking-[0.1em] font-bold">Collection</span>
+  </a>
+  <a href="#" data-view="add" onclick="openAddModal();return false" class="bottom-nav-item">
+    <i class="bi bi-plus-circle-fill text-xl"></i>
+    <span class="font-label text-[10px] uppercase tracking-[0.1em] font-bold">Add</span>
+  </a>
+</nav>
+
 <!-- ════════════════════════════════════════════════════════════
      ADD RECORD MODAL
      ════════════════════════════════════════════════════════════ -->
-<div class="modal fade" id="add-modal" tabindex="-1" data-bs-backdrop="static">
-  <div class="modal-dialog modal-lg modal-dialog-scrollable">
-    <div class="modal-content">
-
-      <div class="modal-header">
-        <h5 class="modal-title"><i class="bi bi-plus-circle me-2"></i>Add a Record</h5>
-        <button type="button" class="btn-close" onclick="closeAddModal()"></button>
+<div class="app-modal" id="add-modal">
+  <div class="app-modal-dialog app-modal-lg">
+    <div class="app-modal-content bg-surface rounded-xl overflow-hidden">
+      <div class="flex justify-between items-center px-4 py-3 border-b border-outline-v/10">
+        <h5 class="font-headline font-bold text-on-surface text-base"><i class="bi bi-plus-circle mr-2 text-primary"></i>Add a Record</h5>
+        <button data-dismiss="modal" class="text-on-surface-v hover:text-on-surface transition-colors p-1">
+          <i class="bi bi-x-lg"></i>
+        </button>
       </div>
-
-      <div class="modal-body" id="add-modal-body">
-        <!-- Steps injected by JS -->
+      <div id="add-modal-body" class="p-4 overflow-y-auto max-h-[70vh]">
       </div>
-
-      <div class="modal-footer" id="add-modal-footer">
-        <!-- Buttons injected by JS -->
+      <div id="add-modal-footer" class="px-4 py-3 border-t border-outline-v/10 flex justify-between items-center">
       </div>
-
     </div>
   </div>
 </div>
@@ -81,20 +228,22 @@
 <!-- ════════════════════════════════════════════════════════════
      RECORD DETAIL MODAL
      ════════════════════════════════════════════════════════════ -->
-<div class="modal fade" id="detail-modal" tabindex="-1">
-  <div class="modal-dialog modal-lg modal-dialog-scrollable">
-    <div class="modal-content">
-      <div class="modal-body" id="detail-body"></div>
+<div class="app-modal" id="detail-modal">
+  <div class="app-modal-dialog app-modal-lg app-modal-scrollable">
+    <div class="app-modal-content bg-surface rounded-xl overflow-hidden">
+      <div id="detail-body" class="overflow-x-clip overflow-y-auto"></div>
     </div>
   </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/quagga@0.12.1/dist/quagga.min.js"></script>
 <script src="https://unpkg.com/heic2any@0.0.4/dist/heic2any.min.js"></script>
+<script src="/static/js/modal.js"></script>
 <script src="/static/js/state.js"></script>
 <script src="/static/js/helpers.js"></script>
 <script src="/static/js/api.js"></script>
+<script src="/static/js/router.js"></script>
+<script src="/static/js/dashboard.js"></script>
 <script src="/static/js/collection.js"></script>
 <script src="/static/js/detail.js"></script>
 <script src="/static/js/image-convert.js"></script>

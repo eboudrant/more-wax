@@ -18,7 +18,7 @@ async function startSearchCamera() {
     const httpsHint = _httpsHint();
     document.getElementById('photo-analysis').innerHTML = `
       <div class="https-notice">
-        <i class="bi bi-exclamation-triangle me-1"></i>
+        <i class="bi bi-exclamation-triangle mr-1"></i>
         Camera unavailable: ${esc(e.message)}${httpsHint}
       </div>`;
   }
@@ -51,9 +51,9 @@ async function handleSearchPhotoUpload(event) {
 
   if (isHeic) {
     document.getElementById('photo-analysis').innerHTML = `
-      <div class="spinner-wrapper">
-        <div class="spinner-border"></div>
-        <p class="mt-2">Converting HEIC…</p>
+      <div class="flex flex-col items-center py-6">
+        <div class="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+        <p class="mt-3 text-sm text-on-surface-v">Converting HEIC…</p>
       </div>`;
   }
 
@@ -72,14 +72,13 @@ function processSearchPhoto(dataUrl, fileName) {
 
   // Show the photo + analysing spinner
   area.innerHTML = `
-    <div style="position:relative;margin-bottom:12px">
+    <div class="relative mb-3">
       <img src="${dataUrl}"
-           style="width:100%;max-height:220px;object-fit:contain;border-radius:10px;
-                  background:#000">
+           class="w-full max-h-[220px] object-contain rounded-lg bg-black">
     </div>
-    <div class="spinner-wrapper" style="padding:12px">
-      <div class="spinner-border"></div>
-      <p class="mt-2" style="font-size:.85rem">Looking for a barcode…</p>
+    <div class="flex flex-col items-center py-3">
+      <div class="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+      <p class="mt-3 text-sm text-on-surface-v">Looking for a barcode…</p>
     </div>`;
 
   // Try barcode detection on the still image via Quagga.decodeSingle
@@ -94,13 +93,13 @@ function processSearchPhoto(dataUrl, fileName) {
     if (barcode) {
       // ✓ Barcode found — search Discogs automatically
       area.innerHTML = `
-        <div style="position:relative;margin-bottom:12px">
+        <div class="relative mb-3">
           <img src="${dataUrl}"
-               style="width:100%;max-height:180px;object-fit:contain;border-radius:10px;background:#000">
+               class="w-full max-h-[180px] object-contain rounded-lg bg-black">
         </div>
-        <div style="background:rgba(74,222,128,.12);border:1px solid #4ade80;border-radius:8px;
-                    padding:10px 14px;font-size:.88rem;margin-bottom:12px">
-          <i class="bi bi-check-circle me-2" style="color:#4ade80"></i>
+        <div class="bg-green-500/10 border border-green-400/30 rounded-lg
+                    px-3.5 py-2.5 text-sm mb-3">
+          <i class="bi bi-check-circle mr-2 text-green-400"></i>
           Barcode detected: <strong>${esc(barcode)}</strong>
         </div>`;
       window._detectedBarcode = barcode;
@@ -115,14 +114,14 @@ function processSearchPhoto(dataUrl, fileName) {
 async function _identifyWithClaude(dataUrl, area) {
   // Show the photo while Claude thinks
   area.innerHTML = `
-    <div style="position:relative;margin-bottom:12px">
+    <div class="relative mb-3">
       <img src="${dataUrl}"
-           style="width:100%;max-height:180px;object-fit:contain;border-radius:10px;background:#000">
+           class="w-full max-h-[180px] object-contain rounded-lg bg-black">
     </div>
-    <div class="spinner-wrapper" style="padding:10px">
-      <div class="spinner-border"></div>
-      <p class="mt-2" style="font-size:.82rem;color:var(--muted)">
-        <i class="bi bi-stars me-1"></i>No barcode — asking Claude to identify the cover…
+    <div class="flex flex-col items-center py-2.5">
+      <div class="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+      <p class="mt-3 text-xs text-on-surface-v">
+        <i class="bi bi-stars mr-1"></i>No barcode — asking Claude to identify the cover…
       </p>
     </div>`;
 
@@ -141,15 +140,15 @@ async function _identifyWithClaude(dataUrl, area) {
 
       // Claude identified it — show badge then try progressively narrower Discogs searches
       area.innerHTML = `
-        <div style="position:relative;margin-bottom:10px">
+        <div class="relative mb-2.5">
           <img src="${dataUrl}"
-               style="width:100%;max-height:150px;object-fit:contain;border-radius:10px;background:#000">
+               class="w-full max-h-[150px] object-contain rounded-lg bg-black">
         </div>
-        <div style="background:rgba(96,165,250,.1);border:1px solid rgba(96,165,250,.35);
-                    border-radius:8px;padding:9px 13px;font-size:.84rem;margin-bottom:10px">
-          <i class="bi bi-stars me-1" style="color:var(--accent)"></i>
+        <div class="bg-blue-400/10 border border-blue-400/30
+                    rounded-lg px-3.5 py-2.5 text-sm mb-2.5">
+          <i class="bi bi-stars mr-1 text-primary"></i>
           Claude identified: <strong>${esc(json.artist)}${json.artist && json.title ? ' — ' : ''}${esc(json.title)}</strong>
-          ${details ? `<div style="font-size:.76rem;color:var(--muted);margin-top:3px">${esc(details)}</div>` : ''}
+          ${details ? `<div class="text-xs text-on-surface-v mt-1">${esc(details)}</div>` : ''}
         </div>
         <div id="search-results"></div>`;
 
@@ -207,13 +206,16 @@ async function _identifyWithClaude(dataUrl, area) {
       if (!found) {
         const prefill = [json.artist, json.title, json.catalog_number].filter(Boolean).join(' ');
         document.getElementById('search-results').innerHTML = `
-          <div style="font-size:.8rem;color:var(--muted);margin-bottom:10px">
+          <div class="text-xs text-on-surface-v mb-2.5">
             No Discogs match found — try refining the search:
           </div>
-          <div class="input-group">
-            <input id="search-input" class="form-control" value="${esc(prefill)}"
+          <div class="flex gap-2">
+            <input id="search-input"
+                   class="flex-1 bg-transparent border-b border-outline-v/40 py-2 text-sm text-on-surface
+                          focus:border-primary focus:outline-none transition-colors font-sans"
+                   value="${esc(prefill)}"
                    onkeydown="if(event.key==='Enter') doSearch()">
-            <button class="btn btn-accent" onclick="doSearch()">
+            <button class="btn-primary-new px-4 py-2 text-sm" onclick="doSearch()">
               <i class="bi bi-search"></i>
             </button>
           </div>
@@ -230,18 +232,20 @@ async function _identifyWithClaude(dataUrl, area) {
 
 function _showManualSearchFallback(dataUrl, area) {
   area.innerHTML = `
-    <div style="display:flex;gap:12px;align-items:flex-start">
+    <div class="flex gap-3 items-start">
       <img src="${dataUrl}"
-           style="width:80px;height:80px;object-fit:cover;border-radius:8px;
-                  flex-shrink:0;background:#000">
-      <div style="flex:1">
-        <div style="font-size:.8rem;color:var(--muted);margin-bottom:8px">
+           class="w-20 h-20 object-cover rounded-lg flex-shrink-0 bg-black">
+      <div class="flex-1">
+        <div class="text-xs text-on-surface-v mb-2">
           No barcode or cover match found — search manually.
         </div>
-        <div class="input-group">
-          <input id="search-input" class="form-control" placeholder="Artist, album, label…"
+        <div class="flex gap-2">
+          <input id="search-input"
+                 class="flex-1 bg-transparent border-b border-outline-v/40 py-2 text-sm text-on-surface
+                        focus:border-primary focus:outline-none transition-colors font-sans"
+                 placeholder="Artist, album, label…"
                  onkeydown="if(event.key==='Enter') doSearch()">
-          <button class="btn btn-accent" onclick="doSearch()">
+          <button class="btn-primary-new px-4 py-2 text-sm" onclick="doSearch()">
             <i class="bi bi-search"></i>
           </button>
         </div>
