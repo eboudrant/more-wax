@@ -18,6 +18,14 @@ async function startScannerCamera() {
     });
     video.srcObject = cameraStream;
     await video.play();
+    // Wait until the video actually has frame data (videoWidth > 0)
+    if (!video.videoWidth) {
+      await new Promise(resolve => {
+        video.addEventListener('loadeddata', resolve, { once: true });
+        // Fallback in case event already fired
+        setTimeout(resolve, 1000);
+      });
+    }
     if (errEl) errEl.classList.add('hidden');
     if (frameEl) frameEl.classList.remove('hidden');
   } catch (err) {
@@ -45,7 +53,7 @@ function stopScannerCamera() {
 }
 
 
-// ── Quagga barcode polling ───────────────────────────────────
+// ── Quagga barcode scanning (shared camera) ─────────────────
 let _quaggaLastCode  = null;
 let _quaggaLastCount = 0;
 
@@ -59,25 +67,40 @@ function startQuaggaPolling() {
   const canvas = document.getElementById('scanner-canvas');
   if (!video || !canvas || !cameraStream) return;
 
+  // Crop center 60% of the frame (where the scanner frame is) and scale down
+  const SCAN_W = 640;
+  const SCAN_H = 300;
+  const ctx = canvas.getContext('2d');
+  let _decoding = false;
+
   quaggaPollTimer = setInterval(() => {
     if (!isScanning || !cameraStream) { stopQuaggaPolling(); return; }
     if (video.readyState < video.HAVE_CURRENT_DATA) return;
+    if (_decoding) return;
 
-    // Draw current frame to canvas
-    canvas.width  = video.videoWidth;
-    canvas.height = video.videoHeight;
-    canvas.getContext('2d').drawImage(video, 0, 0);
+    // Crop center region of the video frame
+    const vw = video.videoWidth;
+    const vh = video.videoHeight;
+    const sx = vw * 0.2;            // start at 20% from left
+    const sy = vh * 0.25;           // start at 25% from top
+    const sw = vw * 0.6;            // 60% width
+    const sh = vh * 0.35;           // 35% height
 
-    const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+    canvas.width  = SCAN_W;
+    canvas.height = SCAN_H;
+    ctx.drawImage(video, sx, sy, sw, sh, 0, 0, SCAN_W, SCAN_H);
 
+    _decoding = true;
     Quagga.decodeSingle({
       decoder: {
         readers: ['ean_reader', 'ean_8_reader', 'upc_reader', 'upc_e_reader',
                   'code_128_reader', 'code_39_reader']
       },
-      locate: true,
-      src: dataUrl
-    }, (result) => {
+      locate:    false,           // barcode fills most of the cropped area
+      locator:   { halfSample: true },
+      src: canvas.toDataURL('image/jpeg', 0.85)
+    }, result => {
+      _decoding = false;
       const code = result?.codeResult?.code;
       if (!code || !isScanning) return;
 
@@ -88,15 +111,15 @@ function startQuaggaPolling() {
         _quaggaLastCount = 1;
       }
 
-      // Require 3 consistent reads
-      if (_quaggaLastCount >= 3) {
+      // Require 2 consistent reads
+      if (_quaggaLastCount >= 2) {
         isScanning = false;
         stopQuaggaPolling();
         toast(`Barcode detected: ${code}`);
         scannerFetchAndShowResults(code, true);
       }
     });
-  }, 250);
+  }, 200);
 }
 
 function stopQuaggaPolling() {

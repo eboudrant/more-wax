@@ -56,9 +56,8 @@ function openScanner() {
   // Push history so back button closes scanner
   history.pushState({ scanner: true }, '', location.hash);
 
-  // Start camera, default to barcode mode
-  startScannerCamera();
-  switchScannerMode('barcode');
+  // Start camera, then default to barcode mode
+  startScannerCamera().then(() => switchScannerMode('barcode'));
 
   // Escape key handler
   document.addEventListener('keydown', _scannerEscHandler);
@@ -102,7 +101,14 @@ function _scannerEscHandler(e) {
 // Back button support
 window.addEventListener('popstate', () => {
   if (scannerOpen) {
-    closeScanner();
+    const sheet = document.getElementById('scanner-sheet');
+    if (sheet.classList.contains('sheet-open')) {
+      closeSheet();
+      // Re-push history so next back closes the scanner
+      history.pushState({ scanner: true }, '', location.hash);
+    } else {
+      closeScanner();
+    }
   }
 });
 
@@ -281,6 +287,11 @@ function closeSheet() {
     document.getElementById('scanner-sheet-body').innerHTML = '';
     document.getElementById('scanner-sheet-footer').innerHTML = '';
   }, 400);
+
+  // Restart barcode scanning if still in barcode mode
+  if (scannerMode === 'barcode' && cameraStream) {
+    startQuaggaPolling();
+  }
 }
 
 let _sheetDragState = null;
