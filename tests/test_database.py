@@ -4,7 +4,6 @@ Uses a temporary directory so tests never touch real data.
 """
 
 import json
-import os
 import tempfile
 import threading
 import unittest

@@ -7,7 +7,6 @@ import json
 import tempfile
 import unittest
 from http.server import HTTPServer
-from io import BytesIO
 from pathlib import Path
 from threading import Thread
 from unittest import mock

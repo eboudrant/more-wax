@@ -14,7 +14,7 @@ from pathlib import Path
 
 from server.config import DATA_DIR, STATIC_DIR
 from server.database import (
-    _db_add_unlocked, _lock, db_add, db_delete, db_find_duplicate, db_get,
+    _db_add_unlocked, _lock, db_delete, db_find_duplicate, db_get,
     db_list, db_update,
 )
 from server.discogs import (
