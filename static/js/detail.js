@@ -251,7 +251,7 @@ function _detailTouchMove(e) {
     if ((dx > 0 && _detailIndex <= 0) || (dx < 0 && _detailIndex >= _detailList.length - 1)) {
       translate = dx * 0.2;
     }
-    const pct = -33.3333 + (translate / track.parentElement.clientWidth * 100);
+    const pct = -33.3333 + (translate / track.parentElement.clientWidth * 33.3333);
     track.style.transform = `translateX(${pct}%)`;
   } else if (_detailSwipe.locked === 'pull') {
     e.preventDefault();

@@ -4,7 +4,7 @@
 //  STATE  (no tokens here — all API keys live on the server)
 // ─────────────────────────────────────────────────────────────────
 let collection      = [];
-let currentSort     = 'artist';
+let currentSort     = 'added';
 let selectedRelease = null;   // Discogs release chosen by user
 let cameraStream    = null;   // MediaStream for camera
 let capturedPhoto   = null;   // base64 jpeg taken by user
