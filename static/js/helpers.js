@@ -123,6 +123,36 @@ function _httpsHintPlain() {
   return ` — Try HTTPS: https://${location.hostname}:8766`;
 }
 
+// ── Shared record card template (for collection grid + dashboard) ──
+function recordCardHtml(r) {
+  const cover = r.local_cover || r.cover_image_url;
+  const coverHtml = cover
+    ? `<img src="${esc(cover)}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" onerror="this.parentElement.innerHTML='<i class=\\'bi bi-vinyl text-3xl text-outline-v\\'></i>'">`
+    : `<i class="bi bi-vinyl text-3xl text-outline-v"></i>`;
+
+  const cur = r.price_currency || 'USD';
+  const priceBadge = r.price_median && !isNaN(parseFloat(r.price_median))
+    ? `<span class="record-price-badge">${cur}&nbsp;${parseFloat(r.price_median).toFixed(0)} <span class="text-[0.7em] opacity-70 font-normal">med</span></span>`
+    : '';
+
+  return `
+    <div class="flex flex-col gap-3 group cursor-pointer" data-record-id="${r.id}" onclick="showDetail(${r.id})">
+      <div class="aspect-square bg-surface-low rounded-lg overflow-hidden relative shadow-2xl transition-transform duration-500 hover:scale-[1.02] flex items-center justify-center">
+        ${coverHtml}
+      </div>
+      <div class="flex flex-col gap-1">
+        <h3 class="font-headline font-bold text-sm leading-tight text-on-surface truncate">${esc(r.title)}</h3>
+        <p class="font-body text-xs text-on-surface-v truncate">${esc(r.artist)}</p>
+        <div class="record-meta-row flex items-center gap-2 mt-1">
+          <span class="record-year font-label text-[10px] text-outline uppercase tracking-widest">${esc(r.year || '')}</span>
+          ${r.label ? `<span class="w-1 h-1 bg-outline-v rounded-full"></span><span class="font-label text-[10px] text-outline uppercase tracking-widest truncate">${esc(r.label)}</span>` : ''}
+          ${ratingBadge(r)}
+          ${priceBadge}
+        </div>
+      </div>
+    </div>`;
+}
+
 function toast(msg, type = '') {
   const el = document.createElement('div');
   el.className = `app-toast ${type}`;
