@@ -24,12 +24,14 @@ class TestDatabase(unittest.TestCase):
     def setUp(self):
         # Ensure clean DB for each test — re-patch the module-level reference
         import server.database as db_mod
+
         db_mod.DB_FILE = _db_file
         if _db_file.exists():
             _db_file.unlink()
 
     def _get_db(self):
         import server.database as db_mod
+
         return db_mod
 
     # ── Add & List ──────────────────────────────────────────

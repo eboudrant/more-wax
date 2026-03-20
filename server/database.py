@@ -44,7 +44,7 @@ def db_list() -> list:
     with _lock:
         return sorted(
             _load()["records"],
-            key=lambda r: (r.get("artist", "").lower(), r.get("title", "").lower())
+            key=lambda r: (r.get("artist", "").lower(), r.get("title", "").lower()),
         )
 
 
@@ -57,7 +57,7 @@ def db_get(rid: int):
 def db_find_duplicate(record: dict):
     """Return an existing record that looks like a duplicate, or None."""
     discogs_id = str(record.get("discogs_id", "")).strip()
-    barcode    = str(record.get("barcode",    "")).strip()
+    barcode = str(record.get("barcode", "")).strip()
     data = _load()
     for r in data["records"]:
         if discogs_id and str(r.get("discogs_id", "")).strip() == discogs_id:

@@ -44,11 +44,14 @@ class TestHandlerRouting(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         """Start a test server on a random port."""
-        with mock.patch("server.config.DB_FILE", _db_file), \
-             mock.patch("server.config.DATA_DIR", _data_dir), \
-             mock.patch("server.config.COVERS_DIR", _covers_dir), \
-             mock.patch("server.config.STATIC_DIR", _static_dir):
+        with (
+            mock.patch("server.config.DB_FILE", _db_file),
+            mock.patch("server.config.DATA_DIR", _data_dir),
+            mock.patch("server.config.COVERS_DIR", _covers_dir),
+            mock.patch("server.config.STATIC_DIR", _static_dir),
+        ):
             from server.handler import Handler
+
             cls.server = HTTPServer(("127.0.0.1", 0), Handler)
             cls.port = cls.server.server_address[1]
             cls.base = f"http://127.0.0.1:{cls.port}"
@@ -62,6 +65,7 @@ class TestHandlerRouting(unittest.TestCase):
     def setUp(self):
         """Reset the database before each test."""
         import server.database as db_mod
+
         db_mod.DB_FILE = _db_file
         if _db_file.exists():
             _db_file.unlink()
@@ -213,6 +217,7 @@ class TestSafeResolve(unittest.TestCase):
 
     def _resolve(self, base, untrusted):
         from server.handler import Handler
+
         return Handler._safe_resolve(base, untrusted)
 
     def test_normal_path(self):
@@ -243,6 +248,7 @@ class TestMaxBody(unittest.TestCase):
 
     def test_max_body_constant(self):
         from server.handler import MAX_BODY_BYTES
+
         self.assertIsInstance(MAX_BODY_BYTES, int)
         self.assertGreater(MAX_BODY_BYTES, 0)
         self.assertLessEqual(MAX_BODY_BYTES, 50 * 1024 * 1024)  # at most 50 MB

@@ -14,11 +14,18 @@ from pathlib import Path
 
 from server.config import DATA_DIR, STATIC_DIR
 from server.database import (
-    _db_add_unlocked, _lock, db_delete, db_find_duplicate, db_get,
-    db_list, db_update,
+    _db_add_unlocked,
+    _lock,
+    db_delete,
+    db_find_duplicate,
+    db_get,
+    db_list,
+    db_update,
 )
 from server.discogs import (
-    discogs_add_to_collection, discogs_refresh_prices, discogs_release_full,
+    discogs_add_to_collection,
+    discogs_refresh_prices,
+    discogs_release_full,
     discogs_search,
 )
 from server.images import convert_image, identify_cover, upload_cover
@@ -27,7 +34,6 @@ MAX_BODY_BYTES = 20 * 1024 * 1024  # 20 MB cap on request bodies
 
 
 class Handler(http.server.BaseHTTPRequestHandler):
-
     def log_message(self, fmt, *args):
         status = args[1] if len(args) > 1 else "?"
         # Sanitise path for log output (strip control chars)
@@ -53,14 +59,14 @@ class Handler(http.server.BaseHTTPRequestHandler):
     # ── low-level helpers ────────────────────────────────────────
 
     def _cors_headers(self):
-        self.send_header("Access-Control-Allow-Origin",  "*")
+        self.send_header("Access-Control-Allow-Origin", "*")
         self.send_header("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS")
         self.send_header("Access-Control-Allow-Headers", "Content-Type")
 
     def send_json(self, obj, status: int = 200):
         body = json.dumps(obj, ensure_ascii=False, default=str).encode("utf-8")
         self.send_response(status)
-        self.send_header("Content-Type",   "application/json; charset=utf-8")
+        self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
         self._cors_headers()
         self.end_headers()
@@ -74,9 +80,9 @@ class Handler(http.server.BaseHTTPRequestHandler):
             return
         mime, _ = mimetypes.guess_type(str(path))
         self.send_response(200)
-        self.send_header("Content-Type",   mime or "application/octet-stream")
+        self.send_header("Content-Type", mime or "application/octet-stream")
         self.send_header("Content-Length", str(len(data)))
-        self.send_header("Cache-Control",  "no-cache")
+        self.send_header("Cache-Control", "no-cache")
         self._cors_headers()
         self.end_headers()
         self.wfile.write(data)
@@ -188,14 +194,30 @@ class Handler(http.server.BaseHTTPRequestHandler):
     def _api_add(self):
         data = self.read_json()
         allowed = (
-            "discogs_id", "title", "artist", "year", "label",
-            "catalog_number", "format", "genres", "styles",
-            "country", "notes", "cover_image_url", "local_cover", "barcode",
-            "price_low", "price_median", "price_high", "price_currency", "num_for_sale",
-            "rating_average", "rating_count"
+            "discogs_id",
+            "title",
+            "artist",
+            "year",
+            "label",
+            "catalog_number",
+            "format",
+            "genres",
+            "styles",
+            "country",
+            "notes",
+            "cover_image_url",
+            "local_cover",
+            "barcode",
+            "price_low",
+            "price_median",
+            "price_high",
+            "price_currency",
+            "num_for_sale",
+            "rating_average",
+            "rating_count",
         )
         record = {k: data[k] for k in allowed if k in data}
-        record.setdefault("title",  "")
+        record.setdefault("title", "")
         record.setdefault("artist", "")
 
         with _lock:
@@ -208,12 +230,23 @@ class Handler(http.server.BaseHTTPRequestHandler):
         self.send_json({"id": new_id, "success": True}, 201)
 
     def _api_update(self, rid: int):
-        data   = self.read_json()
-        allowed = ("title", "artist", "year", "label", "notes",
-                   "local_cover", "cover_image_url",
-                   "price_low", "price_median", "price_high",
-                   "price_currency", "num_for_sale",
-                   "rating_average", "rating_count")
+        data = self.read_json()
+        allowed = (
+            "title",
+            "artist",
+            "year",
+            "label",
+            "notes",
+            "local_cover",
+            "cover_image_url",
+            "price_low",
+            "price_median",
+            "price_high",
+            "price_currency",
+            "num_for_sale",
+            "rating_average",
+            "rating_count",
+        )
         fields = {k: data[k] for k in allowed if k in data}
         ok = db_update(rid, fields)
         self.send_json({"success": ok})
@@ -223,14 +256,16 @@ class Handler(http.server.BaseHTTPRequestHandler):
     def _send_discogs_error(self, e: Exception):
         """Unified error response for Discogs API failures."""
         if isinstance(e, urllib.error.HTTPError):
-            self.send_json({"error": f"Discogs {e.code}"}, e.code if e.code < 500 else 502)
+            self.send_json(
+                {"error": f"Discogs {e.code}"}, e.code if e.code < 500 else 502
+            )
         else:
             self.send_json({"error": str(e)}, 502)
 
     def _api_discogs_search(self):
         qs = urllib.parse.urlparse(self.path).query
         params = urllib.parse.parse_qs(qs)
-        q       = params.get("q",       [""])[0]
+        q = params.get("q", [""])[0]
         barcode = params.get("barcode", [""])[0]
         if not q and not barcode:
             self.send_json({"results": [], "error": "No search query provided"}, 400)
@@ -261,7 +296,16 @@ class Handler(http.server.BaseHTTPRequestHandler):
     def _api_refresh_all_prices(self):
         """Refresh prices for all stale records. Runs in background thread."""
         records = db_list()
-        stale = [r for r in records if r.get("discogs_id") and (not r.get("price_median") or not r.get("price_high") or not r.get("rating_average"))]
+        stale = [
+            r
+            for r in records
+            if r.get("discogs_id")
+            and (
+                not r.get("price_median")
+                or not r.get("price_high")
+                or not r.get("rating_average")
+            )
+        ]
 
         if not stale:
             self.send_json({"updated": 0, "total_stale": 0})
@@ -272,15 +316,27 @@ class Handler(http.server.BaseHTTPRequestHandler):
             for r in stale:
                 try:
                     needs_rating = not r.get("rating_average")
-                    prices = discogs_refresh_prices(r["discogs_id"], fetch_rating=needs_rating)
-                    if any(prices.get(k) for k in ("price_low", "price_median", "price_high", "rating_average")):
+                    prices = discogs_refresh_prices(
+                        r["discogs_id"], fetch_rating=needs_rating
+                    )
+                    if any(
+                        prices.get(k)
+                        for k in (
+                            "price_low",
+                            "price_median",
+                            "price_high",
+                            "rating_average",
+                        )
+                    ):
                         db_update(r["id"], prices)
                         updated += 1
                 except Exception as e:
                     if "429" in str(e):
                         print(f"  ⚠️ Rate limit hit after {updated} updates, stopping")
                         break
-                time.sleep(2.5)  # respect rate limits (3 calls per record when rating needed)
+                time.sleep(
+                    2.5
+                )  # respect rate limits (3 calls per record when rating needed)
             print(f"  📊 Background price refresh done: {updated}/{len(stale)} updated")
 
         t = threading.Thread(target=_do_refresh, daemon=True)
@@ -303,5 +359,9 @@ class Handler(http.server.BaseHTTPRequestHandler):
     def _api_identify_cover(self):
         data = self.read_json()
         result = identify_cover(data.get("image", ""))
-        status = 200 if result.get("success") else (501 if "not configured" in result.get("error", "") else 200)
+        status = (
+            200
+            if result.get("success")
+            else (501 if "not configured" in result.get("error", "") else 200)
+        )
         self.send_json(result, status)

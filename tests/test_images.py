@@ -15,17 +15,18 @@ class TestIdentifyCoverParsing(unittest.TestCase):
     def _call_identify(self, claude_response_text, api_key="test-key"):
         """Helper: mock the API call and return identify_cover result."""
         # Build a fake urllib response
-        api_response = json.dumps({
-            "content": [{"type": "text", "text": claude_response_text}]
-        }).encode()
+        api_response = json.dumps(
+            {"content": [{"type": "text", "text": claude_response_text}]}
+        ).encode()
 
         # 1x1 red pixel JPEG as base64
         img_data = "data:image/jpeg;base64,/9j/4AAQSkZJRg=="
 
-        with mock.patch("server.images.ANTHROPIC_API_KEY", api_key), \
-             mock.patch("server.images.VISION_MODEL", "claude-sonnet-4-6"), \
-             mock.patch("urllib.request.urlopen") as mock_urlopen:
-
+        with (
+            mock.patch("server.images.ANTHROPIC_API_KEY", api_key),
+            mock.patch("server.images.VISION_MODEL", "claude-sonnet-4-6"),
+            mock.patch("urllib.request.urlopen") as mock_urlopen,
+        ):
             mock_resp = mock.MagicMock()
             mock_resp.read.return_value = api_response
             mock_resp.__enter__ = mock.MagicMock(return_value=mock_resp)
@@ -33,15 +34,22 @@ class TestIdentifyCoverParsing(unittest.TestCase):
             mock_urlopen.return_value = mock_resp
 
             from server.images import identify_cover
+
             return identify_cover(img_data)
 
     def test_basic_identification(self):
-        response = json.dumps({
-            "artist": "DJ Shadow", "title": "Endtroducing",
-            "label": "Mo Wax", "catalog_number": "MW059LP",
-            "country": "UK", "year": "1996",
-            "barcode": "5021392052625", "format_details": "2xLP"
-        })
+        response = json.dumps(
+            {
+                "artist": "DJ Shadow",
+                "title": "Endtroducing",
+                "label": "Mo Wax",
+                "catalog_number": "MW059LP",
+                "country": "UK",
+                "year": "1996",
+                "barcode": "5021392052625",
+                "format_details": "2xLP",
+            }
+        )
         result = self._call_identify(response)
         self.assertTrue(result["success"])
         self.assertEqual(result["artist"], "DJ Shadow")
@@ -69,7 +77,7 @@ class TestIdentifyCoverParsing(unittest.TestCase):
         self.assertFalse(result["success"])
 
     def test_missing_api_key(self):
-        result = self._call_identify('{}', api_key="")
+        result = self._call_identify("{}", api_key="")
         self.assertFalse(result["success"])
         self.assertIn("ANTHROPIC_API_KEY", result["error"])
 
@@ -103,6 +111,7 @@ class TestUploadCoverPaths(unittest.TestCase):
         img_data = f"data:image/jpeg;base64,{raw_b64}"
 
         from server.images import upload_cover
+
         result = upload_cover(img_data, "42")
 
         self.assertTrue(result["success"])
@@ -120,6 +129,7 @@ class TestUploadCoverPaths(unittest.TestCase):
 
         raw_b64 = base64.b64encode(b"fake-image-data").decode()
         from server.images import upload_cover
+
         result = upload_cover(raw_b64, "tmp")
 
         self.assertTrue(result["success"])
@@ -131,12 +141,14 @@ class TestUploadCoverValidation(unittest.TestCase):
 
     def test_empty_image_data(self):
         from server.images import upload_cover
+
         result = upload_cover("", "1")
         self.assertFalse(result["success"])
         self.assertIn("No image", result["error"])
 
     def test_invalid_base64(self):
         from server.images import upload_cover
+
         result = upload_cover("not-valid-base64!!!", "1")
         self.assertFalse(result["success"])
         self.assertIn("Invalid base64", result["error"])
@@ -153,6 +165,7 @@ class TestUploadCoverValidation(unittest.TestCase):
 
         raw_b64 = base64.b64encode(b"fake-image-data").decode()
         from server.images import upload_cover
+
         result = upload_cover(raw_b64, "../../../etc/passwd")
         self.assertTrue(result["success"])
         # The filename should NOT contain path separators
@@ -165,11 +178,13 @@ class TestConvertImageValidation(unittest.TestCase):
 
     def test_empty_image_data(self):
         from server.images import convert_image
+
         result = convert_image("")
         self.assertFalse(result["success"])
 
     def test_invalid_base64(self):
         from server.images import convert_image
+
         result = convert_image("not!!valid!!base64")
         self.assertFalse(result["success"])
         self.assertIn("Invalid base64", result["error"])
@@ -179,14 +194,16 @@ class TestCodeFenceParsing(unittest.TestCase):
     """Test that code-fence stripping doesn't crash on edge cases."""
 
     def _call_identify(self, claude_response_text):
-        api_response = json.dumps({
-            "content": [{"type": "text", "text": claude_response_text}]
-        }).encode()
+        api_response = json.dumps(
+            {"content": [{"type": "text", "text": claude_response_text}]}
+        ).encode()
         img_data = "data:image/jpeg;base64,/9j/4AAQSkZJRg=="
 
-        with mock.patch("server.images.ANTHROPIC_API_KEY", "test-key"), \
-             mock.patch("server.images.VISION_MODEL", "claude-sonnet-4-6"), \
-             mock.patch("urllib.request.urlopen") as mock_urlopen:
+        with (
+            mock.patch("server.images.ANTHROPIC_API_KEY", "test-key"),
+            mock.patch("server.images.VISION_MODEL", "claude-sonnet-4-6"),
+            mock.patch("urllib.request.urlopen") as mock_urlopen,
+        ):
             mock_resp = mock.MagicMock()
             mock_resp.read.return_value = api_response
             mock_resp.__enter__ = mock.MagicMock(return_value=mock_resp)
@@ -194,24 +211,23 @@ class TestCodeFenceParsing(unittest.TestCase):
             mock_urlopen.return_value = mock_resp
 
             from server.images import identify_cover
+
             return identify_cover(img_data)
 
     def test_triple_backtick_only(self):
         """Single ``` with no closing should not crash."""
-        result = self._call_identify('```')
+        result = self._call_identify("```")
         self.assertFalse(result["success"])
 
     def test_code_fence_no_json_label(self):
         """Code fence without 'json' label should still parse."""
-        result = self._call_identify(
-            '```\n{"artist": "Test", "title": "Album"}\n```'
-        )
+        result = self._call_identify('```\n{"artist": "Test", "title": "Album"}\n```')
         self.assertTrue(result["success"])
         self.assertEqual(result["artist"], "Test")
 
     def test_malformed_json_in_fence(self):
         """Malformed JSON inside code fence should not crash."""
-        result = self._call_identify('```json\n{not json}\n```')
+        result = self._call_identify("```json\n{not json}\n```")
         self.assertFalse(result["success"])
 
 

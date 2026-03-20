@@ -23,11 +23,15 @@ def _discogs_request(method: str, path: str, params: dict = None) -> dict:
     tag = f"{method} {path}"
     print(f"  🔵 [discogs] {tag}")
 
-    req = urllib.request.Request(url, method=method, headers={
-        "Authorization": f"Discogs token={DISCOGS_TOKEN}",
-        "User-Agent":    "More'Wax/1.0",
-        "Content-Type":  "application/json",
-    })
+    req = urllib.request.Request(
+        url,
+        method=method,
+        headers={
+            "Authorization": f"Discogs token={DISCOGS_TOKEN}",
+            "User-Agent": "More'Wax/1.0",
+            "Content-Type": "application/json",
+        },
+    )
     try:
         with urllib.request.urlopen(req, timeout=15) as resp:
             rate_remain = resp.headers.get("X-Discogs-Ratelimit-Remaining", "?")
@@ -42,8 +46,13 @@ def _discogs_request(method: str, path: str, params: dict = None) -> dict:
 
 def _parse_prices(stats: dict, suggestions: dict) -> dict:
     """Extract price fields from Discogs marketplace stats and price suggestions."""
-    prices = {"price_low": "", "price_median": "", "price_high": "",
-              "price_currency": "USD", "num_for_sale": ""}
+    prices = {
+        "price_low": "",
+        "price_median": "",
+        "price_high": "",
+        "price_currency": "USD",
+        "num_for_sale": "",
+    }
 
     if stats:
         lp = stats.get("lowest_price") or {}
@@ -58,7 +67,9 @@ def _parse_prices(stats: dict, suggestions: dict) -> dict:
         if vgp.get("value") is not None:
             prices["price_median"] = str(vgp["value"])
             prices["price_currency"] = vgp.get("currency", prices["price_currency"])
-        nm = suggestions.get("Near Mint (NM or M-)") or suggestions.get("Mint (M)") or {}
+        nm = (
+            suggestions.get("Near Mint (NM or M-)") or suggestions.get("Mint (M)") or {}
+        )
         if nm.get("value") is not None:
             prices["price_high"] = str(nm["value"])
 
@@ -92,7 +103,9 @@ def discogs_release_full(release_id: str) -> dict:
 
     def _get_suggestions():
         try:
-            return _discogs_request("GET", f"/marketplace/price_suggestions/{release_id}")
+            return _discogs_request(
+                "GET", f"/marketplace/price_suggestions/{release_id}"
+            )
         except Exception:
             return {}
 
@@ -100,20 +113,22 @@ def discogs_release_full(release_id: str) -> dict:
         if not _discogs_username:
             return None
         try:
-            return _discogs_request("GET", f"/users/{_discogs_username}/collection/releases/{release_id}")
+            return _discogs_request(
+                "GET", f"/users/{_discogs_username}/collection/releases/{release_id}"
+            )
         except Exception:
             return None
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:
-        f_release     = pool.submit(_get_release)
-        f_stats       = pool.submit(_get_stats)
+        f_release = pool.submit(_get_release)
+        f_stats = pool.submit(_get_stats)
         f_suggestions = pool.submit(_get_suggestions)
-        f_collection  = pool.submit(_get_collection)
+        f_collection = pool.submit(_get_collection)
 
     release = f_release.result()
-    stats   = f_stats.result()
-    sugg    = f_suggestions.result()
-    coll    = f_collection.result()
+    stats = f_stats.result()
+    sugg = f_suggestions.result()
+    coll = f_collection.result()
 
     prices = _parse_prices(stats, sugg)
 
@@ -124,14 +139,18 @@ def discogs_release_full(release_id: str) -> dict:
 
     # Parse artist string (remove Discogs (12345) suffixes)
     artists = release.get("artists") or []
-    artist_str = ", ".join(
-        a["name"].rsplit(" (", 1)[0] if " (" in a["name"] else a["name"]
-        for a in artists
-    ) if artists else release.get("title", "").split(" - ")[0]
+    artist_str = (
+        ", ".join(
+            a["name"].rsplit(" (", 1)[0] if " (" in a["name"] else a["name"]
+            for a in artists
+        )
+        if artists
+        else release.get("title", "").split(" - ")[0]
+    )
 
     # Find barcode in identifiers
     barcode_val = ""
-    for ident in (release.get("identifiers") or []):
+    for ident in release.get("identifiers") or []:
         if ident.get("type") == "Barcode":
             barcode_val = ident.get("value", "")
             break
@@ -143,25 +162,31 @@ def discogs_release_full(release_id: str) -> dict:
     rating_count = rating_info.get("count", 0)
 
     return {
-        "discogs_id":      str(release.get("id", "")),
-        "title":           release.get("title", ""),
-        "artist":          artist_str,
-        "year":            str(release.get("year", "")),
-        "label":           ", ".join(lbl.get("name", "") for lbl in (release.get("labels") or [])),
-        "catalog_number":  ", ".join(lbl.get("catno", "") for lbl in (release.get("labels") or []) if lbl.get("catno")),
-        "format":          ", ".join(f.get("name", "") for f in (release.get("formats") or [])),
-        "genres":          json.dumps(release.get("genres") or []),
-        "styles":          json.dumps(release.get("styles") or []),
-        "country":         release.get("country", ""),
+        "discogs_id": str(release.get("id", "")),
+        "title": release.get("title", ""),
+        "artist": artist_str,
+        "year": str(release.get("year", "")),
+        "label": ", ".join(
+            lbl.get("name", "") for lbl in (release.get("labels") or [])
+        ),
+        "catalog_number": ", ".join(
+            lbl.get("catno", "")
+            for lbl in (release.get("labels") or [])
+            if lbl.get("catno")
+        ),
+        "format": ", ".join(f.get("name", "") for f in (release.get("formats") or [])),
+        "genres": json.dumps(release.get("genres") or []),
+        "styles": json.dumps(release.get("styles") or []),
+        "country": release.get("country", ""),
         "cover_image_url": (release.get("images") or [{}])[0].get("uri", ""),
-        "barcode":         barcode_val,
-        "price_low":       prices["price_low"],
-        "price_median":    prices["price_median"],
-        "price_high":      prices["price_high"],
-        "price_currency":  prices["price_currency"],
-        "num_for_sale":    prices["num_for_sale"],
-        "rating_average":  str(rating_average) if rating_average else "",
-        "rating_count":    str(rating_count) if rating_count else "",
+        "barcode": barcode_val,
+        "price_low": prices["price_low"],
+        "price_median": prices["price_median"],
+        "price_high": prices["price_high"],
+        "price_currency": prices["price_currency"],
+        "num_for_sale": prices["num_for_sale"],
+        "rating_average": str(rating_average) if rating_average else "",
+        "rating_count": str(rating_count) if rating_count else "",
         "already_in_discogs": already_in_discogs,
     }
 
@@ -211,7 +236,10 @@ def discogs_add_to_collection(release_id: str) -> bool:
     if not _discogs_username:
         return False
     try:
-        _discogs_request("POST", f"/users/{_discogs_username}/collection/folders/1/releases/{release_id}")
+        _discogs_request(
+            "POST",
+            f"/users/{_discogs_username}/collection/folders/1/releases/{release_id}",
+        )
         return True
     except Exception as e:
         print(f"  ⚠️ [discogs] add to collection failed: {e}")

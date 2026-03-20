@@ -53,7 +53,7 @@ def upload_cover(img_data: str, record_id: str) -> dict:
     if not safe_id:
         safe_id = "tmp"
 
-    filename  = f"cover_{safe_id}.jpg"
+    filename = f"cover_{safe_id}.jpg"
     dest_path = COVERS_DIR / filename
     dest_path.write_bytes(raw)
 
@@ -89,14 +89,29 @@ def convert_image(img_data: str) -> dict:
             f.write(raw_bytes)
 
         converters = [
-            ["sips", "-s", "format", "jpeg",
-             "-s", "formatOptions", "88",
-             src_path, "--out", dst_path],
-            ["convert", src_path,
-             "-auto-orient", "-quality", "88",
-             "-resize", "1600x1600>", dst_path],
-            ["ffmpeg", "-y", "-i", src_path,
-             "-q:v", "4", dst_path],
+            [
+                "sips",
+                "-s",
+                "format",
+                "jpeg",
+                "-s",
+                "formatOptions",
+                "88",
+                src_path,
+                "--out",
+                dst_path,
+            ],
+            [
+                "convert",
+                src_path,
+                "-auto-orient",
+                "-quality",
+                "88",
+                "-resize",
+                "1600x1600>",
+                dst_path,
+            ],
+            ["ffmpeg", "-y", "-i", src_path, "-q:v", "4", dst_path],
         ]
 
         last_error = ""
@@ -119,7 +134,7 @@ def convert_image(img_data: str) -> dict:
 
         return {
             "error": f"No converter could handle this file. Last: {last_error}",
-            "success": False
+            "success": False,
         }
     finally:
         _cleanup(src_path, dst_path)
@@ -141,57 +156,66 @@ def identify_cover(img_data: str) -> dict:
     MAX_B64_CHARS = 5_000_000
     if len(img_data) > MAX_B64_CHARS:
         print(f"  [identify] image too large ({len(img_data)} chars), rejecting")
-        return {"success": False, "error": "Image too large — please use a smaller photo"}
+        return {
+            "success": False,
+            "error": "Image too large — please use a smaller photo",
+        }
 
-    print(f"  [identify] calling Claude Vision ({len(img_data)} base64 chars, {media_type})")
+    print(
+        f"  [identify] calling Claude Vision ({len(img_data)} base64 chars, {media_type})"
+    )
 
-    body = json.dumps({
-        "model": VISION_MODEL,
-        "max_tokens": 300,
-        "messages": [{
-            "role": "user",
-            "content": [
+    body = json.dumps(
+        {
+            "model": VISION_MODEL,
+            "max_tokens": 300,
+            "messages": [
                 {
-                    "type": "image",
-                    "source": {
-                        "type":       "base64",
-                        "media_type": media_type,
-                        "data":       img_data
-                    }
-                },
-                {
-                    "type": "text",
-                    "text": (
-                        "This is a photo of a vinyl record. Examine the image carefully — look at "
-                        "everything visible: cover art, spine, label, catalog number, barcode, "
-                        "country of pressing, label logo, matrix/runout etchings, any stickers or "
-                        "hype stickers, color of the vinyl, and any other visual details.\n\n"
-                        "Your goal is to identify the EXACT pressing/release, not just the album. "
-                        "Many albums have dozens of different releases on Discogs (different countries, "
-                        "labels, years, reissues). Use every visual clue to narrow it down.\n\n"
-                        "Return ONLY valid JSON:\n"
-                        "{\"artist\": \"...\", \"title\": \"...\", \"label\": \"...\", "
-                        "\"catalog_number\": \"...\", \"country\": \"...\", \"year\": \"...\", "
-                        "\"barcode\": \"...\", \"format_details\": \"...\"}\n"
-                        "Include only fields you can identify with confidence. "
-                        "Leave others as empty strings.\n"
-                        "If you cannot identify the record at all, return: "
-                        "{\"artist\": \"\", \"title\": \"\"}"
-                    )
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "image",
+                            "source": {
+                                "type": "base64",
+                                "media_type": media_type,
+                                "data": img_data,
+                            },
+                        },
+                        {
+                            "type": "text",
+                            "text": (
+                                "This is a photo of a vinyl record. Examine the image carefully — look at "
+                                "everything visible: cover art, spine, label, catalog number, barcode, "
+                                "country of pressing, label logo, matrix/runout etchings, any stickers or "
+                                "hype stickers, color of the vinyl, and any other visual details.\n\n"
+                                "Your goal is to identify the EXACT pressing/release, not just the album. "
+                                "Many albums have dozens of different releases on Discogs (different countries, "
+                                "labels, years, reissues). Use every visual clue to narrow it down.\n\n"
+                                "Return ONLY valid JSON:\n"
+                                '{"artist": "...", "title": "...", "label": "...", '
+                                '"catalog_number": "...", "country": "...", "year": "...", '
+                                '"barcode": "...", "format_details": "..."}\n'
+                                "Include only fields you can identify with confidence. "
+                                "Leave others as empty strings.\n"
+                                "If you cannot identify the record at all, return: "
+                                '{"artist": "", "title": ""}'
+                            ),
+                        },
+                    ],
                 }
-            ]
-        }]
-    }).encode("utf-8")
+            ],
+        }
+    ).encode("utf-8")
 
     req = urllib.request.Request(
         "https://api.anthropic.com/v1/messages",
         data=body,
         headers={
-            "x-api-key":         ANTHROPIC_API_KEY,
+            "x-api-key": ANTHROPIC_API_KEY,
             "anthropic-version": "2023-06-01",
-            "content-type":      "application/json"
+            "content-type": "application/json",
         },
-        method="POST"
+        method="POST",
     )
 
     text = ""
@@ -215,22 +239,29 @@ def identify_cover(img_data: str) -> dict:
                 text = inner.strip()
 
         parsed = json.loads(text)
-        artist         = parsed.get("artist", "").strip()
-        title          = parsed.get("title",  "").strip()
-        label          = parsed.get("label", "").strip()
+        artist = parsed.get("artist", "").strip()
+        title = parsed.get("title", "").strip()
+        label = parsed.get("label", "").strip()
         catalog_number = parsed.get("catalog_number", "").strip()
-        country        = parsed.get("country", "").strip()
-        year           = parsed.get("year", "").strip()
-        barcode        = parsed.get("barcode", "").strip()
+        country = parsed.get("country", "").strip()
+        year = parsed.get("year", "").strip()
+        barcode = parsed.get("barcode", "").strip()
         format_details = parsed.get("format_details", "").strip()
-        print(f"  [identify] → artist={artist!r} title={title!r} label={label!r} cat={catalog_number!r} country={country!r} barcode={barcode!r}")
+        print(
+            f"  [identify] → artist={artist!r} title={title!r} label={label!r} cat={catalog_number!r} country={country!r} barcode={barcode!r}"
+        )
 
         if artist or title:
             return {
-                "success": True, "artist": artist, "title": title,
-                "label": label, "catalog_number": catalog_number,
-                "country": country, "year": year,
-                "barcode": barcode, "format_details": format_details,
+                "success": True,
+                "artist": artist,
+                "title": title,
+                "label": label,
+                "catalog_number": catalog_number,
+                "country": country,
+                "year": year,
+                "barcode": barcode,
+                "format_details": format_details,
             }
         else:
             return {"success": False, "error": "Could not identify record"}
