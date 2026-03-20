@@ -23,6 +23,9 @@ def _discogs_request(method: str, path: str, params: dict = None) -> dict:
     tag = f"{method} {path}"
     print(f"  🔵 [discogs] {tag}")
 
+    if not url.startswith("https://"):
+        raise ValueError(f"Refusing non-HTTPS URL: {url}")
+
     req = urllib.request.Request(
         url,
         method=method,
@@ -33,7 +36,7 @@ def _discogs_request(method: str, path: str, params: dict = None) -> dict:
         },
     )
     try:
-        with urllib.request.urlopen(req, timeout=15) as resp:
+        with urllib.request.urlopen(req, timeout=15) as resp:  # noqa: S310
             rate_remain = resp.headers.get("X-Discogs-Ratelimit-Remaining", "?")
             body = json.loads(resp.read())
             print(f"  ✅ [discogs] {tag} → OK (rate remaining: {rate_remain})")
