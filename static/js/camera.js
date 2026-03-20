@@ -18,14 +18,19 @@ async function startScannerCamera() {
     });
     video.srcObject = cameraStream;
     await video.play();
-    // Wait until the video actually has frame data (videoWidth > 0)
-    if (!video.videoWidth) {
-      await new Promise(resolve => {
-        video.addEventListener('loadeddata', resolve, { once: true });
-        // Fallback in case event already fired
-        setTimeout(resolve, 1000);
-      });
-    }
+    // Wait until the video actually has decodable frame data
+    await new Promise(resolve => {
+      const check = () => {
+        if (video.readyState >= video.HAVE_CURRENT_DATA && video.videoWidth > 0) {
+          resolve();
+        } else {
+          requestAnimationFrame(check);
+        }
+      };
+      check();
+      // Hard fallback — don't wait forever
+      setTimeout(resolve, 2000);
+    });
     if (errEl) errEl.classList.add('hidden');
     if (frameEl) frameEl.classList.remove('hidden');
   } catch (err) {
