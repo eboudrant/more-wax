@@ -143,6 +143,8 @@ jobs:
 
           # Verify all <script src="js/..."> references have matching files
           grep -oP 'src="[^"]*\.js"' static/index.html | sed 's/src="//;s/"//' | while read -r ref; do
+            # Skip external CDN URLs
+            case "$ref" in http://*|https://*) continue ;; esac
             # Handle both /static/js/... and js/... paths
             path="${ref#/}"
             if [ ! -f "$path" ]; then
