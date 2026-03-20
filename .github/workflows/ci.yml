@@ -228,22 +228,3 @@ jobs:
           path: tests/screenshots/**/*-diff.png
           retention-days: 14
 
-  kmp-checks:
-    name: KMP
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v6
-
-      - name: Set up Java 21
-        uses: actions/setup-java@v5
-        with:
-          distribution: temurin
-          java-version: 21
-
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v5
-
-      - name: Run check
-        working-directory: more-wax-kmp
-        run: ./gradlew check

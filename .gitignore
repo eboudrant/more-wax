@@ -36,9 +36,6 @@ blob-report/
 
 # Test images
 *.HEIC
-more-wax-kmp/.gradle
-more-wax-kmp/.kotlin
-more-wax-kmp/build
 build
 
 local.properties
