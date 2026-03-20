@@ -38,7 +38,7 @@ function _showApiKeyDialog() {
 }
 
 // ── Open / Close ─────────────────────────────────────────────
-function openScanner() {
+async function openScanner() {
   selectedRelease       = null;
   capturedPhoto         = null;
   window._searchResults = [];
@@ -56,8 +56,9 @@ function openScanner() {
   // Push history so back button closes scanner
   history.pushState({ scanner: true }, '', location.hash);
 
-  // Start camera, then default to barcode mode
-  startScannerCamera().then(() => switchScannerMode('barcode'));
+  // Start camera, wait for it to be ready, then start barcode mode
+  await startScannerCamera();
+  switchScannerMode('barcode');
 
   // Escape key handler
   document.addEventListener('keydown', _scannerEscHandler);

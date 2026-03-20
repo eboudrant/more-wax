@@ -72,9 +72,9 @@ function startQuaggaPolling() {
   const canvas = document.getElementById('scanner-canvas');
   if (!video || !canvas || !cameraStream) return;
 
-  // Crop center 60% of the frame (where the scanner frame is) and scale down
+  // Scan center region of the frame, scaled down for speed
   const SCAN_W = 640;
-  const SCAN_H = 300;
+  const SCAN_H = 480;
   const ctx = canvas.getContext('2d');
   let _decoding = false;
 
@@ -83,13 +83,14 @@ function startQuaggaPolling() {
     if (video.readyState < video.HAVE_CURRENT_DATA) return;
     if (_decoding) return;
 
-    // Crop center region of the video frame
+    // Crop center 70% of the video frame
     const vw = video.videoWidth;
     const vh = video.videoHeight;
-    const sx = vw * 0.2;            // start at 20% from left
-    const sy = vh * 0.25;           // start at 25% from top
-    const sw = vw * 0.6;            // 60% width
-    const sh = vh * 0.35;           // 35% height
+    if (!vw || !vh) return;         // video dimensions not ready yet
+    const sx = vw * 0.15;
+    const sy = vh * 0.15;
+    const sw = vw * 0.7;
+    const sh = vh * 0.7;
 
     canvas.width  = SCAN_W;
     canvas.height = SCAN_H;
@@ -101,8 +102,8 @@ function startQuaggaPolling() {
         readers: ['ean_reader', 'ean_8_reader', 'upc_reader', 'upc_e_reader',
                   'code_128_reader', 'code_39_reader']
       },
-      locate:    false,           // barcode fills most of the cropped area
-      locator:   { halfSample: true },
+      locate:    true,
+      locator:   { halfSample: true, patchSize: 'medium' },
       src: canvas.toDataURL('image/jpeg', 0.85)
     }, result => {
       _decoding = false;
