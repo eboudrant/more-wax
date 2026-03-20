@@ -70,7 +70,7 @@
     <nav class="hidden md:flex items-center gap-6 font-body text-sm font-medium mr-4">
       <a href="#dashboard" class="nav-link-top" data-view="dashboard">Home</a>
       <a href="#collection" class="nav-link-top" data-view="collection">Collection</a>
-      <a href="#" class="nav-link-top" onclick="openAddModal();return false">Add</a>
+      <a href="#" class="nav-link-top" onclick="openScanner();return false">Add</a>
     </nav>
     <span id="nav-badge" class="text-xs px-2 py-0.5 rounded-full bg-surface-high text-outline font-label">Loading…</span>
   </div>
@@ -87,7 +87,7 @@
           <h2 id="dash-count" class="font-headline font-bold text-5xl text-on-surface">0</h2>
         </div>
         <div class="mt-8">
-          <button onclick="openAddModal()" class="w-full bg-gradient-to-br from-primary to-primary-ctr text-on-primary py-3 rounded-full font-bold text-sm flex items-center justify-center gap-2 active:scale-95 transition-transform">
+          <button onclick="openScanner()" class="w-full bg-gradient-to-br from-primary to-primary-ctr text-on-primary py-3 rounded-full font-bold text-sm flex items-center justify-center gap-2 active:scale-95 transition-transform">
             <i class="bi bi-plus-circle-fill"></i> Add New Vinyl
           </button>
         </div>
@@ -176,6 +176,98 @@
   </main>
 </div>
 
+<!-- ════════════════════════════════════════════════════════════
+     SCANNER VIEW — full-screen camera-first add flow
+     ════════════════════════════════════════════════════════════ -->
+<div id="view-scanner" class="fixed inset-0 z-[60] bg-black hidden flex-col">
+  <!-- Camera feed -->
+  <video id="scanner-video" autoplay playsinline muted class="absolute inset-0 w-full h-full object-cover"></video>
+
+  <!-- Dark overlay for search mode -->
+  <div id="scanner-dim" class="absolute inset-0 bg-bg/90 hidden transition-opacity duration-300"></div>
+
+  <!-- Top bar -->
+  <div id="scanner-top-bar" class="relative z-20 flex items-center justify-between px-4 pt-[env(safe-area-inset-top)] mt-2">
+    <button onclick="closeScanner()" class="w-10 h-10 flex items-center justify-center text-on-surface rounded-full bg-black/40 hover:bg-black/60 transition-colors">
+      <i class="bi bi-x-lg"></i>
+    </button>
+    <h1 class="font-headline font-bold text-on-surface text-lg tracking-tight">Scan &amp; Discover</h1>
+    <button onclick="toggleFlashlight()" id="scanner-flash-btn" class="w-10 h-10 flex items-center justify-center text-primary rounded-full bg-black/40 hover:bg-black/60 transition-colors">
+      <i class="bi bi-lightning-fill"></i>
+    </button>
+  </div>
+
+  <!-- Frame area -->
+  <div id="scanner-frame-wrap" class="relative z-10 flex-1 flex flex-col items-center justify-center px-8">
+    <p id="scanner-guidance" class="font-label text-[10px] uppercase tracking-[0.2em] text-primary-dim mb-6 text-center">Align barcode within frame</p>
+    <div id="scanner-frame" class="scanner-frame relative max-w-sm w-full aspect-[4/3] rounded-xl flex items-center justify-center">
+      <!-- Corner accents -->
+      <span class="absolute -top-[2px] -left-[2px] w-8 h-8 border-t-4 border-l-4 border-primary rounded-tl-lg"></span>
+      <span class="absolute -top-[2px] -right-[2px] w-8 h-8 border-t-4 border-r-4 border-primary rounded-tr-lg"></span>
+      <span class="absolute -bottom-[2px] -left-[2px] w-8 h-8 border-b-4 border-l-4 border-primary rounded-bl-lg"></span>
+      <span class="absolute -bottom-[2px] -right-[2px] w-8 h-8 border-b-4 border-r-4 border-primary rounded-br-lg"></span>
+      <!-- Scan line (barcode mode only) -->
+      <div id="scanner-scan-line" class="scanner-scan-line absolute left-2 right-2 z-20"></div>
+    </div>
+    <!-- Camera error fallback -->
+    <div id="scanner-cam-error" class="hidden text-center mt-6">
+      <p class="text-on-surface-v text-sm mb-3">Camera unavailable</p>
+      <button onclick="document.getElementById('scanner-file-input').click()" class="btn-primary-new">
+        <i class="bi bi-upload mr-1"></i>Upload a photo instead
+      </button>
+    </div>
+  </div>
+
+  <!-- Bottom controls -->
+  <div id="scanner-bottom-area" class="relative z-20 flex flex-col items-center gap-4 pb-8 px-6">
+    <!-- Shutter button (photo mode) -->
+    <button id="scanner-shutter" onclick="scannerSnapPhoto()" class="hidden w-20 h-20 rounded-full bg-gradient-to-br from-primary to-primary-ctr p-1 shadow-2xl active:scale-90 transition-transform duration-150">
+      <div class="w-full h-full rounded-full border-4 border-on-primary/20 flex items-center justify-center">
+        <i class="bi bi-camera-fill text-on-primary text-2xl"></i>
+      </div>
+    </button>
+    <!-- Upload link (photo mode) -->
+    <button id="scanner-upload-btn" onclick="document.getElementById('scanner-file-input').click()" class="hidden text-primary-dim text-xs uppercase tracking-widest font-bold hover:text-primary transition-colors">
+      <i class="bi bi-upload mr-1"></i>Upload from library
+    </button>
+    <!-- Mode toggle -->
+    <nav id="scanner-mode-toggle" class="flex items-center gap-1 p-1.5 bg-surface-top/60 backdrop-blur-md rounded-full shadow-lg">
+      <button data-mode="barcode" onclick="switchScannerMode('barcode')" class="scanner-mode-btn active">Barcode</button>
+      <button data-mode="photo" onclick="switchScannerMode('photo')" class="scanner-mode-btn">Photo</button>
+      <button data-mode="search" onclick="switchScannerMode('search')" class="scanner-mode-btn">Search</button>
+    </nav>
+  </div>
+
+  <!-- Search panel (search mode) -->
+  <div id="scanner-search-panel" class="hidden absolute bottom-0 left-0 right-0 z-30 bg-bg/95 backdrop-blur-xl rounded-t-2xl p-6 pt-4 transition-transform duration-300" style="max-height:70dvh; overflow-y:auto">
+    <div class="w-10 h-1 bg-outline-v/40 rounded-full mx-auto mb-4"></div>
+    <h3 class="font-headline font-bold text-xl text-on-surface mb-4">Search Discogs</h3>
+    <div class="flex gap-2 mb-4">
+      <input id="scanner-search-input"
+             class="flex-1 bg-transparent border-b border-outline-v/40 py-2 px-0 text-on-surface font-body focus:outline-none focus:border-primary transition-colors placeholder:text-outline"
+             placeholder="Artist, album, label…"
+             onkeydown="if(event.key==='Enter') scannerDoSearch()">
+      <button class="btn-primary-new px-4" onclick="scannerDoSearch()">
+        <i class="bi bi-search"></i>
+      </button>
+    </div>
+    <div id="scanner-search-results"></div>
+  </div>
+
+  <!-- Bottom sheet -->
+  <div id="scanner-sheet-backdrop" onclick="closeSheet()" class="hidden absolute inset-0 z-40 bg-black/40 backdrop-blur-sm transition-opacity duration-300"></div>
+  <div id="scanner-sheet" class="absolute bottom-0 left-0 right-0 z-50 bg-bg rounded-t-[2.5rem] shadow-[0_-20px_50px_rgba(0,0,0,0.6)] transition-transform duration-[400ms] ease-[cubic-bezier(0.32,0.72,0,1)] flex flex-col" style="transform:translateY(100%); max-height:88dvh">
+    <div class="w-12 h-1.5 bg-outline-v/40 rounded-full mx-auto mt-4 mb-2 cursor-grab shrink-0" id="scanner-sheet-handle"></div>
+    <div id="scanner-sheet-header" class="px-6 pt-2 pb-4 flex items-center justify-between shrink-0"></div>
+    <div id="scanner-sheet-body" class="px-6 overflow-y-auto flex-1 min-h-0"></div>
+    <div id="scanner-sheet-footer" class="px-6 py-4 pb-8 shrink-0"></div>
+  </div>
+
+  <!-- Hidden helpers -->
+  <canvas id="scanner-canvas" class="hidden"></canvas>
+  <input type="file" id="scanner-file-input" accept="image/*,.heic,.heif" class="hidden" onchange="handleScannerPhotoUpload(event)">
+</div>
+
 <!-- ── TOAST CONTAINER ──────────────────────────────────────── -->
 <div id="toast-container"></div>
 
@@ -189,31 +281,13 @@
     <i class="bi bi-collection-fill text-xl"></i>
     <span class="font-label text-[10px] uppercase tracking-[0.1em] font-bold">Collection</span>
   </a>
-  <a href="#" data-view="add" onclick="openAddModal();return false" class="bottom-nav-item">
+  <a href="#" data-view="add" onclick="openScanner();return false" class="bottom-nav-item">
     <i class="bi bi-plus-circle-fill text-xl"></i>
     <span class="font-label text-[10px] uppercase tracking-[0.1em] font-bold">Add</span>
   </a>
 </nav>
 
-<!-- ════════════════════════════════════════════════════════════
-     ADD RECORD MODAL
-     ════════════════════════════════════════════════════════════ -->
-<div class="app-modal" id="add-modal">
-  <div class="app-modal-dialog app-modal-lg">
-    <div class="app-modal-content bg-surface rounded-xl overflow-hidden">
-      <div class="flex justify-between items-center px-4 py-3 border-b border-outline-v/10">
-        <h5 class="font-headline font-bold text-on-surface text-base"><i class="bi bi-plus-circle mr-2 text-primary"></i>Add a Record</h5>
-        <button data-dismiss="modal" class="text-on-surface-v hover:text-on-surface transition-colors p-1">
-          <i class="bi bi-x-lg"></i>
-        </button>
-      </div>
-      <div id="add-modal-body" class="p-4 overflow-y-auto max-h-[70vh]">
-      </div>
-      <div id="add-modal-footer" class="px-4 py-3 border-t border-outline-v/10 flex justify-between items-center">
-      </div>
-    </div>
-  </div>
-</div>
+<!-- add-modal removed — replaced by #view-scanner -->
 
 <!-- ════════════════════════════════════════════════════════════
      RECORD DETAIL MODAL

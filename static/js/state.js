@@ -11,6 +11,9 @@ let capturedPhoto   = null;   // base64 jpeg taken by user
 let isScanning      = false;  // Quagga active?
 let addModal        = null;   // modal reference (unused, kept for compat)
 let currentView     = 'dashboard'; // active view: dashboard | collection
+let scannerMode     = 'barcode';   // barcode | photo | search
+let quaggaPollTimer = null;        // interval ID for barcode polling
+let scannerOpen     = false;       // is scanner view visible?
 
 // Temp store for search results (avoids global pollution)
 window._searchResults    = [];

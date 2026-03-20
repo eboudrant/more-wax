@@ -248,7 +248,79 @@ body { overscroll-behavior: none; }
   white-space: nowrap;
 }
 
-/* ── CAMERA / BARCODE ───────────────────────────────────── */
+/* ── SCANNER VIEW ──────────────────────────────────────── */
+.scanner-frame {
+  border: 2px solid rgba(253, 220, 177, 0.35);
+  box-shadow: 0 0 0 9999px rgba(19, 19, 19, 0.7);
+  transition: aspect-ratio 0.3s ease, max-width 0.3s ease;
+}
+.scanner-frame.photo-mode {
+  aspect-ratio: 1 / 1;
+  max-width: 280px;
+}
+.scanner-scan-line {
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #fddcb1, transparent);
+  box-shadow: 0 0 15px rgba(253, 220, 177, 0.6);
+  animation: scanLine 3s infinite linear;
+}
+@keyframes scanLine {
+  0%   { top: 10%; }
+  50%  { top: 90%; }
+  100% { top: 10%; }
+}
+
+/* Scanner mode toggle */
+.scanner-mode-btn {
+  flex: 1;
+  padding: 6px 16px;
+  border-radius: 9999px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #d1c4b8;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.scanner-mode-btn.active {
+  background: linear-gradient(135deg, #fddcb1, #e0c097);
+  color: #402d0f;
+}
+.scanner-mode-btn:not(.active):hover {
+  color: #e5e2e1;
+}
+
+/* Desktop: constrain scanner to phone-width column */
+@media (min-width: 768px) {
+  #view-scanner {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+  }
+  #view-scanner > * {
+    max-width: 430px;
+  }
+  #view-scanner > video {
+    max-width: 100%;
+  }
+  #scanner-sheet,
+  #scanner-sheet-backdrop,
+  #scanner-search-panel {
+    max-width: 430px;
+    left: 50%;
+    transform: translateX(-50%) translateY(100%);
+    right: auto;
+  }
+  #scanner-sheet.sheet-open {
+    transform: translateX(-50%) translateY(5%) !important;
+  }
+}
+
+/* ── LEGACY CAMERA (kept for compat) ─────────────────────── */
 #camera-viewport {
   position: relative;
   width: 100%;
@@ -256,51 +328,6 @@ body { overscroll-behavior: none; }
   border-radius: 10px;
   overflow: hidden;
   max-height: 50dvh;
-}
-#camera-video {
-  width: 100%;
-  display: block;
-  max-height: 50dvh;
-  object-fit: cover;
-}
-#camera-overlay {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  pointer-events: none;
-}
-.scan-frame {
-  width: 200px;
-  height: 90px;
-  border: 3px solid var(--accent);
-  border-radius: 8px;
-  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.45);
-  position: relative;
-}
-.scan-frame::before {
-  content: '';
-  position: absolute;
-  left: 0; right: 0;
-  height: 2px;
-  background: rgba(253, 220, 177, 0.8);
-  animation: scan 2s linear infinite;
-}
-@keyframes scan {
-  0%   { top: 10%; }
-  50%  { top: 90%; }
-  100% { top: 10%; }
-}
-#barcode-status {
-  position: absolute;
-  bottom: 10px;
-  left: 0; right: 0;
-  text-align: center;
-  font-size: 0.8rem;
-  color: #fff;
-  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9);
-  padding: 0 8px;
 }
 
 /* ── TOAST ──────────────────────────────────────────────── */

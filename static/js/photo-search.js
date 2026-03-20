@@ -1,122 +1,79 @@
 // ─────────────────────────────────────────────────────────────────
-//  PHOTO-BASED SEARCH (snap or upload → detect barcode or Claude Vision)
+//  PHOTO-BASED SEARCH — for scanner view
+//  Snap or upload → detect barcode or Claude Vision → results
 // ─────────────────────────────────────────────────────────────────
-async function startSearchCamera() {
-  const wrap  = document.getElementById('search-cam-wrap');
-  const video = document.getElementById('search-cam-video');
-  const btn   = document.getElementById('photo-cam-btn');
-  if (!video) return;
-  try {
-    cameraStream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 } }
-    });
-    video.srcObject = cameraStream;
-    await video.play();
-    wrap.style.display = 'block';
-    if (btn) btn.style.display = 'none';
-  } catch (e) {
-    const httpsHint = _httpsHint();
-    document.getElementById('photo-analysis').innerHTML = `
-      <div class="https-notice">
-        <i class="bi bi-exclamation-triangle mr-1"></i>
-        Camera unavailable: ${esc(e.message)}${httpsHint}
-      </div>`;
-  }
-}
 
-function snapSearchPhoto() {
-  const video = document.getElementById('search-cam-video');
-  if (!video) return;
-  const canvas = document.createElement('canvas');
-  canvas.width  = video.videoWidth;
-  canvas.height = video.videoHeight;
-  canvas.getContext('2d').drawImage(video, 0, 0);
-  const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
-  stopCamera();
-  document.getElementById('search-cam-wrap').style.display = 'none';
-  processSearchPhoto(dataUrl, 'snapshot.jpg');
-}
+function processSearchPhotoForScanner(dataUrl, fileName) {
+  openSheet();
+  const body   = document.getElementById('scanner-sheet-body');
+  const header = document.getElementById('scanner-sheet-header');
 
-async function handleSearchPhotoUpload(event) {
-  const file = event.target.files?.[0];
-  if (!file) return;
+  header.innerHTML = `
+    <div>
+      <h2 class="font-headline text-xl font-bold text-on-surface">Analyzing Photo</h2>
+    </div>
+    <button onclick="closeSheet()" class="p-3 bg-surface-high rounded-full text-on-surface-v hover:text-on-surface transition-colors">
+      <i class="bi bi-x-lg"></i>
+    </button>`;
 
-  const isHeic = file.type === 'image/heic' || file.type === 'image/heif'
-              || /\.hei[cf]$/i.test(file.name);
-
-  if (!isHeic && !file.type.startsWith('image/')) {
-    toast('Please select an image file', 'error');
-    return;
-  }
-
-  if (isHeic) {
-    document.getElementById('photo-analysis').innerHTML = `
-      <div class="flex flex-col items-center py-6">
-        <div class="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
-        <p class="mt-3 text-sm text-on-surface-v">Converting HEIC…</p>
-      </div>`;
-  }
-
-  try {
-    const dataUrl = await imageFileToDataUrl(file);
-    processSearchPhoto(dataUrl, file.name);
-  } catch (e) {
-    document.getElementById('photo-analysis').innerHTML = '';
-    toast(e.message, 'error');
-  }
-}
-
-function processSearchPhoto(dataUrl, fileName) {
-  const area = document.getElementById('photo-analysis');
-  if (!area) return;
-
-  // Show the photo + analysing spinner
-  area.innerHTML = `
+  body.innerHTML = `
     <div class="relative mb-3">
-      <img src="${dataUrl}"
-           class="w-full max-h-[220px] object-contain rounded-lg bg-black">
+      <img src="${dataUrl}" class="w-full max-h-[220px] object-contain rounded-lg bg-black">
     </div>
     <div class="flex flex-col items-center py-3">
       <div class="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
       <p class="mt-3 text-sm text-on-surface-v">Looking for a barcode…</p>
     </div>`;
 
-  // Try barcode detection on the still image via Quagga.decodeSingle
   Quagga.decodeSingle({
-    decoder:  { readers: ['ean_reader', 'ean_8_reader', 'upc_reader', 'upc_e_reader',
+    decoder: { readers: ['ean_reader', 'ean_8_reader', 'upc_reader', 'upc_e_reader',
                           'code_128_reader', 'code_39_reader'] },
-    locate:   true,
-    src:      dataUrl
+    locate: true,
+    src: dataUrl
   }, result => {
     const barcode = result?.codeResult?.code;
 
     if (barcode) {
-      // ✓ Barcode found — search Discogs automatically
-      area.innerHTML = `
+      body.innerHTML = `
         <div class="relative mb-3">
-          <img src="${dataUrl}"
-               class="w-full max-h-[180px] object-contain rounded-lg bg-black">
+          <img src="${dataUrl}" class="w-full max-h-[180px] object-contain rounded-lg bg-black">
         </div>
-        <div class="bg-green-500/10 border border-green-400/30 rounded-lg
-                    px-3.5 py-2.5 text-sm mb-3">
-          <i class="bi bi-check-circle mr-2 text-green-400"></i>
+        <div class="bg-green/10 border border-green/30 rounded-lg px-3.5 py-2.5 text-sm mb-3">
+          <i class="bi bi-check-circle mr-2 text-green"></i>
           Barcode detected: <strong>${esc(barcode)}</strong>
         </div>`;
       window._detectedBarcode = barcode;
-      fetchAndShowResults(barcode, true);
+      _scannerFetchResults(barcode, true, body);
     } else {
-      // ✗ No barcode — try Claude Vision before falling back to manual search
-      _identifyWithClaude(dataUrl, area);
+      _identifyWithClaudeForScanner(dataUrl, body);
     }
   });
 }
 
-async function _identifyWithClaude(dataUrl, area) {
-  // Show the photo while Claude thinks
-  area.innerHTML = `
+async function _scannerFetchResults(query, isBarcode, bodyEl) {
+  try {
+    const data    = isBarcode ? await searchByBarcode(query) : await searchDiscogs(query);
+    const results = data.results || [];
+    window._searchResults   = results;
+    window._detectedBarcode = isBarcode ? query : null;
+
+    if (results.length > 0) {
+      showResultsInSheet(results, isBarcode);
+    } else {
+      bodyEl.innerHTML += `
+        <div class="text-center py-4 text-on-surface-v"><p>No results found.</p></div>`;
+      document.getElementById('scanner-sheet-footer').innerHTML = `
+        <button class="btn-ghost-new w-full" onclick="closeSheet(); switchScannerMode('search')">Try a manual search</button>`;
+    }
+  } catch (e) {
+    bodyEl.innerHTML += `<div class="text-center py-4 text-danger"><p>Discogs error: ${esc(e.message)}</p></div>`;
+  }
+}
+
+async function _identifyWithClaudeForScanner(dataUrl, bodyEl) {
+  bodyEl.innerHTML = `
     <div class="relative mb-3">
-      <img src="${dataUrl}"
-           class="w-full max-h-[180px] object-contain rounded-lg bg-black">
+      <img src="${dataUrl}" class="w-full max-h-[180px] object-contain rounded-lg bg-black">
     </div>
     <div class="flex flex-col items-center py-2.5">
       <div class="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
@@ -134,36 +91,29 @@ async function _identifyWithClaude(dataUrl, area) {
     const json = await res.json();
 
     if (json.success && (json.artist || json.title)) {
-      // Build detail line from what Claude found
       const details = [json.label, json.catalog_number, json.country, json.year]
         .filter(Boolean).join(' · ');
 
-      // Claude identified it — show badge then try progressively narrower Discogs searches
-      area.innerHTML = `
+      bodyEl.innerHTML = `
         <div class="relative mb-2.5">
-          <img src="${dataUrl}"
-               class="w-full max-h-[150px] object-contain rounded-lg bg-black">
+          <img src="${dataUrl}" class="w-full max-h-[150px] object-contain rounded-lg bg-black">
         </div>
-        <div class="bg-blue-400/10 border border-blue-400/30
-                    rounded-lg px-3.5 py-2.5 text-sm mb-2.5">
+        <div class="bg-primary/10 border border-primary/30 rounded-lg px-3.5 py-2.5 text-sm mb-2.5">
           <i class="bi bi-stars mr-1 text-primary"></i>
           Claude identified: <strong>${esc(json.artist)}${json.artist && json.title ? ' — ' : ''}${esc(json.title)}</strong>
           ${details ? `<div class="text-xs text-on-surface-v mt-1">${esc(details)}</div>` : ''}
-        </div>
-        <div id="search-results"></div>`;
+        </div>`;
 
-      // If Claude found a barcode, try that first (most precise)
       if (json.barcode) {
         window._detectedBarcode = json.barcode;
         const barcodeData = await searchByBarcode(json.barcode).catch(() => ({ results: [] }));
         if ((barcodeData.results || []).length > 0) {
           window._searchResults = barcodeData.results;
-          renderResultsList(barcodeData.results, document.getElementById('search-results'), true);
+          showResultsInSheet(barcodeData.results, true);
           return;
         }
       }
 
-      // Build search queries from most specific to broadest
       function colabVariants(s) {
         if (!s) return [];
         const variants = new Set([s]);
@@ -175,29 +125,21 @@ async function _identifyWithClaude(dataUrl, area) {
       }
 
       const artistVariants = colabVariants(json.artist);
-
-      // Most specific first: artist + title + catalog number, then + label, then just artist + title
       const queries = [];
-      if (json.catalog_number) {
-        queries.push(...artistVariants.map(a => [a, json.title, json.catalog_number].filter(Boolean).join(' ')));
-      }
-      if (json.label) {
-        queries.push(...artistVariants.map(a => [a, json.title, json.label].filter(Boolean).join(' ')));
-      }
+      if (json.catalog_number) queries.push(...artistVariants.map(a => [a, json.title, json.catalog_number].filter(Boolean).join(' ')));
+      if (json.label) queries.push(...artistVariants.map(a => [a, json.title, json.label].filter(Boolean).join(' ')));
       queries.push(...artistVariants.map(a => [a, json.title].filter(Boolean).join(' ')));
       queries.push(...artistVariants);
       if (json.title) queries.push(json.title);
 
-      // Deduplicate while preserving order
       const uniqueQueries = [...new Set(queries)].filter(Boolean);
-
       let found = false;
       for (const q of uniqueQueries) {
         const data = await searchDiscogs(q).catch(() => ({ results: [] }));
         if ((data.results || []).length > 0) {
           window._searchResults   = data.results;
           window._detectedBarcode = null;
-          renderResultsList(data.results, document.getElementById('search-results'), false);
+          showResultsInSheet(data.results, false);
           found = true;
           break;
         }
@@ -205,52 +147,56 @@ async function _identifyWithClaude(dataUrl, area) {
 
       if (!found) {
         const prefill = [json.artist, json.title, json.catalog_number].filter(Boolean).join(' ');
-        document.getElementById('search-results').innerHTML = `
-          <div class="text-xs text-on-surface-v mb-2.5">
-            No Discogs match found — try refining the search:
-          </div>
-          <div class="flex gap-2">
-            <input id="search-input"
-                   class="flex-1 bg-transparent border-b border-outline-v/40 py-2 text-sm text-on-surface
-                          focus:border-primary focus:outline-none transition-colors font-sans"
-                   value="${esc(prefill)}"
-                   onkeydown="if(event.key==='Enter') doSearch()">
-            <button class="btn-primary-new px-4 py-2 text-sm" onclick="doSearch()">
-              <i class="bi bi-search"></i>
-            </button>
-          </div>
-          <div id="search-results-inner" class="mt-3"></div>`;
-        setTimeout(() => document.getElementById('search-input')?.select(), 100);
+        _showManualSearchInSheet(prefill);
       }
     } else {
-      _showManualSearchFallback(dataUrl, area);
+      _showManualSearchInSheet('');
     }
   } catch (e) {
-    _showManualSearchFallback(dataUrl, area);
+    _showManualSearchInSheet('');
   }
 }
 
-function _showManualSearchFallback(dataUrl, area) {
-  area.innerHTML = `
-    <div class="flex gap-3 items-start">
-      <img src="${dataUrl}"
-           class="w-20 h-20 object-cover rounded-lg flex-shrink-0 bg-black">
-      <div class="flex-1">
-        <div class="text-xs text-on-surface-v mb-2">
-          No barcode or cover match found — search manually.
-        </div>
-        <div class="flex gap-2">
-          <input id="search-input"
-                 class="flex-1 bg-transparent border-b border-outline-v/40 py-2 text-sm text-on-surface
-                        focus:border-primary focus:outline-none transition-colors font-sans"
-                 placeholder="Artist, album, label…"
-                 onkeydown="if(event.key==='Enter') doSearch()">
-          <button class="btn-primary-new px-4 py-2 text-sm" onclick="doSearch()">
-            <i class="bi bi-search"></i>
-          </button>
-        </div>
+function _showManualSearchInSheet(prefill) {
+  const body = document.getElementById('scanner-sheet-body');
+  body.innerHTML += `
+    <div class="mt-4">
+      <div class="text-xs text-on-surface-v mb-2.5">
+        ${prefill ? 'No Discogs match found — try refining:' : 'Could not identify — search manually:'}
       </div>
-    </div>
-    <div id="search-results" class="mt-3"></div>`;
-  setTimeout(() => document.getElementById('search-input')?.focus(), 100);
+      <div class="flex gap-2">
+        <input id="scanner-search-input-sheet"
+               class="flex-1 bg-transparent border-b border-outline-v/40 py-2 text-sm text-on-surface
+                      focus:border-primary focus:outline-none transition-colors"
+               value="${esc(prefill)}"
+               placeholder="Artist, album, label…"
+               onkeydown="if(event.key==='Enter') _sheetDoSearch()">
+        <button class="btn-primary-new px-4 py-2 text-sm" onclick="_sheetDoSearch()">
+          <i class="bi bi-search"></i>
+        </button>
+      </div>
+      <div id="scanner-sheet-search-results" class="mt-3"></div>
+    </div>`;
+  setTimeout(() => document.getElementById('scanner-search-input-sheet')?.select(), 100);
+}
+
+async function _sheetDoSearch() {
+  const q = document.getElementById('scanner-search-input-sheet')?.value?.trim();
+  if (!q) return;
+  const target = document.getElementById('scanner-sheet-search-results');
+  target.innerHTML = `<div class="text-center py-4"><div class="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin inline-block"></div></div>`;
+
+  try {
+    const data = await searchDiscogs(q);
+    const results = data.results || [];
+    window._searchResults = results;
+    window._detectedBarcode = null;
+    if (results.length > 0) {
+      showResultsInSheet(results, false);
+    } else {
+      target.innerHTML = `<div class="text-center py-4 text-on-surface-v">No results found.</div>`;
+    }
+  } catch (e) {
+    target.innerHTML = `<div class="text-center py-4 text-danger">${esc(e.message)}</div>`;
+  }
 }
