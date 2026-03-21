@@ -46,8 +46,8 @@ async function openScanner() {
   scannerOpen = true;
 
   const el = document.getElementById('view-scanner');
-  el.classList.remove('hidden');
   el.style.display = 'flex';
+  el.classList.add('open');
 
   // Hide header & bottom nav
   document.querySelector('header').style.display = 'none';
@@ -70,8 +70,8 @@ function closeScanner() {
   closeSheet();
 
   const el = document.getElementById('view-scanner');
-  el.classList.add('hidden');
-  el.style.display = '';
+  el.style.display = 'none';
+  el.classList.remove('open');
 
   // Restore header & bottom nav
   document.querySelector('header').style.display = '';
