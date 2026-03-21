@@ -4,18 +4,34 @@ More'Wax is a self-hosted web app for managing your vinyl record collection. It 
 
 ![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
 
+<p align="center">
+  <img src="docs/screenshot-scanner.png" width="250" alt="Barcode scanner">
+  <img src="docs/screenshot-collection.png" width="250" alt="Collection">
+  <img src="docs/screenshot-detail.png" width="250" alt="Record detail">
+</p>
+
 ## Quick start
 
-```bash
-# 1. Clone the repository
-git clone https://github.com/youruser/More'Wax.git
-cd More'Wax
+### Option A: Docker (recommended)
 
-# 2. Create a .env file with your API tokens
+```bash
 cp .env.example .env
 # Edit .env and add your Discogs token (required) and Anthropic API key (optional)
+docker compose up
+```
 
-# 3. Run the server (no pip install needed)
+### Option B: Setup wizard
+
+```bash
+./setup.sh        # checks Python, prompts for API tokens, validates everything
+python3 server.py
+```
+
+### Option C: Manual
+
+```bash
+cp .env.example .env
+# Edit .env and add your Discogs token (required) and Anthropic API key (optional)
 python3 server.py
 ```
 
@@ -38,15 +54,16 @@ More'Wax reads configuration from environment variables. You can set them in a `
 
 More'Wax follows a **fat server / thin client** architecture. All API tokens, business logic, and external service calls live on the Python backend. The browser client is pure UI — it knows nothing about Discogs credentials or Claude API keys.
 
-```
-┌─────────────────────────┐     ┌──────────────────────────┐
-│   Browser (static/js/)   │────▶│   Python server (server/) │
-│   Pure UI layer          │◀────│   Business logic + APIs    │
-│   No tokens / secrets    │     │   JSON file storage        │
-└─────────────────────────┘     └────────┬────────┬──────────┘
-                                         │        │
-                                    Discogs    Anthropic
-                                    REST API   Claude API
+```mermaid
+graph LR
+    Browser["🌐 Browser<br/><small>static/js/ — Pure UI<br/>No tokens or secrets</small>"]
+    Server["🐍 Python Server<br/><small>server/ — Business logic<br/>JSON file storage</small>"]
+    Discogs["💿 Discogs API"]
+    Anthropic["🤖 Claude API"]
+
+    Browser <-->|HTTP| Server
+    Server -->|REST| Discogs
+    Server -->|Vision| Anthropic
 ```
 
 ### Server (`server/`)
@@ -67,7 +84,7 @@ Key design decisions: threading lock protects all database writes, atomic file r
 
 ### Client (`static/js/`)
 
-Vanilla JavaScript with Bootstrap 5 for layout/modals and Quagga.js for barcode scanning. No build step, no framework. Split into focused modules:
+Vanilla JavaScript with Tailwind CSS and Quagga.js for barcode scanning. No build step, no framework. Split into focused modules:
 
 ```
 static/js/
@@ -96,6 +113,12 @@ data/                       # auto-created, git-ignored
 ```
 
 ## API endpoints
+
+### Status
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/status` | Server status — Discogs connection, API key availability |
 
 ### Collection CRUD
 
@@ -131,9 +154,9 @@ data/                       # auto-created, git-ignored
 
 Three methods for adding vinyl to the collection:
 
-1. **Photo** — Take or upload a photo. The app first tries barcode detection (Quagga.js on the still image). If no barcode is found, it sends the image to Claude Vision for cover identification. The identified artist/title is then searched on Discogs.
+1. **Photo** — Take or upload a photo. The app first tries barcode detection on the still image. If no barcode is found, it sends the image to Claude Vision for cover identification. The identified artist/title is then searched on Discogs.
 
-2. **Live scan** — Point the camera at a barcode. Quagga.js runs in real-time mode with a confidence threshold (3 consistent reads required). Once detected, automatically searches Discogs.
+2. **Live scan** — Point the camera at a barcode. Quagga.js runs in LiveStream mode with a confidence threshold (3 consistent reads required). Once detected, automatically searches Discogs.
 
 3. **Manual search** — Type artist, album, or label name. Results show cover thumbnails, year, label, and format.
 
@@ -150,6 +173,10 @@ New records are automatically added to your Discogs collection (folder 1). If al
 ### Cover photos
 
 Cover images come from Discogs by default. Users can take or upload a custom cover photo. HEIC files (from iPhone) are converted to JPEG using a fallback chain: `sips` (macOS) → `heic2any` (browser) → native decoder.
+
+### Error handling
+
+On startup the client checks `/api/status` and shows actionable error banners if the Discogs token is missing or invalid. Attempting to use photo mode without an Anthropic API key shows a dialog explaining how to configure it.
 
 ### HTTPS and mobile
 

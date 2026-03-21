@@ -1,6 +1,6 @@
 // @ts-check
 const { test, expect } = require('@playwright/test');
-const { mockApi } = require('./fixtures');
+const { mockApi, mockStatus } = require('./fixtures');
 
 // ── Helper: wait for the collection to load ────────────────────
 async function waitForCollection(page) {
@@ -195,5 +195,102 @@ test.describe('Navigation (mobile)', () => {
     await page.locator('#bottom-nav a:has-text("HOME")').click();
     await page.waitForTimeout(300);
     await expect(page.locator('#view-dashboard')).toBeVisible();
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────
+//  ERROR DIALOGS
+// ─────────────────────────────────────────────────────────────────
+
+test.describe('Error Dialogs', () => {
+  test('shows banner when Discogs token is missing', async ({ page }) => {
+    await mockApi(page);
+    await mockStatus(page, { discogs_token_set: false, discogs_connected: false });
+    await page.goto('/');
+    await page.waitForTimeout(1000);
+
+    const banner = page.locator('#setup-error');
+    await expect(banner).toBeVisible();
+    await expect(banner).toContainText(/not configured/i);
+    await expect(banner.locator('a')).toHaveAttribute('href', /discogs/);
+
+    await expect(page).toHaveScreenshot('error-discogs-missing.png');
+  });
+
+  test('shows banner when Discogs token is invalid', async ({ page }) => {
+    await mockApi(page);
+    await mockStatus(page, { discogs_token_set: true, discogs_connected: false });
+    await page.goto('/');
+    await page.waitForTimeout(1000);
+
+    const banner = page.locator('#setup-error');
+    await expect(banner).toBeVisible();
+    await expect(banner).toContainText(/invalid/i);
+
+    await expect(page).toHaveScreenshot('error-discogs-invalid.png');
+  });
+
+  test('dismisses Discogs error banner', async ({ page }) => {
+    await mockApi(page);
+    await mockStatus(page, { discogs_token_set: false, discogs_connected: false });
+    await page.goto('/');
+    await page.waitForTimeout(1000);
+
+    const banner = page.locator('#setup-error');
+    await expect(banner).toBeVisible();
+
+    await banner.locator('button').click();
+    await expect(banner).not.toBeVisible();
+  });
+
+  test('shows API key dialog when tapping photo mode', async ({ page }) => {
+    await mockApi(page);
+    await mockStatus(page, { anthropic_key_set: false });
+    await page.goto('/');
+    await waitForCollection(page);
+
+    await page.evaluate(() => openScanner());
+    await page.waitForTimeout(600);
+
+    await page.evaluate(() => switchScannerMode('photo'));
+    await page.waitForTimeout(300);
+
+    const dialog = page.locator('#apikey-dialog');
+    await expect(dialog).toBeVisible();
+    await expect(dialog).toContainText(/API Key Required/i);
+    await expect(dialog.locator('a')).toHaveAttribute('href', /anthropic/);
+
+    await expect(page).toHaveScreenshot('error-apikey-required.png');
+  });
+
+  test('dismisses API key dialog', async ({ page }) => {
+    await mockApi(page);
+    await mockStatus(page, { anthropic_key_set: false });
+    await page.goto('/');
+    await waitForCollection(page);
+
+    await page.evaluate(() => openScanner());
+    await page.waitForTimeout(600);
+
+    await page.evaluate(() => switchScannerMode('photo'));
+    await page.waitForTimeout(300);
+
+    const dialog = page.locator('#apikey-dialog');
+    await expect(dialog).toBeVisible();
+
+    await dialog.locator('button').click();
+    await expect(dialog).not.toBeVisible();
+
+    // Should still be in barcode mode (photo was blocked)
+    await expect(page.locator('#scanner-guidance')).toContainText(/barcode/i);
+  });
+
+  test('no errors when everything is configured', async ({ page }) => {
+    await mockApi(page);
+    // Default mockApi already mocks status with everything enabled
+    await page.goto('/');
+    await page.waitForTimeout(1000);
+
+    await expect(page.locator('#setup-error')).not.toBeVisible();
   });
 });
