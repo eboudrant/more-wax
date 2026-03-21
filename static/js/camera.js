@@ -28,7 +28,6 @@ async function startScannerCamera() {
         }
       };
       check();
-      // Hard fallback — don't wait forever
       setTimeout(resolve, 2000);
     });
     if (errEl) errEl.classList.add('hidden');
@@ -41,7 +40,6 @@ async function startScannerCamera() {
       if (hint) errEl.innerHTML = `<p class="text-on-surface-v text-sm mb-3">Camera unavailable: ${esc(err.message)}${hint}</p>
         <button onclick="document.getElementById('scanner-file-input').click()" class="btn-primary-new"><i class="bi bi-upload mr-1"></i>Upload a photo instead</button>`;
     }
-    // Keep frame visible for layout, just hide the scan line
     const sl = document.getElementById('scanner-scan-line');
     if (sl) sl.style.display = 'none';
   }
@@ -58,7 +56,8 @@ function stopScannerCamera() {
 }
 
 
-// ── Quagga barcode scanning (shared camera) ─────────────────
+// ── Quagga LiveStream barcode scanning ───────────────────────
+let _quaggaRunning   = false;
 let _quaggaLastCode  = null;
 let _quaggaLastCount = 0;
 
@@ -68,71 +67,69 @@ function startQuaggaPolling() {
   _quaggaLastCount = 0;
   isScanning = true;
 
-  const video  = document.getElementById('scanner-video');
-  const canvas = document.getElementById('scanner-canvas');
-  if (!video || !canvas || !cameraStream) return;
+  // Hidden container for Quagga's own video element
+  let container = document.getElementById('quagga-container');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'quagga-container';
+    container.style.cssText = 'position:absolute;top:-9999px;left:-9999px;width:320px;height:240px;overflow:hidden';
+    document.body.appendChild(container);
+  }
 
-  // Scan center region of the frame, scaled down for speed
-  const SCAN_W = 640;
-  const SCAN_H = 480;
-  const ctx = canvas.getContext('2d');
-  let _decoding = false;
-
-  quaggaPollTimer = setInterval(() => {
-    if (!isScanning || !cameraStream) { stopQuaggaPolling(); return; }
-    if (video.readyState < video.HAVE_CURRENT_DATA) return;
-    if (_decoding) return;
-
-    // Crop center 70% of the video frame
-    const vw = video.videoWidth;
-    const vh = video.videoHeight;
-    if (!vw || !vh) return;         // video dimensions not ready yet
-    const sx = vw * 0.15;
-    const sy = vh * 0.15;
-    const sw = vw * 0.7;
-    const sh = vh * 0.7;
-
-    canvas.width  = SCAN_W;
-    canvas.height = SCAN_H;
-    ctx.drawImage(video, sx, sy, sw, sh, 0, 0, SCAN_W, SCAN_H);
-
-    _decoding = true;
-    Quagga.decodeSingle({
-      decoder: {
-        readers: ['ean_reader', 'ean_8_reader', 'upc_reader', 'upc_e_reader',
-                  'code_128_reader', 'code_39_reader']
-      },
-      locate:    true,
-      locator:   { halfSample: true, patchSize: 'medium' },
-      src: canvas.toDataURL('image/jpeg', 0.85)
-    }, result => {
-      _decoding = false;
-      const code = result?.codeResult?.code;
-      if (!code || !isScanning) return;
-
-      if (code === _quaggaLastCode) {
-        _quaggaLastCount++;
-      } else {
-        _quaggaLastCode  = code;
-        _quaggaLastCount = 1;
+  Quagga.init({
+    inputStream: {
+      name:        'Live',
+      type:        'LiveStream',
+      target:      container,
+      constraints: {
+        facingMode: 'environment',
+        width:  { ideal: 1280 },
+        height: { ideal: 720 }
       }
+    },
+    decoder: {
+      readers: ['ean_reader', 'ean_8_reader', 'upc_reader', 'upc_e_reader',
+                'code_128_reader', 'code_39_reader']
+    },
+    locate: true
+  }, err => {
+    if (err) {
+      console.warn('Quagga init error:', err);
+      return;
+    }
+    _quaggaRunning = true;
+    Quagga.start();
+  });
 
-      // Require 2 consistent reads
-      if (_quaggaLastCount >= 2) {
-        isScanning = false;
-        stopQuaggaPolling();
-        toast(`Barcode detected: ${code}`);
-        scannerFetchAndShowResults(code, true);
-      }
-    });
-  }, 200);
+  Quagga.offDetected();
+  Quagga.onDetected(result => {
+    if (!isScanning) return;
+    const code = result?.codeResult?.code;
+    if (!code) return;
+
+    if (code === _quaggaLastCode) {
+      _quaggaLastCount++;
+    } else {
+      _quaggaLastCode  = code;
+      _quaggaLastCount = 1;
+    }
+
+    // Require 3 consistent reads to avoid false positives
+    if (_quaggaLastCount >= 3) {
+      isScanning = false;
+      stopQuaggaPolling();
+      toast(`Barcode detected: ${code}`);
+      scannerFetchAndShowResults(code, true);
+    }
+  });
 }
 
 function stopQuaggaPolling() {
-  if (quaggaPollTimer) {
-    clearInterval(quaggaPollTimer);
-    quaggaPollTimer = null;
+  if (_quaggaRunning) {
+    try { Quagga.stop(); } catch (_) {}
+    _quaggaRunning = false;
   }
+  try { Quagga.offDetected(); } catch (_) {}
   isScanning = false;
 }
 
