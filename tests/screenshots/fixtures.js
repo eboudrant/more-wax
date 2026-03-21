@@ -174,6 +174,42 @@ async function mockApi(page) {
       body: JSON.stringify({ median: '$35.00', low: '$20.00', high: '$60.00' }),
     });
   });
+
+  // Mock status endpoint — default: everything configured
+  await page.route('**/api/status', (route) => {
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        discogs_connected: true,
+        discogs_username: 'testuser',
+        discogs_token_set: true,
+        anthropic_key_set: true,
+      }),
+    });
+  });
 }
 
-module.exports = { mockApi, MOCK_COLLECTION, MOCK_SEARCH_RESULTS };
+/**
+ * Mock /api/status with custom overrides.
+ * Call BEFORE mockApi (or after, since last route wins with unroute+route).
+ */
+async function mockStatus(page, overrides) {
+  const status = {
+    discogs_connected: true,
+    discogs_username: 'testuser',
+    discogs_token_set: true,
+    anthropic_key_set: true,
+    ...overrides,
+  };
+  await page.unroute('**/api/status');
+  await page.route('**/api/status', (route) => {
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(status),
+    });
+  });
+}
+
+module.exports = { mockApi, mockStatus, MOCK_COLLECTION, MOCK_SEARCH_RESULTS };
