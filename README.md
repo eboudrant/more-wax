@@ -4,6 +4,8 @@ More'Wax is a self-hosted web app for managing your vinyl record collection. It 
 
 **A [Discogs personal access token](https://www.discogs.com/settings/developers) is required** — More'Wax uses your Discogs account to search releases, fetch prices, and sync your collection.
 
+**An [Anthropic API key](https://console.anthropic.com/) is optional** — only needed for photo-based cover identification (Claude Vision). Barcode scanning and manual search work without it.
+
 ![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
 
 <p align="center">
@@ -78,42 +80,6 @@ data/                       # auto-created, git-ignored
 ├── server.crt              # auto-generated TLS cert
 └── server.key
 ```
-
-## API endpoints
-
-### Status
-
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/api/status` | Server status — Discogs connection, API key availability |
-
-### Collection CRUD
-
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/api/collection` | List all records (sorted by artist) |
-| GET | `/api/collection/:id` | Get a single record |
-| POST | `/api/collection` | Add a new record (duplicate check by discogs_id or barcode) |
-| PUT | `/api/collection/:id` | Update allowed fields on a record |
-| DELETE | `/api/collection/:id` | Delete a record |
-
-### Discogs proxy
-
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/api/discogs/search?q=...&barcode=...` | Search Discogs by text or barcode |
-| GET | `/api/discogs/release/:id` | Full release details (release + stats + prices + collection check, parallelized) |
-| GET | `/api/discogs/prices/:id` | Refresh marketplace prices only |
-| POST | `/api/discogs/add-to-collection/:id` | Add release to Discogs collection |
-| POST | `/api/collection/refresh-prices` | Batch-refresh stale prices (background, rate-limited) |
-
-### Media
-
-| Method | Path | Description |
-|--------|------|-------------|
-| POST | `/api/upload-cover` | Upload a cover photo (base64 JPEG) |
-| POST | `/api/convert-image` | Convert HEIC/AVIF/TIFF to JPEG |
-| POST | `/api/identify-cover` | Send cover photo to Claude Vision for artist/title identification |
 
 ## Features
 
