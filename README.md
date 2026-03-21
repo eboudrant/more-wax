@@ -9,9 +9,10 @@ More'Wax is a self-hosted web app for managing your vinyl record collection. It 
 ![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
 
 <p align="center">
-  <img src="docs/screenshot-scanner.png" width="250" alt="Barcode scanner">
-  <img src="docs/screenshot-collection.png" width="250" alt="Collection">
-  <img src="docs/screenshot-detail.png" width="250" alt="Record detail">
+  <img src="docs/screenshot-dashboard.png" width="200" alt="Dashboard">
+  <img src="docs/screenshot-collection.png" width="200" alt="Collection">
+  <img src="docs/screenshot-detail.png" width="200" alt="Record detail">
+  <img src="docs/screenshot-scanner.png" width="200" alt="Barcode scanner">
 </p>
 
 ## Quick start

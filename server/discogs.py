@@ -66,7 +66,9 @@ def _parse_prices(stats: dict, suggestions: dict) -> dict:
         # Good (G+) or Very Good (VG) → low
         # Very Good Plus (VG+) → median
         # Near Mint (NM or M-) or Mint (M) → high
-        vg = suggestions.get("Very Good (VG)") or suggestions.get("Good Plus (G+)") or {}
+        vg = (
+            suggestions.get("Very Good (VG)") or suggestions.get("Good Plus (G+)") or {}
+        )
         if vg.get("value") is not None:
             prices["price_low"] = str(vg["value"])
             prices["price_currency"] = vg.get("currency", "USD")
