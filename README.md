@@ -5,26 +5,26 @@ More'Wax is a self-hosted web app for managing your vinyl record collection. It 
 ![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
 
 <p align="center">
+  <img src="docs/screenshot-scanner.png" width="250" alt="Barcode scanner">
   <img src="docs/screenshot-collection.png" width="250" alt="Collection">
   <img src="docs/screenshot-detail.png" width="250" alt="Record detail">
-  <img src="docs/screenshot-scanner.png" width="250" alt="Barcode scanner">
 </p>
 
 ## Quick start
 
-### Option A: Setup wizard (recommended)
-
-```bash
-./setup.sh        # checks Python, prompts for API tokens, validates everything
-python3 server.py
-```
-
-### Option B: Docker
+### Option A: Docker (recommended)
 
 ```bash
 cp .env.example .env
 # Edit .env and add your Discogs token (required) and Anthropic API key (optional)
 docker compose up
+```
+
+### Option B: Setup wizard
+
+```bash
+./setup.sh        # checks Python, prompts for API tokens, validates everything
+python3 server.py
 ```
 
 ### Option C: Manual
