@@ -137,6 +137,51 @@ test.describe('Scanner', () => {
     await expect(page).toHaveScreenshot('scanner-results.png');
   });
 
+  test('confirm view shows detail layout with add button', async ({ page }) => {
+    await page.evaluate(() => switchScannerMode('search'));
+    await page.fill('#scanner-search-input', 'Daft Punk');
+    await page.evaluate(() => scannerDoSearch());
+
+    await page.waitForSelector('#scanner-sheet.sheet-open', { timeout: 10_000 });
+    await page.waitForTimeout(800);
+
+    // Select the first result to open confirm view
+    page.evaluate(() => scannerSelectRelease(0)).catch(() => {});
+    await page.waitForTimeout(2000);
+
+    // Should show detail panel layout (reused from detail.js)
+    await expect(page.locator('#scanner-sheet-body .detail-panel')).toBeVisible();
+    // Should have Add to Collection button
+    await expect(page.locator('#save-btn')).toBeVisible();
+    await expect(page.locator('#save-btn')).toContainText(/Add to Collection/i);
+    // Should have Back to results button
+    await expect(page.locator('text=Back to results')).toBeVisible();
+
+    await expect(page).toHaveScreenshot('scanner-confirm.png');
+  });
+
+  test('back button returns to results list', async ({ page }) => {
+    await page.evaluate(() => switchScannerMode('search'));
+    await page.fill('#scanner-search-input', 'Daft Punk');
+    await page.evaluate(() => scannerDoSearch());
+
+    await page.waitForSelector('#scanner-sheet.sheet-open', { timeout: 10_000 });
+    await page.waitForTimeout(800);
+
+    // Select first result
+    page.evaluate(() => scannerSelectRelease(0)).catch(() => {});
+    await page.waitForTimeout(2000);
+
+    // Click Back to results
+    await page.click('text=Back to results');
+    await page.waitForTimeout(800);
+
+    // Should be back on results list with "Matches Found" header
+    await expect(page.locator('#scanner-sheet-header')).toContainText(/Matches Found/i);
+    // Sheet should still be open
+    await expect(page.locator('#scanner-sheet.sheet-open')).toBeVisible();
+  });
+
   test('closes cleanly', async ({ page }) => {
     await page.evaluate(() => closeScanner());
     // Give transitions time to complete

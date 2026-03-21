@@ -42,9 +42,9 @@ function _renderPanelHtml(r, peek = false) {
           ${tags.map(t => `<span class="border border-outline-v/30 px-2.5 py-0.5 text-xs font-label rounded-full text-outline">${esc(t)}</span>`).join('')}
         </div>
         <div class="flex items-center gap-1.5 shrink-0">
-          <button class="w-8 h-8 rounded-full bg-surface-high/50 flex items-center justify-center text-outline hover:text-primary transition-colors" onclick="_copyDetailInfo(this, ${r.id})" title="Copy artist and title">
+          ${r.id ? `<button class="w-8 h-8 rounded-full bg-surface-high/50 flex items-center justify-center text-outline hover:text-primary transition-colors" onclick="_copyDetailInfo(this, ${r.id})" title="Copy artist and title">
             <i class="bi bi-clipboard text-xs"></i>
-          </button>
+          </button>` : ''}
           ${r.discogs_id ? `<a href="https://www.discogs.com/release/${r.discogs_id}" target="_blank" class="w-8 h-8 rounded-full bg-surface-high/50 flex items-center justify-center text-outline hover:text-primary transition-colors" title="View on Discogs"><i class="bi bi-box-arrow-up-right text-xs"></i></a>` : ''}
         </div>
       </div>
@@ -70,7 +70,7 @@ function _renderPanelHtml(r, peek = false) {
 
       <!-- Discogs Extra (lazy loaded) + Delete -->
       <div ${peek ? '' : `id="detail-extra-${r.id}"`} class="space-y-4">
-        ${r.discogs_extra ? _renderDiscogsExtra(r.discogs_extra) + _deleteButton(r.id) : (r.discogs_id ? '' : _deleteButton(r.id))}
+        ${r.discogs_extra ? _renderDiscogsExtra(r.discogs_extra) + (r.id ? _deleteButton(r.id) : '') : (r.discogs_id ? '' : (r.id ? _deleteButton(r.id) : ''))}
       </div>
     </div>
   </div>`;

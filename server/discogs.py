@@ -197,6 +197,15 @@ def discogs_release_full(release_id: str) -> dict:
         "rating_average": str(rating_average) if rating_average else "",
         "rating_count": str(rating_count) if rating_count else "",
         "already_in_discogs": already_in_discogs,
+        "discogs_extra": {
+            "tracklist": release.get("tracklist") or [],
+            "formats": release.get("formats") or [],
+            "extraartists": release.get("extraartists") or [],
+            "notes": release.get("notes", ""),
+            "identifiers": release.get("identifiers") or [],
+            "companies": release.get("companies") or [],
+            "series": release.get("series") or [],
+        },
     }
 
 

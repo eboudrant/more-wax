@@ -104,7 +104,12 @@ window.addEventListener('popstate', () => {
   if (scannerOpen) {
     const sheet = document.getElementById('scanner-sheet');
     if (sheet.classList.contains('sheet-open')) {
-      closeSheet();
+      if (_sheetView === 'confirm' && window._searchResults && window._searchResults.length) {
+        // Go back to results list instead of closing sheet
+        showResultsInSheet(window._searchResults, !!window._detectedBarcode);
+      } else {
+        closeSheet();
+      }
       // Re-push history so next back closes the scanner
       history.pushState({ scanner: true }, '', location.hash);
     } else {
@@ -269,16 +274,15 @@ function openSheet() {
   const backdrop = document.getElementById('scanner-sheet-backdrop');
 
   backdrop.classList.remove('hidden');
-  sheet.style.transform = 'translateY(5%)';
+  sheet.style.transform = 'translateY(0)';
   sheet.classList.add('sheet-open');
-
-  _initSheetDrag();
 }
 
 function closeSheet() {
   const sheet    = document.getElementById('scanner-sheet');
   const backdrop = document.getElementById('scanner-sheet-backdrop');
 
+  _sheetView = null;
   sheet.style.transform = 'translateY(100%)';
   sheet.classList.remove('sheet-open');
   backdrop.classList.add('hidden');
@@ -295,40 +299,25 @@ function closeSheet() {
   }
 }
 
-let _sheetDragState = null;
-
-function _initSheetDrag() {
-  const handle = document.getElementById('scanner-sheet-handle');
-  if (!handle) return;
-
-  handle.ontouchstart = (e) => {
-    _sheetDragState = { startY: e.touches[0].clientY };
-    document.getElementById('scanner-sheet').style.transition = 'none';
-  };
-  handle.ontouchmove = (e) => {
-    if (!_sheetDragState) return;
-    const dy = e.touches[0].clientY - _sheetDragState.startY;
-    if (dy > 0) {
-      document.getElementById('scanner-sheet').style.transform = `translateY(calc(12% + ${dy}px))`;
-    }
-  };
-  handle.ontouchend = (e) => {
-    if (!_sheetDragState) return;
-    const dy = (e.changedTouches[0]?.clientY || 0) - _sheetDragState.startY;
-    _sheetDragState = null;
-    const sheet = document.getElementById('scanner-sheet');
-    sheet.style.transition = '';
-    if (dy > 100) {
-      closeSheet();
-    } else {
-      sheet.style.transform = 'translateY(12%)';
-    }
-  };
-}
+let _sheetView = null; // 'results' | 'confirm' — tracks current sheet content
 
 
 // ── Results in Sheet ─────────────────────────────────────────
+function _buildFormatString(r) {
+  if (Array.isArray(r.formats) && r.formats.length) {
+    const parts = [];
+    for (const f of r.formats) {
+      parts.push(f.name);
+      if (Array.isArray(f.descriptions)) parts.push(...f.descriptions);
+      if (f.text) parts.push(f.text);
+    }
+    return parts.join(', ');
+  }
+  return Array.isArray(r.format) ? r.format.join(', ') : (r.format || '');
+}
+
 function showResultsInSheet(results, isBarcode) {
+  _sheetView = 'results';
   openSheet();
 
   const header = document.getElementById('scanner-sheet-header');
@@ -342,7 +331,7 @@ function showResultsInSheet(results, isBarcode) {
         ${results.length} result${results.length !== 1 ? 's' : ''} identified
       </p>
     </div>
-    <button onclick="closeSheet()" class="p-3 bg-surface-high rounded-full text-on-surface-v hover:text-on-surface transition-colors">
+    <button onclick="closeSheet()" class="w-10 h-10 flex items-center justify-center bg-surface-high rounded-full text-on-surface-v hover:text-on-surface transition-colors shrink-0">
       <i class="bi bi-x-lg"></i>
     </button>`;
 
@@ -352,6 +341,7 @@ function showResultsInSheet(results, isBarcode) {
         const thumb = r.cover_image || r.thumb || '';
         const year  = r.year || '';
         const label = Array.isArray(r.label) ? r.label[0] : (r.label || '');
+        const fmt   = _buildFormatString(r);
         return `
           <div class="group flex items-center gap-4 p-4 bg-surface-low rounded-2xl cursor-pointer transition-all hover:bg-surface active:bg-surface-high" onclick="scannerSelectRelease(${i})">
             ${thumb
@@ -364,6 +354,7 @@ function showResultsInSheet(results, isBarcode) {
               <p class="font-label text-[10px] text-outline mt-1 uppercase tracking-tight">
                 ${[year, label].filter(Boolean).join(' \u2022 ')}
               </p>
+              ${fmt ? `<p class="font-label text-[10px] text-outline uppercase tracking-tight">${esc(fmt)}</p>` : ''}
             </div>
             <div class="w-10 h-10 rounded-full bg-surface-high text-outline flex items-center justify-center flex-shrink-0 group-hover:bg-primary group-hover:text-on-primary transition-all">
               <i class="bi bi-plus"></i>
@@ -414,33 +405,34 @@ function showConfirmInSheet() {
   const r = selectedRelease;
   if (!r) return;
 
+  _sheetView = 'confirm';
+
   const header = document.getElementById('scanner-sheet-header');
   const body   = document.getElementById('scanner-sheet-body');
   const footer = document.getElementById('scanner-sheet-footer');
 
-  const genres = parseList(r.genres);
-  const styles = parseList(r.styles);
-  const cover  = r.cover_image_url;
+  // Build a pseudo-record compatible with _renderPanelHtml (from detail.js)
+  const pseudo = { ...r, local_cover: null };
 
   header.innerHTML = `
     <div>
       <h2 class="font-headline text-xl font-bold text-on-surface">Confirm &amp; Add</h2>
     </div>
-    <button onclick="closeSheet()" class="p-3 bg-surface-high rounded-full text-on-surface-v hover:text-on-surface transition-colors">
+    <button onclick="closeSheet()" class="w-10 h-10 flex items-center justify-center bg-surface-high rounded-full text-on-surface-v hover:text-on-surface transition-colors shrink-0">
       <i class="bi bi-x-lg"></i>
     </button>`;
 
   body.innerHTML = `
     <div class="space-y-4">
-      <div id="scanner-cover-wrap">
-        ${cover
-          ? `<img src="${esc(cover)}" class="w-full rounded-xl max-h-[200px] object-cover shadow-lg" onerror="this.style.display='none'">`
-          : `<div class="w-full h-40 bg-surface-high rounded-xl flex items-center justify-center text-outline-v">
-               <i class="bi bi-vinyl text-5xl"></i>
-             </div>`}
-      </div>
+      ${r.already_in_discogs ? `
+        <div class="bg-primary/10 border border-primary/30 rounded-lg px-3 py-2 text-sm text-primary mx-4">
+          <i class="bi bi-exclamation-triangle mr-1"></i>
+          Already in your Discogs collection — sync will be skipped.
+        </div>` : ''}
 
-      <div id="scanner-capture-section" class="flex gap-2">
+      ${_renderPanelHtml(pseudo, true)}
+
+      <div id="scanner-capture-section" class="flex gap-2 px-4">
         <button onclick="_scannerCaptureCover()"
                 class="flex-1 border-2 border-dashed border-outline-v/40 rounded-lg p-3 text-center cursor-pointer transition-colors hover:border-primary">
           <i class="bi bi-camera text-xl text-primary"></i>
@@ -454,34 +446,7 @@ function showConfirmInSheet() {
         <input type="file" id="scanner-cover-input" accept="image/*,.heic,.heif" class="hidden" onchange="_scannerHandleCoverUpload(event)">
       </div>
 
-      <div class="space-y-1">
-        <h3 class="font-headline font-bold text-xl text-on-surface">${esc(r.title)}</h3>
-        <div class="text-on-surface-v font-headline italic">${esc(r.artist)}</div>
-      </div>
-
-      ${r.already_in_discogs ? `
-        <div class="bg-primary/10 border border-primary/30 rounded-lg px-3 py-2 text-sm text-primary">
-          <i class="bi bi-exclamation-triangle mr-1"></i>
-          Already in your Discogs collection — sync will be skipped.
-        </div>` : ''}
-
-      <div class="space-y-1">
-        ${metaRow('Year',    r.year)}
-        ${metaRow('Label',   r.label)}
-        ${metaRow('Cat #',   r.catalog_number)}
-        ${metaRow('Format',  r.format)}
-        ${metaRow('Country', r.country)}
-        ${r.barcode ? metaRow('Barcode', r.barcode) : ''}
-        ${ratingStars(r.rating_average, r.rating_count)}
-        ${priceRow(r, true)}
-      </div>
-
-      ${genres.length || styles.length ? `
-        <div class="flex flex-wrap gap-1.5">
-          ${[...genres, ...styles].map(t => `<span class="bg-surface-high px-2 py-0.5 rounded text-xs font-label text-on-surface-v">${esc(t)}</span>`).join('')}
-        </div>` : ''}
-
-      <div>
+      <div class="px-4">
         <label class="text-xs text-on-surface-v block mb-1">Personal notes</label>
         <textarea id="notes-input" rows="2"
                   class="w-full bg-transparent border-b border-outline-v/40 py-2 px-0 text-sm text-on-surface focus:outline-none focus:border-primary transition-colors placeholder:text-outline resize-y"
@@ -490,12 +455,12 @@ function showConfirmInSheet() {
     </div>`;
 
   footer.innerHTML = `
-    <div class="flex gap-3">
-      <button class="btn-ghost-new flex-1" onclick="closeSheet()">
-        <i class="bi bi-arrow-left mr-1"></i>Back
-      </button>
-      <button id="save-btn" class="btn-primary-new flex-1" onclick="saveRecord()">
+    <div class="space-y-2">
+      <button id="save-btn" class="btn-primary-new w-full py-4 text-base font-bold" onclick="saveRecord()">
         <i class="bi bi-plus-circle mr-1"></i>Add to Collection
+      </button>
+      <button class="btn-ghost-new w-full" onclick="showResultsInSheet(window._searchResults || [], !!window._detectedBarcode)">
+        <i class="bi bi-arrow-left mr-1"></i>Back to results
       </button>
     </div>`;
 }
@@ -507,8 +472,13 @@ function _scannerCaptureCover() {
     return;
   }
   capturedPhoto = dataUrl;
-  document.getElementById('scanner-cover-wrap').innerHTML = `
-    <img src="${dataUrl}" class="w-full rounded-xl max-h-[200px] object-cover shadow-lg">`;
+  const wrap = document.getElementById('scanner-cover-wrap');
+  const panelImg = document.querySelector('#scanner-sheet-body .detail-panel > img');
+  if (wrap) {
+    wrap.innerHTML = `<img src="${dataUrl}" class="w-full aspect-square rounded-xl object-cover shadow-lg">`;
+  } else if (panelImg) {
+    panelImg.src = dataUrl;
+  }
   document.getElementById('scanner-capture-section').style.display = 'none';
   toast('Cover photo captured ✓', 'success');
 }
@@ -524,8 +494,13 @@ async function _scannerHandleCoverUpload(event) {
   }
   try {
     capturedPhoto = await imageFileToDataUrl(file);
-    document.getElementById('scanner-cover-wrap').innerHTML = `
-      <img src="${capturedPhoto}" class="w-full rounded-xl max-h-[200px] object-cover shadow-lg">`;
+    const wrap = document.getElementById('scanner-cover-wrap');
+    const panelImg = document.querySelector('#scanner-sheet-body .detail-panel > img');
+    if (wrap) {
+      wrap.innerHTML = `<img src="${capturedPhoto}" class="w-full aspect-square rounded-xl object-cover shadow-lg">`;
+    } else if (panelImg) {
+      panelImg.src = capturedPhoto;
+    }
     document.getElementById('scanner-capture-section').style.display = 'none';
     toast('Photo uploaded ✓', 'success');
   } catch (err) {
@@ -611,8 +586,8 @@ async function saveRecord() {
       discogsMsg = ok ? ' + added to Discogs!' : ' (Discogs sync failed — check console)';
     }
 
-    closeScanner();
     await loadCollection();
+    closeScanner();
     toast(`✓ "${selectedRelease.title}" added${discogsMsg}`, 'success');
   } catch (e) {
     toast('Error saving: ' + e.message, 'error');
