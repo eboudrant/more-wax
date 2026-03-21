@@ -39,7 +39,7 @@ cp .env.example .env
 python3 server.py
 ```
 
-Open `http://localhost:8765` in a browser. For iPhone/iPad access (camera features require HTTPS), open `https://<your-mac-ip>:8766` in Safari and accept the self-signed certificate once.
+Open `https://localhost:8766` in a browser and accept the self-signed certificate. On your phone or another device, use `https://<your-mac-ip>:8766`. **Camera features (barcode scan, photo) require HTTPS** — on plain HTTP only collection browsing is available.
 
 Press Ctrl+C to stop the server.
 
@@ -113,7 +113,7 @@ On startup the client checks `/api/status` and shows actionable error banners if
 
 ### HTTPS and mobile
 
-Camera access requires a secure context. The server auto-generates a self-signed TLS certificate for HTTPS. On iPhone/iPad, open the HTTPS URL and accept the certificate warning once.
+Camera access requires a secure context. The server auto-generates a self-signed TLS certificate for HTTPS. On mobile, open the HTTPS URL and accept the certificate warning once.
 
 ## Dependencies
 
