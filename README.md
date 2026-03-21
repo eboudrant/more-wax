@@ -1,6 +1,6 @@
 # More'Wax — Vinyl Collection Manager
 
-More'Wax is a self-hosted web app for managing your vinyl record collection. It runs a Python server on your Mac or Linux machine and serves a responsive web UI you open in any browser — desktop or mobile. Records can be added by barcode scan, cover photo identification (via Claude Vision), or manual Discogs search. Prices are fetched from the Discogs marketplace and new additions are automatically synced to your Discogs account.
+More'Wax is a self-hosted web app for managing your vinyl record collection. It runs a Python server on your computer and serves a responsive web UI you open in any browser — desktop or mobile. Records can be added by barcode scan, cover photo identification (via Claude Vision), or manual Discogs search. Prices are fetched from the Discogs marketplace and new additions are automatically synced to your Discogs account.
 
 **A [Discogs personal access token](https://www.discogs.com/settings/developers) is required** — More'Wax uses your Discogs account to search releases, fetch prices, and sync your collection.
 
@@ -39,7 +39,7 @@ cp .env.example .env
 python3 server.py
 ```
 
-Open `https://localhost:8766` in a browser and accept the self-signed certificate. On your phone or another device, use `https://<your-mac-ip>:8766`. **Camera features (barcode scan, photo) require HTTPS** — on plain HTTP only collection browsing is available.
+Open `https://localhost:8766` in a browser and accept the self-signed certificate. On your phone or another device, use `https://<your-ip>:8766`. **Camera features (barcode scan, photo) require HTTPS** — on plain HTTP only collection browsing is available.
 
 Press Ctrl+C to stop the server.
 
