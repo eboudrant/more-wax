@@ -77,7 +77,7 @@ Key design decisions: threading lock protects all database writes, atomic file r
 
 ### Client (`static/js/`)
 
-Vanilla JavaScript with Bootstrap 5 for layout/modals and Quagga.js for barcode scanning. No build step, no framework. Split into focused modules:
+Vanilla JavaScript with Tailwind CSS and Quagga.js for barcode scanning. No build step, no framework. Split into focused modules:
 
 ```
 static/js/
@@ -106,6 +106,12 @@ data/                       # auto-created, git-ignored
 ```
 
 ## API endpoints
+
+### Status
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/status` | Server status — Discogs connection, API key availability |
 
 ### Collection CRUD
 
@@ -141,9 +147,9 @@ data/                       # auto-created, git-ignored
 
 Three methods for adding vinyl to the collection:
 
-1. **Photo** — Take or upload a photo. The app first tries barcode detection (Quagga.js on the still image). If no barcode is found, it sends the image to Claude Vision for cover identification. The identified artist/title is then searched on Discogs.
+1. **Photo** — Take or upload a photo. The app first tries barcode detection on the still image. If no barcode is found, it sends the image to Claude Vision for cover identification. The identified artist/title is then searched on Discogs.
 
-2. **Live scan** — Point the camera at a barcode. Quagga.js runs in real-time mode with a confidence threshold (3 consistent reads required). Once detected, automatically searches Discogs.
+2. **Live scan** — Point the camera at a barcode. Quagga.js runs in LiveStream mode with a confidence threshold (3 consistent reads required). Once detected, automatically searches Discogs.
 
 3. **Manual search** — Type artist, album, or label name. Results show cover thumbnails, year, label, and format.
 
@@ -160,6 +166,10 @@ New records are automatically added to your Discogs collection (folder 1). If al
 ### Cover photos
 
 Cover images come from Discogs by default. Users can take or upload a custom cover photo. HEIC files (from iPhone) are converted to JPEG using a fallback chain: `sips` (macOS) → `heic2any` (browser) → native decoder.
+
+### Error handling
+
+On startup the client checks `/api/status` and shows actionable error banners if the Discogs token is missing or invalid. Attempting to use photo mode without an Anthropic API key shows a dialog explaining how to configure it.
 
 ### HTTPS and mobile
 
