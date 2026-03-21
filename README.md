@@ -113,7 +113,7 @@ On startup the client checks `/api/status` and shows actionable error banners if
 
 ### HTTPS and mobile
 
-Camera access requires a secure context. The server auto-generates a self-signed TLS certificate for HTTPS. On iPhone/iPad, open the HTTPS URL and accept the certificate warning once.
+Camera access requires a secure context. The server auto-generates a self-signed TLS certificate for HTTPS. On mobile, open the HTTPS URL and accept the certificate warning once.
 
 ## Dependencies
 
