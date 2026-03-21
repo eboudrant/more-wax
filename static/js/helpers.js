@@ -8,9 +8,15 @@ function esc(str) {
     .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
+function currSym(cur) {
+  const symbols = { USD: '$', EUR: '€', GBP: '£', JPY: '¥', CAD: 'CA$', AUD: 'A$', BRL: 'R$', SEK: 'kr', CHF: 'CHF' };
+  return symbols[cur] || cur + ' ';
+}
+
 function priceRow(r, compact = false) {
   const cur = r.price_currency || 'USD';
-  const fmt = v => { const n = parseFloat(v); return isNaN(n) ? '' : `${cur} ${n.toFixed(2)}`; };
+  const sym = currSym(cur);
+  const fmt = v => { const n = parseFloat(v); return isNaN(n) ? '' : `${sym}${n.toFixed(2)}`; };
   const has = v => v && !isNaN(parseFloat(v)) && parseFloat(v) > 0;
 
   if (!has(r.price_low) && !has(r.price_median) && !has(r.price_high)) return '';
@@ -131,8 +137,9 @@ function recordCardHtml(r) {
     : `<i class="bi bi-vinyl text-3xl text-outline-v"></i>`;
 
   const cur = r.price_currency || 'USD';
+  const sym = currSym(cur);
   const priceBadge = r.price_median && !isNaN(parseFloat(r.price_median))
-    ? `<span class="record-price-badge">${cur}&nbsp;${parseFloat(r.price_median).toFixed(0)} <span class="text-[0.7em] opacity-70 font-normal">med</span></span>`
+    ? `<span class="record-price-badge">${sym}${parseFloat(r.price_median).toFixed(0)} <span class="text-[0.7em] opacity-70 font-normal">med</span></span>`
     : '';
 
   return `

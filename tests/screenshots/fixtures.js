@@ -123,6 +123,20 @@ async function mockApi(page) {
     });
   });
 
+  // Mock release details endpoint (/api/collection/{id}/details)
+  await page.route('**/api/collection/*/details', (route) => {
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        tracklist: [
+          { position: '1', title: 'One More Time', duration: '5:20', type_: 'track' },
+          { position: '2', title: 'Aerodynamic', duration: '3:32', type_: 'track' },
+        ],
+      }),
+    });
+  });
+
   // Mock individual record lookup
   await page.route('**/api/collection/*', (route) => {
     const id = Number(route.request().url().split('/').pop());

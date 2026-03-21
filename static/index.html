@@ -79,48 +79,48 @@
 <!-- ── VIEW: DASHBOARD ─────────────────────────────────────── -->
 <div id="view-dashboard" class="view">
   <main class="px-6 pt-8 pb-32 max-w-7xl mx-auto">
-    <!-- Hero Stats Bento -->
-    <section class="grid grid-cols-1 gap-6 mb-16">
-      <div class="bg-surface-high rounded-xl p-8 flex flex-col justify-between border-l-4 border-primary">
-        <div>
-          <span class="font-label text-xs uppercase tracking-[0.2em] text-on-surface-v mb-2 block">Total Pressings</span>
-          <h2 id="dash-count" class="font-headline font-bold text-5xl text-on-surface">0</h2>
-        </div>
-        <div class="mt-8">
-          <button onclick="openScanner()" class="w-full bg-gradient-to-br from-primary to-primary-ctr text-on-primary py-3 rounded-full font-bold text-sm flex items-center justify-center gap-2 active:scale-95 transition-transform">
-            <i class="bi bi-plus-circle-fill"></i> Add New Vinyl
-          </button>
-        </div>
-      </div>
-    </section>
-
     <!-- Search -->
-    <section class="mb-20">
-      <div class="relative max-w-2xl">
+    <section class="mb-12">
+      <div class="relative group inline-flex items-center gap-2">
+        <span class="absolute left-0 bottom-0 w-full h-px bg-outline-v/40 group-focus-within:bg-primary transition-colors"></span>
         <input id="dash-search" type="text"
-               class="w-full bg-transparent border-b border-outline-v/40 py-4 font-headline text-2xl text-on-surface focus:outline-none focus:border-primary transition-colors placeholder:text-outline/40"
-               placeholder="Search your vault by artist, album…"
+               class="bg-transparent border-none focus:ring-0 focus:outline-none font-body py-2 px-0 w-64 placeholder:text-outline text-on-surface"
+               placeholder="Search your vault…"
                onkeydown="if(event.key==='Enter'){navigateTo('collection');document.getElementById('filter-input').value=this.value;filterCollection()}">
-        <i class="bi bi-search absolute right-0 top-1/2 -translate-y-1/2 text-primary"></i>
+        <button onclick="navigateTo('collection');document.getElementById('filter-input').value=document.getElementById('dash-search').value;filterCollection()"
+                class="text-outline hover:text-primary transition-colors shrink-0" title="Search">
+          <i class="bi bi-search text-sm"></i>
+        </button>
       </div>
     </section>
 
-    <!-- Recently Archived -->
+    <!-- Random Picks -->
     <section class="mb-16">
-      <div class="flex justify-between items-baseline mb-10">
-        <h3 class="font-headline font-bold text-3xl text-on-surface">Recently Archived</h3>
-        <a href="#collection" class="font-label text-xs uppercase tracking-[0.1em] text-primary-dim hover:opacity-80 transition-opacity">View Entire Collection</a>
+      <div class="flex items-baseline gap-3 mb-10">
+        <h3 class="font-headline font-bold text-3xl text-on-surface">Random Picks</h3>
+        <button onclick="refreshPicks()" class="text-outline hover:text-primary transition-colors" title="Refresh picks">
+          <i class="bi bi-arrow-repeat text-lg"></i>
+        </button>
       </div>
-      <div id="dash-recent" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-8">
+      <div id="dash-picks" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-x-6 gap-y-10">
         <!-- Filled by dashboard.js -->
       </div>
     </section>
 
-    <!-- Discogs Info -->
+    <!-- Recently Added -->
+    <section class="mb-16">
+      <div class="flex justify-between items-baseline mb-10">
+        <h3 class="font-headline font-bold text-3xl text-on-surface">Recently Added</h3>
+      </div>
+      <div id="dash-recent" class="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-10">
+        <!-- Filled by dashboard.js -->
+      </div>
+    </section>
+
+    <!-- Status -->
     <section class="mt-24 pt-16 border-t border-outline-v/10">
-      <div class="bg-surface-low rounded-xl p-8 text-center md:text-left">
-        <h4 class="font-headline font-bold text-2xl text-on-surface mb-2">Authenticated Metadata</h4>
-        <p class="text-on-surface-v text-sm max-w-xl">Every record in your vault is cross-referenced with the <span class="font-bold text-on-surface">Discogs API</span>. We track pressing variations, current market median prices, and master release history automatically.</p>
+      <div id="dash-status" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- Filled by dashboard.js -->
       </div>
     </section>
   </main>
@@ -130,30 +130,24 @@
 <div id="view-collection" class="view hidden">
   <main class="px-6 pt-8 pb-32 max-w-7xl mx-auto w-full">
     <!-- Collection Header & Filters -->
-    <section class="mb-12">
-      <div class="flex flex-col md:flex-row md:items-end justify-between gap-6">
-        <div>
-          <h2 class="font-headline font-bold text-4xl tracking-tight text-on-surface mb-2">Vaulted Selection</h2>
-          <p id="collection-subtitle" class="font-body text-on-surface-v">Curating your library.</p>
+    <section class="sticky top-[49px] z-40 bg-bg/80 backdrop-blur-xl -mx-6 px-6 py-3 mb-6">
+      <div class="flex items-center gap-3">
+        <div class="relative group flex-1 min-w-0">
+          <span class="absolute left-0 bottom-0 w-full h-px bg-outline-v/40 group-focus-within:bg-primary transition-colors"></span>
+          <input id="filter-input" type="text"
+                 class="w-full bg-transparent border-none focus:ring-0 font-body py-2 px-0 placeholder:text-outline text-on-surface"
+                 placeholder="Filter…"
+                 oninput="filterCollection()">
         </div>
-        <div class="flex flex-wrap items-center gap-4">
-          <div class="relative group">
-            <span class="absolute left-0 bottom-0 w-full h-px bg-outline-v/40 group-focus-within:bg-primary transition-colors"></span>
-            <input id="filter-input" type="text"
-                   class="bg-transparent border-none focus:ring-0 font-body py-2 px-0 w-64 placeholder:text-outline text-on-surface"
-                   placeholder="Filter by Artist or Genre..."
-                   oninput="filterCollection()">
-          </div>
-          <div id="sort-controls" class="flex items-center gap-2 bg-surface-high px-4 py-2 rounded-lg">
-            <i class="bi bi-sort-down text-primary text-sm"></i>
-            <select id="sort-select" class="bg-transparent border-none focus:ring-0 font-label text-xs font-bold uppercase tracking-wider text-on-surface-v cursor-pointer" onchange="setSort(this.value)">
-              <option value="added">Recently Added</option>
-              <option value="artist">Artist A-Z</option>
-              <option value="title">Title</option>
-              <option value="year">Year</option>
-              <option value="price">Price</option>
-            </select>
-          </div>
+        <div id="sort-controls" class="flex items-center gap-1.5 shrink-0">
+          <i class="bi bi-sort-down text-primary text-sm"></i>
+          <select id="sort-select" class="bg-transparent border-none focus:ring-0 font-label text-xs font-bold uppercase tracking-wider text-on-surface-v cursor-pointer pr-4" onchange="setSort(this.value)">
+            <option value="added">Recent</option>
+            <option value="artist">Artist</option>
+            <option value="title">Title</option>
+            <option value="year">Year</option>
+            <option value="price">Price</option>
+          </select>
         </div>
       </div>
     </section>

@@ -41,14 +41,15 @@ test.describe('Dashboard', () => {
     await expect(page).toHaveScreenshot('dashboard.png');
   });
 
-  test('shows total pressings count', async ({ page }) => {
+  test('shows random picks and recently added', async ({ page }) => {
     await mockApi(page);
     await page.goto('/');
     await waitForCollection(page);
 
-    const count = page.locator('#dash-count');
-    await expect(count).toBeVisible();
-    await expect(count).toHaveText(/\d+/);
+    await expect(page.locator('#dash-picks')).toBeVisible();
+    await expect(page.locator('#dash-recent')).toBeVisible();
+    // Badge in header shows the total count
+    await expect(page.locator('#nav-badge')).toHaveText(/\d+/);
   });
 });
 
@@ -160,8 +161,9 @@ test.describe('Detail Modal', () => {
     await waitForCollection(page);
 
     // Open via JS function (avoids z-index click issues on desktop)
-    await page.evaluate(() => showDetail(collection[0].id));
-    await page.waitForTimeout(800);
+    // showDetail is async — fire without awaiting to avoid context issues
+    page.evaluate(() => showDetail(collection[0].id)).catch(() => {});
+    await page.waitForTimeout(1200);
 
     const modal = page.locator('#detail-modal');
     await expect(modal).toBeVisible();

@@ -74,13 +74,10 @@ function renderCollection() {
   const grid  = document.getElementById('collection-grid');
   const empty = document.getElementById('collection-empty');
   const badge = document.getElementById('nav-badge');
-  const subtitle = document.getElementById('collection-subtitle');
-
   document.getElementById('loading').style.display = 'none';
 
   const label = `${collection.length} record${collection.length !== 1 ? 's' : ''}`;
   badge.textContent = label;
-  if (subtitle) subtitle.textContent = `Curating ${collection.length} physical pressings in your library.`;
 
   const items = sortedFiltered();
 

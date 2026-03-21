@@ -58,14 +58,20 @@ def _parse_prices(stats: dict, suggestions: dict) -> dict:
     }
 
     if stats:
-        lp = stats.get("lowest_price") or {}
-        if lp.get("value") is not None:
-            prices["price_low"] = str(lp["value"])
-            prices["price_currency"] = lp.get("currency", "USD")
         if stats.get("num_for_sale") is not None:
             prices["num_for_sale"] = str(stats["num_for_sale"])
 
     if suggestions:
+        # Use price suggestions for all three tiers (consistent source):
+        # Good (G+) or Very Good (VG) → low
+        # Very Good Plus (VG+) → median
+        # Near Mint (NM or M-) or Mint (M) → high
+        vg = (
+            suggestions.get("Very Good (VG)") or suggestions.get("Good Plus (G+)") or {}
+        )
+        if vg.get("value") is not None:
+            prices["price_low"] = str(vg["value"])
+            prices["price_currency"] = vg.get("currency", "USD")
         vgp = suggestions.get("Very Good Plus (VG+)") or {}
         if vgp.get("value") is not None:
             prices["price_median"] = str(vgp["value"])
@@ -247,6 +253,86 @@ def discogs_add_to_collection(release_id: str) -> bool:
     except Exception as e:
         print(f"  ⚠️ [discogs] add to collection failed: {e}")
         return False
+
+
+def discogs_release_details(release_id: str) -> dict:
+    """Fetch extended release details (tracklist, credits, etc.) for caching."""
+    release = _discogs_request("GET", f"/releases/{release_id}")
+
+    def _clean_name(name: str) -> str:
+        """Strip Discogs disambiguation suffixes like ' (42)'."""
+        return name.rsplit(" (", 1)[0] if " (" in name else name
+
+    # Tracklist
+    tracklist = []
+    for t in release.get("tracklist") or []:
+        entry = {
+            "position": t.get("position", ""),
+            "title": t.get("title", ""),
+            "duration": t.get("duration", ""),
+            "type_": t.get("type_", "track"),
+        }
+        # Track-level credits
+        track_artists = t.get("extraartists") or []
+        if track_artists:
+            entry["extraartists"] = [
+                {"name": _clean_name(a["name"]), "role": a.get("role", "")}
+                for a in track_artists
+            ]
+        tracklist.append(entry)
+
+    # Format details
+    formats = []
+    for f in release.get("formats") or []:
+        formats.append(
+            {
+                "name": f.get("name", ""),
+                "qty": f.get("qty", "1"),
+                "descriptions": f.get("descriptions") or [],
+            }
+        )
+
+    # Release-level credits
+    extraartists = [
+        {"name": _clean_name(a["name"]), "role": a.get("role", "")}
+        for a in (release.get("extraartists") or [])
+    ]
+
+    # Identifiers (matrix/runout, ISRC, etc.)
+    identifiers = [
+        {
+            "type": i.get("type", ""),
+            "value": i.get("value", ""),
+            "description": i.get("description", ""),
+        }
+        for i in (release.get("identifiers") or [])
+    ]
+
+    # Companies (pressed by, distributed by, etc.)
+    companies = [
+        {
+            "name": _clean_name(c.get("name", "")),
+            "entity_type_name": c.get("entity_type_name", ""),
+            "catno": c.get("catno", ""),
+        }
+        for c in (release.get("companies") or [])
+    ]
+
+    # Series
+    series = [
+        {"name": s.get("name", ""), "catno": s.get("catno", "")}
+        for s in (release.get("series") or [])
+    ]
+
+    return {
+        "tracklist": tracklist,
+        "formats": formats,
+        "extraartists": extraartists,
+        "notes": release.get("notes", ""),
+        "identifiers": identifiers,
+        "companies": companies,
+        "series": series,
+    }
 
 
 def discogs_fetch_identity():
