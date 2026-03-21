@@ -59,13 +59,16 @@ window.addEventListener('DOMContentLoaded', async () => {
 async function _checkCamera() {
   // On touch devices, always show Add (camera is expected)
   if ('ontouchstart' in window || navigator.maxTouchPoints > 0) return;
+  // mediaDevices is unavailable in insecure contexts (HTTP non-localhost) —
+  // camera won't work without HTTPS, so hide Add
+  if (!navigator.mediaDevices) { _hideAddButtons(); return; }
   // On desktop, check for a webcam
   try {
     const devices = await navigator.mediaDevices.enumerateDevices();
     const hasCamera = devices.some(d => d.kind === 'videoinput');
     if (!hasCamera) _hideAddButtons();
   } catch {
-    _hideAddButtons();
+    // Can't determine — keep buttons visible
   }
 }
 
