@@ -1,6 +1,8 @@
 # More'Wax — Vinyl Collection Manager
 
-More'Wax is a self-hosted web app for managing your vinyl record collection. It runs on a Mac (or Linux) as a Python server and serves a mobile-friendly web UI. Records can be added by barcode scan, cover photo identification (via Claude Vision), or manual Discogs search. Prices are fetched from the Discogs marketplace and new additions are automatically synced to your Discogs account.
+More'Wax is a self-hosted web app for managing your vinyl record collection. It runs a Python server on your Mac or Linux machine and serves a responsive web UI you open in any browser — desktop or mobile. Records can be added by barcode scan, cover photo identification (via Claude Vision), or manual Discogs search. Prices are fetched from the Discogs marketplace and new additions are automatically synced to your Discogs account.
+
+**A [Discogs personal access token](https://www.discogs.com/settings/developers) is required** — More'Wax uses your Discogs account to search releases, fetch prices, and sync your collection.
 
 ![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
 
@@ -64,41 +66,6 @@ graph LR
     Browser <-->|HTTP| Server
     Server -->|REST| Discogs
     Server -->|Vision| Anthropic
-```
-
-### Server (`server/`)
-
-Pure Python stdlib (no pip dependencies). Organized as a package:
-
-```
-server.py              # Entry point — starts HTTP/HTTPS servers
-server/
-├── config.py          # .env loading, constants, paths
-├── database.py        # JSON store — thread-safe CRUD with atomic writes
-├── discogs.py         # Discogs API client — search, releases, prices, collection
-├── images.py          # Image processing — HEIC conversion, cover upload, Claude Vision
-└── handler.py         # HTTP request handler — routing and API endpoints
-```
-
-Key design decisions: threading lock protects all database writes, atomic file replacement prevents corruption, `ThreadPoolExecutor` parallelizes Discogs API calls, and background threads handle batch price refresh without blocking HTTP responses.
-
-### Client (`static/js/`)
-
-Vanilla JavaScript with Tailwind CSS and Quagga.js for barcode scanning. No build step, no framework. Split into focused modules:
-
-```
-static/js/
-├── state.js           # Global state variables
-├── helpers.js         # Utilities — HTML escaping, price formatting, toasts
-├── api.js             # HTTP wrappers + Discogs API functions
-├── collection.js      # Main grid — load, sort, filter, render, background refresh
-├── detail.js          # Record detail modal with live price updates
-├── image-convert.js   # HEIC → JPEG conversion (server → heic2any → native fallback)
-├── camera.js          # Live barcode scanning + cover photo capture
-├── search.js          # Discogs search and results rendering
-├── photo-search.js    # Photo-based identification (barcode detection + Claude Vision)
-├── add-modal.js       # Add record wizard — step router, confirm, save
-└── init.js            # Page initialization
 ```
 
 ### Data storage
