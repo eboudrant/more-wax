@@ -42,10 +42,14 @@ def _save(data: dict) -> None:
 
 def db_list() -> list:
     with _lock:
-        return sorted(
+        records = sorted(
             _load()["records"],
             key=lambda r: (r.get("artist", "").lower(), r.get("title", "").lower()),
         )
+        # Strip heavy cached data from list responses
+        for r in records:
+            r.pop("discogs_extra", None)
+        return records
 
 
 def db_get(rid: int):

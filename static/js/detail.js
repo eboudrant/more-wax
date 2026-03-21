@@ -9,8 +9,8 @@ let _detailSwipe = null;
 let _detailAnimating = false;
 let _detailListenersAttached = false;
 
-function _renderPanelHtml(r) {
-  if (!r) return '<div class="detail-panel w-1/3 flex-shrink-0 min-w-0"></div>';
+function _renderPanelHtml(r, peek = false) {
+  if (!r) return '<div class="detail-panel"></div>';
 
   const cover = r.local_cover || r.cover_image_url;
   const coverHtml = cover
@@ -24,48 +24,42 @@ function _renderPanelHtml(r) {
   const tags = [...new Set([...genres, ...styles])];
   const hasPrices = r.price_median || r.price_high || r.price_low;
 
-  return `<div class="detail-panel w-1/3 flex-shrink-0 min-w-0">
+  return `<div class="detail-panel">
     ${coverHtml}
     <div class="p-4 pb-2 space-y-4">
-      <!-- Title & Actions -->
+      <!-- Title & Artist -->
+      <div class="overflow-hidden">
+        <h3 class="font-headline font-bold text-2xl sm:text-3xl text-on-surface tracking-tight leading-tight line-clamp-2 break-words">${esc(r.title)}</h3>
+        <p class="font-headline italic text-lg text-on-surface-v mt-1 truncate">${esc(r.artist)}</p>
+      </div>
+
+      <!-- Tags & actions -->
       <div class="flex items-start gap-2">
-        <div class="flex-1 min-w-0">
-          <h3 class="font-headline font-bold text-2xl sm:text-3xl text-on-surface tracking-tight leading-tight">${esc(r.title)}</h3>
-          <p class="font-headline italic text-lg text-on-surface-v mt-1">${esc(r.artist)}</p>
-          ${tags.length ? `<div class="flex flex-wrap gap-2 mt-3">${tags.map(t => `<span class="bg-surface-high px-3 py-1 text-xs font-label rounded text-on-surface-v">${esc(t)}</span>`).join('')}</div>` : ''}
+        <div class="flex flex-wrap gap-1.5 flex-1 min-w-0">
+          ${r.year ? `<span class="bg-surface-high/60 px-2.5 py-0.5 text-xs font-label rounded-full text-on-surface-v">${esc(r.year)}</span>` : ''}
+          ${r.label ? [...new Set(r.label.split(', '))].map(l => `<span class="bg-surface-high/60 px-2.5 py-0.5 text-xs font-label rounded-full text-on-surface-v">${esc(l.trim())}</span>`).join('') : ''}
+          ${r.country ? `<span class="bg-surface-high/60 px-2.5 py-0.5 text-xs font-label rounded-full text-on-surface-v">${esc(r.country)}</span>` : ''}
+          ${tags.map(t => `<span class="border border-outline-v/30 px-2.5 py-0.5 text-xs font-label rounded-full text-outline">${esc(t)}</span>`).join('')}
         </div>
-        <button class="flex-shrink-0 w-9 h-9 rounded-full bg-surface-high flex items-center justify-center text-on-surface-v hover:text-primary transition-colors" onclick="_copyDetailInfo(this, ${r.id})" title="Copy artist and title">
-          <i class="bi bi-clipboard text-sm"></i>
-        </button>
-        ${r.discogs_id ? `<a href="https://www.discogs.com/release/${r.discogs_id}" target="_blank" class="flex-shrink-0 w-9 h-9 rounded-full bg-surface-high flex items-center justify-center text-on-surface-v hover:text-primary transition-colors" title="View on Discogs"><i class="bi bi-box-arrow-up-right text-sm"></i></a>` : ''}
+        <div class="flex items-center gap-1.5 shrink-0">
+          <button class="w-8 h-8 rounded-full bg-surface-high/50 flex items-center justify-center text-outline hover:text-primary transition-colors" onclick="_copyDetailInfo(this, ${r.id})" title="Copy artist and title">
+            <i class="bi bi-clipboard text-xs"></i>
+          </button>
+          ${r.discogs_id ? `<a href="https://www.discogs.com/release/${r.discogs_id}" target="_blank" class="w-8 h-8 rounded-full bg-surface-high/50 flex items-center justify-center text-outline hover:text-primary transition-colors" title="View on Discogs"><i class="bi bi-box-arrow-up-right text-xs"></i></a>` : ''}
+        </div>
       </div>
 
       <!-- Discogs Value Card -->
       ${hasPrices || r.discogs_id ? `
       <div class="bg-surface rounded-xl p-5 relative overflow-hidden">
         <div class="relative z-10">
-          <div id="detail-price-area">
-            ${hasPrices ? _editorialPriceCard(r) : (r.discogs_id ? '<div class="text-outline text-sm flex items-center gap-2"><i class="bi bi-arrow-repeat animate-spin"></i> Fetching prices…</div>' : '')}
-          </div>
+          <div ${peek ? '' : 'id="detail-price-area"'}>${hasPrices ? _editorialPriceCard(r) : ''}</div>
         </div>
         <div class="absolute -right-4 -bottom-4 w-32 h-32 bg-primary/5 rounded-full blur-3xl"></div>
       </div>` : ''}
 
       <!-- Rating -->
-      <div id="detail-rating-area">${ratingStars(r.rating_average, r.rating_count)}</div>
-
-      <!-- Technical Specs -->
-      <div class="bg-surface-low rounded-xl p-5">
-        <h4 class="font-label text-xs uppercase tracking-widest text-outline mb-4">Technical Specs</h4>
-        <div class="space-y-3">
-          ${_specRow('Year', r.year)}
-          ${_specRow('Label', r.label)}
-          ${_specRow('Catalog No.', r.catalog_number)}
-          ${_specRow('Format', r.format)}
-          ${_specRow('Country', r.country)}
-          ${_specRow('Barcode', r.barcode)}
-        </div>
-      </div>
+      <div ${peek ? '' : 'id="detail-rating-area"'}>${ratingStars(r.rating_average, r.rating_count)}</div>
 
       <!-- Notes -->
       ${r.notes ? `
@@ -74,11 +68,9 @@ function _renderPanelHtml(r) {
         <p class="font-body text-on-surface-v text-sm leading-relaxed">${esc(r.notes)}</p>
       </div>` : ''}
 
-      <!-- Delete -->
-      <div class="flex justify-end pt-2 pb-2">
-        <button class="text-danger/70 hover:text-danger text-sm font-medium flex items-center gap-1.5 transition-colors" onclick="confirmDelete(${r.id})">
-          <i class="bi bi-trash"></i> Remove
-        </button>
+      <!-- Discogs Extra (lazy loaded) + Delete -->
+      <div ${peek ? '' : `id="detail-extra-${r.id}"`} class="space-y-4">
+        ${r.discogs_extra ? _renderDiscogsExtra(r.discogs_extra) + _deleteButton(r.id) : (r.discogs_id ? '' : _deleteButton(r.id))}
       </div>
     </div>
   </div>`;
@@ -86,32 +78,21 @@ function _renderPanelHtml(r) {
 
 function _editorialPriceCard(r) {
   const cur = r.price_currency || 'USD';
+  const sym = currSym(cur);
   const med = parseFloat(r.price_median);
   const low = parseFloat(r.price_low);
   const high = parseFloat(r.price_high);
   if (isNaN(med) && isNaN(low)) return '';
-
   return `
-    <div class="flex items-center justify-between mb-4">
-      <span class="font-label text-xs uppercase tracking-widest text-outline">Discogs Value</span>
-    </div>
-    ${!isNaN(med) ? `
-    <div class="mb-4">
-      <span class="text-xs font-label text-on-surface-v block mb-1">MEDIAN PRICE</span>
-      <div class="text-4xl font-headline font-bold text-primary">${cur} ${med.toFixed(2)}</div>
-    </div>` : ''}
-    <div class="grid grid-cols-3 gap-4 pt-4 border-t border-outline-v/20">
-      <div>
-        <span class="text-[10px] font-label text-outline uppercase">Low</span>
-        <div class="text-base font-headline text-on-surface">${!isNaN(low) ? `${cur} ${low.toFixed(0)}` : '—'}</div>
+    <div class="flex items-baseline justify-between gap-3">
+      <div class="flex items-baseline gap-2">
+        ${!isNaN(med) ? `<span class="text-2xl font-headline font-bold text-primary">${sym}${med.toFixed(2)}</span>` : ''}
+        <span class="text-[10px] font-label text-outline uppercase tracking-wider">median</span>
       </div>
-      <div>
-        <span class="text-[10px] font-label text-outline uppercase">High</span>
-        <div class="text-base font-headline text-on-surface">${!isNaN(high) ? `${cur} ${high.toFixed(0)}` : '—'}</div>
-      </div>
-      <div>
-        <span class="text-[10px] font-label text-outline uppercase">For Sale</span>
-        <div class="text-base font-headline text-on-surface-v">${r.num_for_sale || '—'}</div>
+      <div class="flex items-baseline gap-3 text-sm font-headline text-on-surface-v">
+        ${!isNaN(low) ? `<span>${sym}${low.toFixed(0)} <span class="text-[10px] font-label text-outline uppercase">low</span></span>` : ''}
+        ${!isNaN(high) ? `<span>${sym}${high.toFixed(0)} <span class="text-[10px] font-label text-outline uppercase">high</span></span>` : ''}
+        ${r.num_for_sale ? `<span>${r.num_for_sale} <span class="text-[10px] font-label text-outline uppercase">listed</span></span>` : ''}
       </div>
     </div>`;
 }
@@ -143,10 +124,10 @@ function _renderDetailBody(r) {
         <i class="bi bi-x-lg text-sm"></i>
       </button>
     </div>
-    <div class="detail-track flex" style="width:300%;transform:translateX(-33.3333%)">
-      ${_renderPanelHtml(prev)}
+    <div class="detail-track relative">
+      <div class="absolute top-0 right-full w-full overflow-hidden max-h-[90vh]">${prev ? _renderPanelHtml(prev, true) : ''}</div>
       ${_renderPanelHtml(r)}
-      ${_renderPanelHtml(next)}
+      <div class="absolute top-0 left-full w-full overflow-hidden max-h-[90vh]">${next ? _renderPanelHtml(next, true) : ''}</div>
     </div>`;
 }
 
@@ -159,6 +140,9 @@ async function showDetail(id) {
   _detailIndex = _detailList.findIndex(x => x.id === id);
   if (_detailIndex < 0) _detailIndex = 0;
 
+  // Pre-fetch full record (includes cached discogs_extra) before rendering
+  await _preloadExtra(r);
+
   _renderDetailBody(r);
   _updateDetailNav();
 
@@ -168,6 +152,9 @@ async function showDetail(id) {
 
   if (r.discogs_id && (!r.price_median || !r.price_high || !r.rating_average)) {
     _refreshDetailPrices(r);
+  }
+  if (r.discogs_id && !r.discogs_extra) {
+    _loadDiscogsExtra(r);
   }
 }
 
@@ -183,29 +170,44 @@ function _navigateDetail(dir) {
   if (newIdx < 0 || newIdx >= _detailList.length || _detailAnimating) return;
   _detailAnimating = true;
 
+  // Start prefetch during animation (localhost is ~instant, finishes before 280ms transition)
+  const nextR = _detailList[newIdx];
+  const prefetch = _preloadExtra(nextR);
+
   const track = document.querySelector('.detail-track');
   if (!track) { _detailAnimating = false; return; }
 
-  const target = dir > 0 ? '-66.6666%' : '0%';
+  const target = dir > 0 ? '-100%' : '100%';
   track.classList.add('animating');
   track.style.transform = `translateX(${target})`;
 
-  track.addEventListener('transitionend', function once() {
+  track.addEventListener('transitionend', async function once() {
     track.removeEventListener('transitionend', once);
     track.classList.remove('animating');
 
     _detailIndex = newIdx;
+    await prefetch.catch(() => {});
     const r = _detailList[_detailIndex];
+
+    const body = document.getElementById('detail-body');
+    if (body) {
+      body.style.visibility = 'hidden';
+      body.scrollTop = 0;
+    }
+
     _renderDetailBody(r);
     _updateDetailNav();
-    _detailAnimating = false;
 
-    // Scroll detail body to top
-    const body = document.getElementById('detail-body');
-    if (body) body.scrollTop = 0;
+    requestAnimationFrame(() => {
+      if (body) body.style.visibility = '';
+      _detailAnimating = false;
+    });
 
     if (r.discogs_id && (!r.price_median || !r.price_high || !r.rating_average)) {
       _refreshDetailPrices(r);
+    }
+    if (r.discogs_id && !r.discogs_extra) {
+      _loadDiscogsExtra(r);
     }
   });
 }
@@ -251,7 +253,7 @@ function _detailTouchMove(e) {
     if ((dx > 0 && _detailIndex <= 0) || (dx < 0 && _detailIndex >= _detailList.length - 1)) {
       translate = dx * 0.2;
     }
-    const pct = -33.3333 + (translate / track.parentElement.clientWidth * 33.3333);
+    const pct = (translate / track.parentElement.clientWidth) * 100;
     track.style.transform = `translateX(${pct}%)`;
   } else if (_detailSwipe.locked === 'pull') {
     e.preventDefault();
@@ -278,7 +280,7 @@ function _detailTouchEnd(e) {
         _navigateDetail(dx < 0 ? 1 : -1);
       } else {
         track.classList.add('animating');
-        track.style.transform = 'translateX(-33.3333%)';
+        track.style.transform = 'translateX(0)';
         track.addEventListener('transitionend', function once() {
           track.removeEventListener('transitionend', once);
           track.classList.remove('animating');
@@ -374,11 +376,12 @@ function _updateCardBadge(r) {
   if (!metaRowEl) return;
 
   const cur = r.price_currency || 'USD';
+  const sym = currSym(cur);
   const priceBadge = card.querySelector('.record-price-badge');
   const newPriceBadge = r.price_median && !isNaN(parseFloat(r.price_median))
-    ? `<span class="record-price-badge">${cur}&nbsp;${parseFloat(r.price_median).toFixed(0)} <span class="text-[0.7em] opacity-70 font-normal">med</span></span>`
+    ? `<span class="record-price-badge">${sym}${parseFloat(r.price_median).toFixed(0)} <span class="text-[0.7em] opacity-70 font-normal">med</span></span>`
     : r.price_low && !isNaN(parseFloat(r.price_low))
-      ? `<span class="record-price-badge opacity-75">${cur}&nbsp;${parseFloat(r.price_low).toFixed(0)} <span class="text-[0.7em] opacity-70 font-normal">low</span></span>`
+      ? `<span class="record-price-badge opacity-75">${sym}${parseFloat(r.price_low).toFixed(0)} <span class="text-[0.7em] opacity-70 font-normal">low</span></span>`
       : '';
   if (priceBadge) priceBadge.outerHTML = newPriceBadge;
   else if (newPriceBadge) metaRowEl.insertAdjacentHTML('beforeend', newPriceBadge);
@@ -423,6 +426,167 @@ function _fallbackCopy(text, cb) {
   const ok = document.execCommand('copy');
   modalEl.removeChild(ta);
   if (ok) cb();
+}
+
+function _deleteButton(id) {
+  return `<div class="flex justify-end pt-2 pb-2">
+    <button class="text-danger/70 hover:text-danger text-sm font-medium flex items-center gap-1.5 transition-colors" onclick="confirmDelete(${id})">
+      <i class="bi bi-trash"></i> Remove
+    </button>
+  </div>`;
+}
+
+// ── Pre-fetch cached extra from local DB ────────────────
+async function _preloadExtra(r) {
+  if (r.discogs_extra || !r.discogs_id) return;
+  try {
+    const full = await apiGet(`/api/collection/${r.id}`);
+    if (full && full.discogs_extra) {
+      r.discogs_extra = full.discogs_extra;
+    }
+  } catch (e) { /* ignore — will fall back to lazy load */ }
+}
+
+// ── Discogs extra details (lazy loaded) ─────────────────
+async function _loadDiscogsExtra(r) {
+  const spinTimer = setTimeout(() => {
+    const el = document.getElementById(`detail-extra-${r.id}`);
+    if (el && !el.innerHTML.trim()) {
+      el.innerHTML = '<div class="text-outline text-sm flex items-center gap-2 justify-center py-4"><i class="bi bi-arrow-repeat animate-spin"></i> Loading details…</div>';
+    }
+  }, 3000);
+  try {
+    const extra = await getCollectionDetails(r.id);
+    clearTimeout(spinTimer);
+    if (extra.error) throw new Error(extra.error);
+    r.discogs_extra = extra;
+    const el = document.getElementById(`detail-extra-${r.id}`);
+    if (el) el.innerHTML = _renderDiscogsExtra(extra) + _deleteButton(r.id);
+  } catch (e) {
+    clearTimeout(spinTimer);
+    console.warn('Could not load release details:', e.message);
+    const el = document.getElementById(`detail-extra-${r.id}`);
+    if (el) el.innerHTML = _deleteButton(r.id);
+  }
+}
+
+function _renderDiscogsExtra(extra) {
+  return [
+    _renderTracklist(extra.tracklist),
+    _renderFormats(extra.formats),
+    _renderCredits(extra.extraartists),
+    _renderReleaseNotes(extra.notes),
+    _renderIdentifiers(extra.identifiers),
+    _renderCompanies(extra.companies, extra.series),
+  ].filter(Boolean).join('');
+}
+
+function _renderTracklist(tracklist) {
+  if (!tracklist || !tracklist.length) return '';
+  let html = '<div class="bg-surface-low rounded-xl p-5">';
+  html += '<h4 class="font-label text-xs uppercase tracking-widest text-outline mb-4">Tracklist</h4>';
+  html += '<div class="space-y-0">';
+  for (const t of tracklist) {
+    if (t.type_ === 'heading') {
+      html += `<div class="font-label text-xs uppercase tracking-widest text-primary-dim pt-3 pb-1">${esc(t.title)}</div>`;
+      continue;
+    }
+    const pos = t.position ? `<span class="text-outline font-label text-xs shrink-0 whitespace-nowrap">${esc(t.position)}</span>` : '';
+    const dur = t.duration ? `<span class="text-outline text-xs ml-auto shrink-0">${esc(t.duration)}</span>` : '';
+    html += `<div class="flex items-baseline gap-2 py-1.5 border-b border-outline-v/10">
+      ${pos}
+      <span class="font-body text-sm text-on-surface truncate">${esc(t.title)}</span>
+      ${dur}
+    </div>`;
+  }
+  html += '</div></div>';
+  return html;
+}
+
+function _renderFormats(formats) {
+  if (!formats || !formats.length) return '';
+  const desc = formats.map(f => {
+    const parts = [];
+    if (f.qty && f.qty !== '1') parts.push(f.qty + '×');
+    parts.push(f.name);
+    if (f.descriptions && f.descriptions.length) parts.push(...f.descriptions);
+    return parts.join(', ');
+  }).join(' + ');
+  return `<div class="bg-surface-low rounded-xl p-5">
+    <h4 class="font-label text-xs uppercase tracking-widest text-outline mb-3">Format Details</h4>
+    <p class="font-body text-sm text-on-surface-v">${esc(desc)}</p>
+  </div>`;
+}
+
+function _renderCredits(extraartists) {
+  if (!extraartists || !extraartists.length) return '';
+  const grouped = {};
+  for (const a of extraartists) {
+    const role = a.role || 'Other';
+    if (!grouped[role]) grouped[role] = [];
+    grouped[role].push(a.name);
+  }
+  let html = '<div class="bg-surface-low rounded-xl p-5">';
+  html += '<h4 class="font-label text-xs uppercase tracking-widest text-outline mb-4">Credits</h4>';
+  html += '<div class="space-y-2">';
+  for (const [role, names] of Object.entries(grouped)) {
+    html += `<div class="pb-2 border-b border-outline-v/10">
+      <span class="font-label text-[11px] uppercase tracking-wider text-outline">${esc(role)}</span>
+      <div class="font-headline text-sm text-on-surface mt-0.5">${names.map(n => esc(n)).join(', ')}</div>
+    </div>`;
+  }
+  html += '</div></div>';
+  return html;
+}
+
+function _renderReleaseNotes(notes) {
+  if (!notes) return '';
+  return `<div class="bg-surface-top/30 rounded-xl p-5">
+    <h4 class="font-label text-xs uppercase tracking-widest text-outline mb-3">Release Notes</h4>
+    <p class="font-body text-on-surface-v text-sm leading-relaxed whitespace-pre-line">${esc(notes)}</p>
+  </div>`;
+}
+
+function _renderIdentifiers(identifiers) {
+  if (!identifiers || !identifiers.length) return '';
+  let html = '<div class="bg-surface-low rounded-xl p-5">';
+  html += '<h4 class="font-label text-xs uppercase tracking-widest text-outline mb-4">Identifiers</h4>';
+  html += '<div class="space-y-2">';
+  for (const id of identifiers) {
+    const desc = id.description ? ` (${esc(id.description)})` : '';
+    html += `<div class="pb-2 border-b border-outline-v/10">
+      <span class="font-label text-[11px] uppercase tracking-wider text-outline">${esc(id.type)}${desc}</span>
+      <div class="font-headline text-sm text-on-surface mt-0.5 font-mono break-all">${esc(id.value)}</div>
+    </div>`;
+  }
+  html += '</div></div>';
+  return html;
+}
+
+function _renderCompanies(companies, series) {
+  const items = [];
+  if (companies && companies.length) {
+    for (const c of companies) {
+      items.push({ label: c.entity_type_name || 'Company', value: c.name + (c.catno ? ` [${c.catno}]` : '') });
+    }
+  }
+  if (series && series.length) {
+    for (const s of series) {
+      items.push({ label: 'Series', value: s.name + (s.catno ? ` #${s.catno}` : '') });
+    }
+  }
+  if (!items.length) return '';
+  let html = '<div class="bg-surface-low rounded-xl p-5">';
+  html += '<h4 class="font-label text-xs uppercase tracking-widest text-outline mb-4">Companies & Series</h4>';
+  html += '<div class="space-y-2">';
+  for (const item of items) {
+    html += `<div class="pb-2 border-b border-outline-v/10">
+      <span class="font-label text-[11px] uppercase tracking-wider text-outline">${esc(item.label)}</span>
+      <div class="font-headline text-sm text-on-surface mt-0.5">${esc(item.value)}</div>
+    </div>`;
+  }
+  html += '</div></div>';
+  return html;
 }
 
 async function confirmDelete(id) {

@@ -36,16 +36,14 @@ body { overscroll-behavior: none; }
   justify-content: center;
   color: #d1c4b8;
   opacity: 0.6;
-  transition: all 0.2s;
+  transition: color 0.2s, opacity 0.2s;
   text-decoration: none;
-  padding: 4px 12px;
+  padding: 4px 20px;
+  flex: 1;
 }
 .bottom-nav-item.active {
   opacity: 1;
-  background: linear-gradient(135deg, #fddcb1, #e0c097);
-  color: #402d0f;
-  border-radius: 9999px;
-  padding: 4px 20px;
+  color: #fddcb1;
 }
 
 /* ── CUSTOM MODAL SYSTEM ────────────────────────────────── */
@@ -105,6 +103,7 @@ body { overscroll-behavior: none; }
   overflow-x: clip;
   overflow-y: auto;
   max-height: 90vh;
+  min-height: 60vh;
 }
 
 /* Full-screen modals on mobile */
@@ -126,6 +125,7 @@ body { overscroll-behavior: none; }
   .app-modal-scrollable .app-modal-content,
   .app-modal-scrollable #detail-body {
     max-height: 100dvh;
+    min-height: 100dvh;
   }
 }
 
@@ -149,17 +149,13 @@ body { overscroll-behavior: none; }
 
 /* ── DETAIL CAROUSEL TRACK ──────────────────────────────── */
 .detail-track {
-  display: flex;
-  width: 300%;
-  transform: translateX(-33.3333%);
+  position: relative;
   will-change: transform;
 }
 .detail-track.animating {
   transition: transform 280ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 .detail-panel {
-  width: 33.3333%;
-  flex-shrink: 0;
   min-width: 0;
 }
 

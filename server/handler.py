@@ -26,6 +26,7 @@ from server.database import (
 from server.discogs import (
     discogs_add_to_collection,
     discogs_refresh_prices,
+    discogs_release_details,
     discogs_release_full,
     discogs_search,
 )
@@ -141,6 +142,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
             )
         elif p == "/api/collection":
             self.send_json(db_list())
+        elif p.startswith("/api/collection/") and p.endswith("/details"):
+            self._api_collection_details(p)
         elif p.startswith("/api/collection/"):
             rid = self._tail_id(p)
             rec = db_get(rid)
@@ -261,6 +264,39 @@ class Handler(http.server.BaseHTTPRequestHandler):
         ok = db_update(rid, fields)
         self.send_json({"success": ok})
 
+    def _api_collection_details(self, path: str):
+        """Return cached Discogs extra details, fetching on first request."""
+        # /api/collection/5/details → 5
+        parts = path.strip("/").split("/")
+        try:
+            rid = int(parts[2])
+        except (IndexError, ValueError):
+            self.send_json({"error": "Invalid ID"}, 400)
+            return
+
+        rec = db_get(rid)
+        if not rec:
+            self.send_json({"error": "Not found"}, 404)
+            return
+
+        discogs_id = rec.get("discogs_id")
+        if not discogs_id:
+            self.send_json({"error": "No Discogs ID"}, 400)
+            return
+
+        # Return from cache if available
+        if rec.get("discogs_extra"):
+            self.send_json(rec["discogs_extra"])
+            return
+
+        # Fetch from Discogs and cache
+        try:
+            extra = discogs_release_details(str(discogs_id))
+            db_update(rid, {"discogs_extra": extra})
+            self.send_json(extra)
+        except Exception as e:
+            self._send_discogs_error(e)
+
     # ── Discogs endpoints ────────────────────────────────────────
 
     def _send_discogs_error(self, e: Exception):
@@ -304,14 +340,17 @@ class Handler(http.server.BaseHTTPRequestHandler):
             self._send_discogs_error(e)
 
     def _api_refresh_all_prices(self):
-        """Refresh prices for all stale records. Runs in background thread."""
+        """Refresh prices for all (or stale) records. Runs in background thread."""
+        qs = urllib.parse.urlparse(self.path).query
+        force = "force" in urllib.parse.parse_qs(qs)
         records = db_list()
         stale = [
             r
             for r in records
             if r.get("discogs_id")
             and (
-                not r.get("price_median")
+                force
+                or not r.get("price_median")
                 or not r.get("price_high")
                 or not r.get("rating_average")
             )

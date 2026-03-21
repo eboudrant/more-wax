@@ -5,6 +5,7 @@ const searchDiscogs   = (q)       => apiGet(`/api/discogs/search?q=${encodeURICo
 const searchByBarcode = (barcode) => apiGet(`/api/discogs/search?barcode=${encodeURIComponent(barcode)}`);
 const getReleaseFull  = (id)      => apiGet(`/api/discogs/release/${id}`);
 const getReleasePrices= (id)      => apiGet(`/api/discogs/prices/${id}`);
+const getCollectionDetails = (id) => apiGet(`/api/collection/${id}/details`);
 
 async function addToDiscogsCollection(releaseId) {
   if (!releaseId) return false;
