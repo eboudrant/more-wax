@@ -145,6 +145,10 @@ Loaded from CDN, no build step:
 4. Push to the branch (`git push origin feature/my-feature`)
 5. Open a Pull Request
 
+## Built with
+
+This project was entirely vibe-coded using [Claude Code](https://claude.ai/code) and [Google Stitch](https://stitch.withgoogle.com/).
+
 ## License
 
 [MIT](LICENSE)
