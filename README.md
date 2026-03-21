@@ -48,15 +48,16 @@ More'Wax reads configuration from environment variables. You can set them in a `
 
 More'Wax follows a **fat server / thin client** architecture. All API tokens, business logic, and external service calls live on the Python backend. The browser client is pure UI — it knows nothing about Discogs credentials or Claude API keys.
 
-```
-┌─────────────────────────┐     ┌──────────────────────────┐
-│   Browser (static/js/)   │────▶│   Python server (server/) │
-│   Pure UI layer          │◀────│   Business logic + APIs    │
-│   No tokens / secrets    │     │   JSON file storage        │
-└─────────────────────────┘     └────────┬────────┬──────────┘
-                                         │        │
-                                    Discogs    Anthropic
-                                    REST API   Claude API
+```mermaid
+graph LR
+    Browser["🌐 Browser<br/><small>static/js/ — Pure UI<br/>No tokens or secrets</small>"]
+    Server["🐍 Python Server<br/><small>server/ — Business logic<br/>JSON file storage</small>"]
+    Discogs["💿 Discogs API"]
+    Anthropic["🤖 Claude API"]
+
+    Browser <-->|HTTP| Server
+    Server -->|REST| Discogs
+    Server -->|Vision| Anthropic
 ```
 
 ### Server (`server/`)
