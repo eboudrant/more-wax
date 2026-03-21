@@ -296,7 +296,7 @@ body { overscroll-behavior: none; }
 
 /* Desktop: constrain scanner to phone-width column */
 @media (min-width: 768px) {
-  #view-scanner {
+  #view-scanner.open {
     display: flex !important;
     align-items: center;
     justify-content: center;
@@ -308,11 +308,16 @@ body { overscroll-behavior: none; }
     max-width: 100%;
   }
   #scanner-sheet,
-  #scanner-sheet-backdrop,
-  #scanner-search-panel {
+  #scanner-sheet-backdrop {
     max-width: 430px;
     left: 50%;
     transform: translateX(-50%) translateY(100%);
+    right: auto;
+  }
+  #scanner-search-panel {
+    max-width: 430px;
+    left: 50%;
+    transform: translateX(-50%);
     right: auto;
   }
   #scanner-sheet.sheet-open {

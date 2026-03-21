@@ -48,8 +48,35 @@ function _showSetupError(title, message, linkUrl) {
 
 window.addEventListener('DOMContentLoaded', async () => {
   _checkStatus();           // non-blocking — don't await
+  _checkCamera();           // hide Add buttons if no camera
   await loadCollection();
 
   // Navigate to initial view from hash
   navigateTo(_getViewFromHash());
 });
+
+/** Hide Add buttons if no camera is available. */
+async function _checkCamera() {
+  // On touch devices, always show Add (camera is expected)
+  if ('ontouchstart' in window || navigator.maxTouchPoints > 0) return;
+  // On desktop, check for a webcam
+  try {
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    const hasCamera = devices.some(d => d.kind === 'videoinput');
+    if (!hasCamera) _hideAddButtons();
+  } catch {
+    _hideAddButtons();
+  }
+}
+
+function _hideAddButtons() {
+  // Desktop nav "Add"
+  const desktopAdd = document.querySelector('nav.hidden.md\\:flex a[onclick*="openScanner"]');
+  if (desktopAdd) desktopAdd.style.display = 'none';
+  // Mobile bottom nav "Add"
+  const mobileAdd = document.querySelector('#bottom-nav a[data-view="add"]');
+  if (mobileAdd) mobileAdd.style.display = 'none';
+  // Dashboard "Add New Vinyl" button
+  const dashAdd = document.querySelector('#view-dashboard button[onclick*="openScanner"]');
+  if (dashAdd) dashAdd.style.display = 'none';
+}
