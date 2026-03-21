@@ -73,6 +73,7 @@ const MOCK_SEARCH_RESULTS = {
       year: '2001',
       label: ['Virgin'],
       format: ['Vinyl', 'LP'],
+      formats: [{ name: 'Vinyl', descriptions: ['LP', 'Album'], text: '' }],
       cover_image: '',
       thumb: '',
       type: 'release',
@@ -83,6 +84,7 @@ const MOCK_SEARCH_RESULTS = {
       year: '2013',
       label: ['Columbia'],
       format: ['Vinyl', 'LP'],
+      formats: [{ name: 'Vinyl', descriptions: ['LP', 'Album', 'Reissue'], text: '' }],
       cover_image: '',
       thumb: '',
       type: 'release',
@@ -93,6 +95,7 @@ const MOCK_SEARCH_RESULTS = {
       year: '1997',
       label: ['Virgin'],
       format: ['Vinyl', 'LP'],
+      formats: [{ name: 'Vinyl', descriptions: ['LP', 'Album'], text: '' }],
       cover_image: '',
       thumb: '',
       type: 'release',
@@ -157,25 +160,44 @@ async function mockApi(page) {
     });
   });
 
-  // Mock Discogs release detail
+  // Mock Discogs release detail (returns same shape as discogs_release_full)
   await page.route('**/api/discogs/release/*', (route) => {
     return route.fulfill({
       status: 200,
       contentType: 'application/json',
       body: JSON.stringify({
-        id: 123456,
+        discogs_id: '123456',
         title: 'Discovery',
-        artists_sort: 'Daft Punk',
-        year: 2001,
-        labels: [{ name: 'Virgin', catno: 'V2940' }],
-        formats: [{ name: 'Vinyl' }],
-        genres: ['Electronic'],
-        styles: ['House', 'Disco'],
-        images: [],
-        tracklist: [
-          { position: '1', title: 'One More Time', duration: '5:20' },
-          { position: '2', title: 'Aerodynamic', duration: '3:32' },
-        ],
+        artist: 'Daft Punk',
+        year: '2001',
+        label: 'Virgin',
+        catalog_number: 'V2940',
+        format: 'Vinyl',
+        genres: JSON.stringify(['Electronic']),
+        styles: JSON.stringify(['House', 'Disco']),
+        country: 'France',
+        cover_image_url: '',
+        barcode: '',
+        price_low: '20.00',
+        price_median: '35.00',
+        price_high: '60.00',
+        price_currency: 'USD',
+        num_for_sale: '15',
+        rating_average: '4.2',
+        rating_count: '500',
+        already_in_discogs: false,
+        discogs_extra: {
+          tracklist: [
+            { position: '1', title: 'One More Time', duration: '5:20', type_: 'track' },
+            { position: '2', title: 'Aerodynamic', duration: '3:32', type_: 'track' },
+          ],
+          formats: [{ name: 'Vinyl', qty: '2', descriptions: ['LP', 'Album'] }],
+          extraartists: [],
+          notes: '',
+          identifiers: [{ type: 'Barcode', value: '724384960650' }],
+          companies: [{ entity_type_name: 'Pressed By', name: 'MPO' }],
+          series: [],
+        },
       }),
     });
   });

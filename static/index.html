@@ -250,9 +250,8 @@
 
   <!-- Bottom sheet -->
   <div id="scanner-sheet-backdrop" onclick="closeSheet()" class="hidden absolute inset-0 z-40 bg-black/40 backdrop-blur-sm transition-opacity duration-300"></div>
-  <div id="scanner-sheet" class="absolute bottom-0 left-0 right-0 z-50 bg-bg rounded-t-[2.5rem] shadow-[0_-20px_50px_rgba(0,0,0,0.6)] transition-transform duration-[400ms] ease-[cubic-bezier(0.32,0.72,0,1)] flex flex-col" style="transform:translateY(100%); max-height:88dvh">
-    <div class="w-12 h-1.5 bg-outline-v/40 rounded-full mx-auto mt-4 mb-2 cursor-grab shrink-0" id="scanner-sheet-handle"></div>
-    <div id="scanner-sheet-header" class="px-6 pt-2 pb-4 flex items-center justify-between shrink-0"></div>
+  <div id="scanner-sheet" class="absolute bottom-0 left-0 right-0 z-50 bg-bg rounded-t-[2.5rem] shadow-[0_-20px_50px_rgba(0,0,0,0.6)] transition-transform duration-[400ms] ease-[cubic-bezier(0.32,0.72,0,1)] flex flex-col" style="transform:translateY(100%); max-height:100dvh">
+    <div id="scanner-sheet-header" class="px-6 pt-6 pb-4 flex items-center justify-between shrink-0"></div>
     <div id="scanner-sheet-body" class="px-6 overflow-y-auto flex-1 min-h-0"></div>
     <div id="scanner-sheet-footer" class="px-6 py-4 pb-8 shrink-0"></div>
   </div>
