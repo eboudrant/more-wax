@@ -175,16 +175,16 @@ jobs:
         uses: actions/cache@v4
         with:
           path: node_modules
-          key: node-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          key: node-${{ runner.os }}-${{ hashFiles('package.json') }}
 
       - name: Cache Playwright browsers
         uses: actions/cache@v4
         with:
           path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          key: playwright-${{ runner.os }}-${{ hashFiles('package.json') }}
 
       - name: Install dependencies
-        run: npm ci
+        run: npm install
 
       - name: Install Playwright browser
         run: npx playwright install chromium --with-deps
