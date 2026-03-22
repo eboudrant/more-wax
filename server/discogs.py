@@ -9,14 +9,14 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
-from server.config import DISCOGS_API, DISCOGS_TOKEN
+import server.config as _config
 
 _discogs_username = None  # populated on first call to discogs_fetch_identity()
 
 
 def _discogs_request(method: str, path: str, params: dict = None) -> dict:
     """Make a request to the Discogs API. Returns parsed JSON."""
-    url = DISCOGS_API + path
+    url = _config.DISCOGS_API + path
     if params:
         url += "?" + urllib.parse.urlencode(params)
 
@@ -30,7 +30,7 @@ def _discogs_request(method: str, path: str, params: dict = None) -> dict:
         url,
         method=method,
         headers={
-            "Authorization": f"Discogs token={DISCOGS_TOKEN}",
+            "Authorization": f"Discogs token={_config.DISCOGS_TOKEN}",
             "User-Agent": "More'Wax/1.0",
             "Content-Type": "application/json",
         },
@@ -342,6 +342,31 @@ def discogs_release_details(release_id: str) -> dict:
         "companies": companies,
         "series": series,
     }
+
+
+def discogs_validate_token(token: str) -> dict:
+    """Validate a Discogs token by calling /oauth/identity with it.
+
+    Returns {"valid": True, "username": "..."} or {"valid": False, "error": "..."}.
+    """
+    url = _config.DISCOGS_API + "/oauth/identity"
+    req = urllib.request.Request(
+        url,
+        method="GET",
+        headers={
+            "Authorization": f"Discogs token={token}",
+            "User-Agent": "More'Wax/1.0",
+            "Content-Type": "application/json",
+        },
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=10) as resp:  # nosec B310
+            data = json.loads(resp.read())
+            return {"valid": True, "username": data.get("username", "")}
+    except urllib.error.HTTPError as e:
+        return {"valid": False, "error": f"Discogs returned {e.code}"}
+    except Exception as e:
+        return {"valid": False, "error": str(e)}
 
 
 def discogs_fetch_identity():

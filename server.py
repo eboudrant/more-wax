@@ -12,7 +12,7 @@ import threading
 
 from server.config import ANTHROPIC_API_KEY, DATA_DIR, DISCOGS_TOKEN
 from server.discogs import discogs_fetch_identity
-from server.handler import Handler
+from server.handler import Handler, check_anthropic_key
 
 
 class _HttpsRedirectHandler(Handler):
@@ -112,18 +112,12 @@ def main():
     HTTPS_PORT = int(os.environ.get("HTTPS_PORT", 8766))
 
     if not DISCOGS_TOKEN:
-        print(
-            "⚠️  DISCOGS_TOKEN is not set. Set it as an environment variable or in a .env file."
-        )
-        print(
-            "   Get a personal access token at: https://www.discogs.com/settings/developers"
-        )
-        return
-
-    if not ANTHROPIC_API_KEY:
-        print(
-            "ℹ️  ANTHROPIC_API_KEY is not set — cover photo identification will be disabled."
-        )
+        print("ℹ️  DISCOGS_TOKEN is not set — open the app to run the setup wizard.")
+    else:
+        if not ANTHROPIC_API_KEY:
+            print(
+                "ℹ️  ANTHROPIC_API_KEY is not set — cover photo identification will be disabled."
+            )
 
     https_server = _start_https(HTTPS_PORT)
 
@@ -136,18 +130,20 @@ def main():
     http_server = http.server.ThreadingHTTPServer(("0.0.0.0", HTTP_PORT), http_handler)
 
     print("\n🎵  More'Wax is running!")
-    print(f"    HTTP  →  http://localhost:{HTTP_PORT}")
     if https_server:
-        print(
-            f"    HTTPS →  https://localhost:{HTTPS_PORT}  (use this on iPhone — accept the cert warning once)"
-        )
+        print(f"    →  https://localhost:{HTTPS_PORT}")
+    else:
+        print(f"    →  http://localhost:{HTTP_PORT}")
     print(f"    📀  Collection: {DATA_DIR / 'collection.json'}")
-    print("\n    To open on iPhone, find your Mac's IP in System Settings → Wi-Fi")
-    print(f"    then open https://[your-mac-ip]:{HTTPS_PORT} in Safari\n")
+    if https_server:
+        print(f"\n    On iPhone: https://[your-mac-ip]:{HTTPS_PORT}")
     print("    Press Ctrl+C to stop\n")
 
-    # Fetch Discogs identity in background (don't block server startup)
-    threading.Thread(target=discogs_fetch_identity, daemon=True).start()
+    # Validate credentials in background (don't block server startup)
+    if DISCOGS_TOKEN:
+        threading.Thread(target=discogs_fetch_identity, daemon=True).start()
+    if ANTHROPIC_API_KEY:
+        threading.Thread(target=check_anthropic_key, daemon=True).start()
 
     if https_server:
         t = threading.Thread(target=https_server.serve_forever, daemon=True)

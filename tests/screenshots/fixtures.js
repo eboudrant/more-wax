@@ -216,6 +216,29 @@ async function mockApi(page) {
     });
   });
 
+  // Mock setup endpoints
+  await page.route('**/api/setup/validate', (route) => {
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ valid: true, username: 'testuser' }),
+    });
+  });
+
+  await page.route('**/api/setup', (route) => {
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        success: true,
+        discogs_connected: true,
+        discogs_username: 'testuser',
+        discogs_token_set: true,
+        anthropic_key_set: false,
+      }),
+    });
+  });
+
   // Mock status endpoint — default: everything configured
   await page.route('**/api/status', (route) => {
     return route.fulfill({
@@ -226,6 +249,7 @@ async function mockApi(page) {
         discogs_username: 'testuser',
         discogs_token_set: true,
         anthropic_key_set: true,
+        anthropic_key_valid: true,
       }),
     });
   });
@@ -241,6 +265,7 @@ async function mockStatus(page, overrides) {
     discogs_username: 'testuser',
     discogs_token_set: true,
     anthropic_key_set: true,
+    anthropic_key_valid: true,
     ...overrides,
   };
   await page.unroute('**/api/status');

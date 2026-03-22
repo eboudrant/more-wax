@@ -12,8 +12,11 @@ import urllib.error
 import urllib.parse
 from pathlib import Path
 
+import urllib.request as _urllib_request
+
+import server.config as _config
 import server.discogs as _discogs_mod
-from server.config import ANTHROPIC_API_KEY, DATA_DIR, DISCOGS_TOKEN, STATIC_DIR
+from server.config import DATA_DIR, STATIC_DIR
 from server.database import (
     _db_add_unlocked,
     _lock,
@@ -33,6 +36,42 @@ from server.discogs import (
 from server.images import convert_image, identify_cover, upload_cover
 
 MAX_BODY_BYTES = 20 * 1024 * 1024  # 20 MB cap on request bodies
+
+# None = not yet checked, True = valid, False = invalid
+_anthropic_key_valid = None
+
+
+def check_anthropic_key():
+    """Background check: validate the Anthropic key and cache the result."""
+    global _anthropic_key_valid
+    if not _config.ANTHROPIC_API_KEY:
+        _anthropic_key_valid = None
+        return
+    result = _validate_anthropic_key(_config.ANTHROPIC_API_KEY)
+    _anthropic_key_valid = result["valid"]
+    if result["valid"]:
+        print("  🤖 [anthropic] API key is valid")
+    else:
+        print(f"  ⚠️ [anthropic] API key invalid: {result.get('error', '')}")
+
+
+def _validate_anthropic_key(key: str) -> dict:
+    """Validate an Anthropic API key by listing models (free, no tokens used)."""
+    req = _urllib_request.Request(
+        "https://api.anthropic.com/v1/models",
+        method="GET",
+        headers={
+            "x-api-key": key,
+            "anthropic-version": "2023-06-01",
+        },
+    )
+    try:
+        with _urllib_request.urlopen(req, timeout=10):  # nosec B310
+            return {"valid": True}
+    except urllib.error.HTTPError as e:
+        return {"valid": False, "error": f"Anthropic returned {e.code}"}
+    except Exception as e:
+        return {"valid": False, "error": str(e)}
 
 
 class Handler(http.server.BaseHTTPRequestHandler):
@@ -136,8 +175,9 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 {
                     "discogs_connected": _discogs_mod._discogs_username is not None,
                     "discogs_username": _discogs_mod._discogs_username,
-                    "discogs_token_set": bool(DISCOGS_TOKEN),
-                    "anthropic_key_set": bool(ANTHROPIC_API_KEY),
+                    "discogs_token_set": bool(_config.DISCOGS_TOKEN),
+                    "anthropic_key_set": bool(_config.ANTHROPIC_API_KEY),
+                    "anthropic_key_valid": _anthropic_key_valid,
                 }
             )
         elif p == "/api/collection":
@@ -159,7 +199,11 @@ class Handler(http.server.BaseHTTPRequestHandler):
 
     def do_POST(self):
         p = self.path_parts()
-        if p == "/api/collection":
+        if p == "/api/setup":
+            self._api_setup()
+        elif p == "/api/setup/validate":
+            self._api_setup_validate()
+        elif p == "/api/collection":
             self._api_add()
         elif p == "/api/upload-cover":
             self._api_upload_cover()
@@ -201,6 +245,56 @@ class Handler(http.server.BaseHTTPRequestHandler):
             return int(path.split("/")[-1])
         except ValueError:
             return -1
+
+    # ── setup endpoint ─────────────────────────────────────────────
+
+    def _api_setup(self):
+        data = self.read_json()
+        discogs_token = data.get("discogs_token", "").strip()
+        anthropic_key = data.get("anthropic_api_key", "").strip()
+
+        # Validate Discogs token if provided
+        if discogs_token:
+            result = _discogs_mod.discogs_validate_token(discogs_token)
+            if not result["valid"]:
+                self.send_json({"success": False, "error": result["error"]}, 400)
+                return
+            _config.save_token("DISCOGS_TOKEN", discogs_token)
+            # Start identity fetch in background
+            _discogs_mod._discogs_username = result["username"]
+
+        # Save Anthropic key if provided
+        if anthropic_key:
+            global _anthropic_key_valid
+            _config.save_token("ANTHROPIC_API_KEY", anthropic_key)
+            _anthropic_key_valid = True  # validated inline already
+
+        self.send_json(
+            {
+                "success": True,
+                "discogs_connected": _discogs_mod._discogs_username is not None,
+                "discogs_username": _discogs_mod._discogs_username,
+                "discogs_token_set": bool(_config.DISCOGS_TOKEN),
+                "anthropic_key_set": bool(_config.ANTHROPIC_API_KEY),
+            }
+        )
+
+    def _api_setup_validate(self):
+        data = self.read_json()
+        discogs_token = data.get("discogs_token", "").strip()
+        anthropic_key = data.get("anthropic_api_key", "").strip()
+
+        if discogs_token:
+            result = _discogs_mod.discogs_validate_token(discogs_token)
+            self.send_json(result)
+            return
+
+        if anthropic_key:
+            result = _validate_anthropic_key(anthropic_key)
+            self.send_json(result)
+            return
+
+        self.send_json({"valid": False, "error": "No token provided"}, 400)
 
     # ── collection endpoints ─────────────────────────────────────
 
