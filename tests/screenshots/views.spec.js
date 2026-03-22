@@ -1,6 +1,6 @@
 // @ts-check
 const { test, expect } = require('@playwright/test');
-const { mockApi, mockStatus } = require('./fixtures');
+const { mockApi, mockEmptyApi, mockStatus } = require('./fixtures');
 
 // ── Helper: wait for the collection to load ────────────────────
 async function waitForCollection(page) {
@@ -39,6 +39,26 @@ test.describe('Dashboard', () => {
     }
 
     await expect(page).toHaveScreenshot('dashboard.png');
+  });
+
+  test('shows empty state when collection is empty', async ({ page }) => {
+    await mockEmptyApi(page);
+    await page.goto('/');
+    await page.waitForTimeout(1000);
+
+    // Empty state visible
+    await expect(page.locator('#dash-empty')).toBeVisible();
+    await expect(page.locator('#dash-empty')).toContainText(/vault is empty/i);
+    await expect(page.locator('#dash-empty button')).toContainText(/Add a record/i);
+
+    // Picks and recent sections hidden
+    await expect(page.locator('#dash-picks-section')).not.toBeVisible();
+    await expect(page.locator('#dash-recent-section')).not.toBeVisible();
+
+    // Status cards still visible
+    await expect(page.locator('#dash-status')).toBeVisible();
+
+    await expect(page).toHaveScreenshot('dashboard-empty.png');
   });
 
   test('shows random picks and recently added', async ({ page }) => {

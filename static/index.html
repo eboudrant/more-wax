@@ -79,8 +79,18 @@
 <!-- ── VIEW: DASHBOARD ─────────────────────────────────────── -->
 <div id="view-dashboard" class="view">
   <main class="px-6 pt-8 pb-32 max-w-7xl mx-auto">
+    <!-- Empty state -->
+    <div id="dash-empty" class="hidden text-center py-24 space-y-6">
+      <i class="bi bi-vinyl text-7xl text-outline-v/30"></i>
+      <h3 class="font-headline font-bold text-2xl text-on-surface">Your vault is empty</h3>
+      <p class="text-outline max-w-sm mx-auto">Scan a barcode, snap a cover photo, or search Discogs to add your first record.</p>
+      <button onclick="navigateTo('scanner')" class="inline-flex items-center gap-2 px-6 py-3 bg-primary text-on-primary rounded-full font-label text-sm uppercase tracking-wider hover:bg-primary-light transition-colors">
+        <i class="bi bi-plus-lg"></i> Add a record
+      </button>
+    </div>
+
     <!-- Search -->
-    <section class="mb-12">
+    <section id="dash-search-section" class="mb-12">
       <div class="relative group inline-flex items-center gap-2">
         <span class="absolute left-0 bottom-0 w-full h-px bg-outline-v/40 group-focus-within:bg-primary transition-colors"></span>
         <input id="dash-search" type="text"
@@ -95,7 +105,7 @@
     </section>
 
     <!-- Random Picks -->
-    <section class="mb-16">
+    <section id="dash-picks-section" class="mb-16">
       <div class="flex items-baseline gap-3 mb-10">
         <h3 class="font-headline font-bold text-3xl text-on-surface">Random Picks</h3>
         <button onclick="refreshPicks()" class="text-outline hover:text-primary transition-colors" title="Refresh picks">
@@ -108,7 +118,7 @@
     </section>
 
     <!-- Recently Added -->
-    <section class="mb-16">
+    <section id="dash-recent-section" class="mb-16">
       <div class="flex justify-between items-baseline mb-10">
         <h3 class="font-headline font-bold text-3xl text-on-surface">Recently Added</h3>
       </div>
