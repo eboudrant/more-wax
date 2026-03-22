@@ -160,6 +160,23 @@ Loaded from CDN, no build step:
 - **Discogs API** — Personal access token auth. Used for search, release metadata, marketplace pricing, and collection management.
 - **Anthropic Claude API** (optional) — Used for cover photo identification via Claude Vision.
 
+## Testing
+
+CI runs Python checks (syntax, imports, unit tests, lint, security) and screenshot tests on every push and PR.
+
+Screenshot tests use Playwright inside Docker to ensure pixel-perfect rendering regardless of the host OS. Tests run against both mobile (390×844) and desktop (1280×800) viewports.
+
+```bash
+# Build the test image (required once, or after dependency changes)
+npm run test:screenshots:build
+
+# Run screenshot tests
+npm run test:screenshots
+
+# Regenerate baselines after intentional UI changes
+npm run test:screenshots:update
+```
+
 ## Contributing
 
 1. Fork the repository
