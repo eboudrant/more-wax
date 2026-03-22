@@ -73,6 +73,7 @@ More'Wax reads configuration from environment variables. You can set them in a `
 |----------|----------|-------------|
 | `DISCOGS_TOKEN` | Yes | Discogs personal access token ([get one here](https://www.discogs.com/settings/developers)) |
 | `ANTHROPIC_API_KEY` | No | Anthropic API key for cover photo identification ([get one here](https://console.anthropic.com/)) |
+| `VISION_MODEL` | No | Claude model for cover identification (default: `claude-sonnet-4-6`) |
 | `HTTP_PORT` | No | HTTP port (default: `8765`) |
 | `HTTPS_PORT` | No | HTTPS port (default: `8766`) |
 
