@@ -2,7 +2,9 @@ services:
   morewax:
     image: eboudrant/more-wax:latest
     build: .
-    env_file: .env
+    env_file:
+      - path: .env
+        required: false
     ports:
       - "8765:8765"
       - "8766:8766"
