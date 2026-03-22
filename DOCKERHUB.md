@@ -21,11 +21,7 @@ docker run -d \
   eboudrant/more-wax:latest
 ```
 
-Or with Docker Compose:
-
-```bash
-docker compose up -d
-```
+> **Docker Desktop users:** Use the command above, not the "Run" button — Docker Desktop does not map ports automatically without the `-p` flags.
 
 Open `https://localhost:8766` and accept the self-signed certificate. A setup wizard will guide you through connecting your Discogs account and optionally enabling Claude Vision for cover photo identification.
 
