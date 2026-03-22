@@ -4,21 +4,20 @@ const { mockApi, mockEmptyApi, mockStatus } = require('./fixtures');
 
 // ── Helper: wait for the collection to load ────────────────────
 async function waitForCollection(page) {
-  // The app fetches /api/collection on load; wait for the grid to render
   await page.waitForFunction(
     () => typeof collection !== 'undefined' && collection.length > 0,
     { timeout: 8_000 }
-  ).catch(() => {
-    // Collection may be empty — that's fine for some tests
-  });
-  // Let any CSS transitions / Tailwind JIT settle
-  await page.waitForTimeout(500);
+  ).catch(() => {});
+  await page.waitForLoadState('networkidle');
 }
 
 /** True when viewport width >= 768px (Tailwind md: breakpoint). */
 function isDesktop(page) {
   return page.viewportSize().width >= 768;
 }
+
+/** Short stable pause for CSS transitions to settle. */
+const TRANSITION = 400;
 
 // ─────────────────────────────────────────────────────────────────
 //  DASHBOARD VIEW
@@ -33,7 +32,6 @@ test.describe('Dashboard', () => {
     await expect(page.locator('header')).toBeVisible();
     await expect(page.locator('#view-dashboard')).toBeVisible();
 
-    // Bottom nav is md:hidden — only visible on mobile
     if (!isDesktop(page)) {
       await expect(page.locator('#bottom-nav')).toBeVisible();
     }
@@ -44,18 +42,14 @@ test.describe('Dashboard', () => {
   test('shows empty state when collection is empty', async ({ page }) => {
     await mockEmptyApi(page);
     await page.goto('/');
-    await page.waitForTimeout(1000);
+    await page.waitForLoadState('networkidle');
 
-    // Empty state visible
     await expect(page.locator('#dash-empty')).toBeVisible();
     await expect(page.locator('#dash-empty')).toContainText(/vault is empty/i);
     await expect(page.locator('#dash-empty button')).toContainText(/Add a record/i);
 
-    // Picks and recent sections hidden
     await expect(page.locator('#dash-picks-section')).not.toBeVisible();
     await expect(page.locator('#dash-recent-section')).not.toBeVisible();
-
-    // Status cards still visible
     await expect(page.locator('#dash-status')).toBeVisible();
 
     await expect(page).toHaveScreenshot('dashboard-empty.png');
@@ -68,7 +62,6 @@ test.describe('Dashboard', () => {
 
     await expect(page.locator('#dash-picks')).toBeVisible();
     await expect(page.locator('#dash-recent')).toBeVisible();
-    // Badge in header shows the total count
     await expect(page.locator('#nav-badge')).toHaveText(/\d+/);
   });
 });
@@ -116,7 +109,8 @@ test.describe('Scanner', () => {
     await page.goto('/');
     await waitForCollection(page);
     await page.evaluate(() => openScanner());
-    await page.waitForTimeout(600);
+    await page.waitForSelector('#view-scanner', { state: 'visible' });
+    await page.waitForTimeout(TRANSITION);
   });
 
   test('opens in barcode mode', async ({ page }) => {
@@ -129,7 +123,7 @@ test.describe('Scanner', () => {
 
   test('switches to photo mode', async ({ page }) => {
     await page.evaluate(() => switchScannerMode('photo'));
-    await page.waitForTimeout(300);
+    await page.waitForTimeout(TRANSITION);
 
     await expect(page.locator('#scanner-guidance')).toContainText(/artwork/i);
     await expect(page.locator('#scanner-shutter')).toBeVisible();
@@ -139,7 +133,7 @@ test.describe('Scanner', () => {
 
   test('switches to search mode', async ({ page }) => {
     await page.evaluate(() => switchScannerMode('search'));
-    await page.waitForTimeout(300);
+    await page.waitForTimeout(TRANSITION);
 
     await expect(page.locator('#scanner-search-panel')).toBeVisible();
     await expect(page.locator('#scanner-search-input')).toBeVisible();
@@ -153,7 +147,7 @@ test.describe('Scanner', () => {
     await page.evaluate(() => scannerDoSearch());
 
     await page.waitForSelector('#scanner-sheet.sheet-open', { timeout: 10_000 });
-    await page.waitForTimeout(800);
+    await page.waitForTimeout(TRANSITION);
     await expect(page).toHaveScreenshot('scanner-results.png');
   });
 
@@ -163,18 +157,15 @@ test.describe('Scanner', () => {
     await page.evaluate(() => scannerDoSearch());
 
     await page.waitForSelector('#scanner-sheet.sheet-open', { timeout: 10_000 });
-    await page.waitForTimeout(800);
+    await page.waitForTimeout(TRANSITION);
 
-    // Select the first result to open confirm view
     page.evaluate(() => scannerSelectRelease(0)).catch(() => {});
-    await page.waitForTimeout(2000);
+    await page.waitForSelector('#scanner-sheet-body .detail-panel', { state: 'visible', timeout: 10_000 });
+    await page.waitForTimeout(TRANSITION);
 
-    // Should show detail panel layout (reused from detail.js)
     await expect(page.locator('#scanner-sheet-body .detail-panel')).toBeVisible();
-    // Should have Add to Collection button
     await expect(page.locator('#save-btn')).toBeVisible();
     await expect(page.locator('#save-btn')).toContainText(/Add to Collection/i);
-    // Should have Back to results button
     await expect(page.locator('text=Back to results')).toBeVisible();
 
     await expect(page).toHaveScreenshot('scanner-confirm.png');
@@ -186,28 +177,23 @@ test.describe('Scanner', () => {
     await page.evaluate(() => scannerDoSearch());
 
     await page.waitForSelector('#scanner-sheet.sheet-open', { timeout: 10_000 });
-    await page.waitForTimeout(800);
+    await page.waitForTimeout(TRANSITION);
 
-    // Select first result
     page.evaluate(() => scannerSelectRelease(0)).catch(() => {});
-    await page.waitForTimeout(2000);
+    await page.waitForSelector('#scanner-sheet-body .detail-panel', { state: 'visible', timeout: 10_000 });
+    await page.waitForTimeout(TRANSITION);
 
-    // Click Back to results
     await page.click('text=Back to results');
-    await page.waitForTimeout(800);
+    await page.waitForTimeout(TRANSITION);
 
-    // Should be back on results list with "Matches Found" header
     await expect(page.locator('#scanner-sheet-header')).toContainText(/Matches Found/i);
-    // Sheet should still be open
     await expect(page.locator('#scanner-sheet.sheet-open')).toBeVisible();
   });
 
   test('closes cleanly', async ({ page }) => {
     await page.evaluate(() => closeScanner());
-    // Give transitions time to complete
-    await page.waitForTimeout(600);
+    await page.waitForTimeout(TRANSITION);
 
-    // Verify scanner is hidden via JS state (more reliable than DOM class checks)
     const isClosed = await page.evaluate(() => !scannerOpen);
     expect(isClosed).toBe(true);
 
@@ -225,10 +211,9 @@ test.describe('Detail Modal', () => {
     await page.goto('/#collection');
     await waitForCollection(page);
 
-    // Open via JS function (avoids z-index click issues on desktop)
-    // showDetail is async — fire without awaiting to avoid context issues
     page.evaluate(() => showDetail(collection[0].id)).catch(() => {});
-    await page.waitForTimeout(1200);
+    await page.waitForSelector('#detail-modal', { state: 'visible', timeout: 10_000 });
+    await page.waitForTimeout(TRANSITION);
 
     const modal = page.locator('#detail-modal');
     await expect(modal).toBeVisible();
@@ -243,7 +228,6 @@ test.describe('Detail Modal', () => {
 
 test.describe('Navigation (mobile)', () => {
   test('bottom nav switches between views', async ({ page }, testInfo) => {
-    // Skip on desktop where bottom nav is hidden
     if (testInfo.project.name === 'desktop') {
       test.skip();
       return;
@@ -256,11 +240,9 @@ test.describe('Navigation (mobile)', () => {
     await expect(page.locator('#view-dashboard')).toBeVisible();
 
     await page.locator('#bottom-nav a:has-text("COLLECTION")').click();
-    await page.waitForTimeout(300);
     await expect(page.locator('#view-collection')).toBeVisible();
 
     await page.locator('#bottom-nav a:has-text("HOME")').click();
-    await page.waitForTimeout(300);
     await expect(page.locator('#view-dashboard')).toBeVisible();
   });
 });
@@ -274,7 +256,7 @@ test.describe('Error Dialogs', () => {
     await mockApi(page);
     await mockStatus(page, { discogs_token_set: false, discogs_connected: false });
     await page.goto('/');
-    await page.waitForTimeout(1000);
+    await page.waitForLoadState('networkidle');
 
     const banner = page.locator('#setup-error');
     await expect(banner).toBeVisible();
@@ -288,7 +270,7 @@ test.describe('Error Dialogs', () => {
     await mockApi(page);
     await mockStatus(page, { discogs_token_set: true, discogs_connected: false });
     await page.goto('/');
-    await page.waitForTimeout(1000);
+    await page.waitForLoadState('networkidle');
 
     const banner = page.locator('#setup-error');
     await expect(banner).toBeVisible();
@@ -301,7 +283,7 @@ test.describe('Error Dialogs', () => {
     await mockApi(page);
     await mockStatus(page, { discogs_token_set: false, discogs_connected: false });
     await page.goto('/');
-    await page.waitForTimeout(1000);
+    await page.waitForLoadState('networkidle');
 
     const banner = page.locator('#setup-error');
     await expect(banner).toBeVisible();
@@ -317,10 +299,11 @@ test.describe('Error Dialogs', () => {
     await waitForCollection(page);
 
     await page.evaluate(() => openScanner());
-    await page.waitForTimeout(600);
+    await page.waitForSelector('#view-scanner', { state: 'visible' });
+    await page.waitForTimeout(TRANSITION);
 
     await page.evaluate(() => switchScannerMode('photo'));
-    await page.waitForTimeout(300);
+    await page.waitForSelector('#apikey-dialog', { state: 'visible', timeout: 5_000 });
 
     const dialog = page.locator('#apikey-dialog');
     await expect(dialog).toBeVisible();
@@ -337,10 +320,11 @@ test.describe('Error Dialogs', () => {
     await waitForCollection(page);
 
     await page.evaluate(() => openScanner());
-    await page.waitForTimeout(600);
+    await page.waitForSelector('#view-scanner', { state: 'visible' });
+    await page.waitForTimeout(TRANSITION);
 
     await page.evaluate(() => switchScannerMode('photo'));
-    await page.waitForTimeout(300);
+    await page.waitForSelector('#apikey-dialog', { state: 'visible', timeout: 5_000 });
 
     const dialog = page.locator('#apikey-dialog');
     await expect(dialog).toBeVisible();
@@ -348,15 +332,13 @@ test.describe('Error Dialogs', () => {
     await dialog.locator('button').click();
     await expect(dialog).not.toBeVisible();
 
-    // Should still be in barcode mode (photo was blocked)
     await expect(page.locator('#scanner-guidance')).toContainText(/barcode/i);
   });
 
   test('no errors when everything is configured', async ({ page }) => {
     await mockApi(page);
-    // Default mockApi already mocks status with everything enabled
     await page.goto('/');
-    await page.waitForTimeout(1000);
+    await page.waitForLoadState('networkidle');
 
     await expect(page.locator('#setup-error')).not.toBeVisible();
   });
