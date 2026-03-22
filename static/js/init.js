@@ -20,6 +20,8 @@ async function _checkStatus() {
       _setupError = '';
       _renderStep2('Your Anthropic API key is no longer valid.');
     }
+    // Re-render status cards now that _serverStatus is populated
+    if (typeof _renderStatus === 'function') _renderStatus();
   } catch {
     // Server unreachable — nothing useful to show
   }

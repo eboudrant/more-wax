@@ -54,7 +54,7 @@ test.describe('Dashboard', () => {
     await expect(page.locator('#dash-picks-section')).not.toBeVisible();
     await expect(page.locator('#dash-recent-section')).not.toBeVisible();
     await expect(page.locator('#dash-status')).toBeVisible();
-    // Wait for status cards to fully render (avoids race with /api/status fetch)
+    // Status cards re-render after _checkStatus resolves
     await expect(page.locator('#dash-status')).toContainText(/testuser/);
 
     await expect(page).toHaveScreenshot('dashboard-empty.png');
