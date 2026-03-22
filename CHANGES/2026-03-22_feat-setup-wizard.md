@@ -54,11 +54,24 @@ Replace the manual `.env` file setup with an in-app wizard that guides users thr
 - Invalid Anthropic key (detected on startup) → wizard opens at step 2 with error message
 - Cover identification failure (401/501 at runtime) → wizard opens at step 2
 
+## Bug fixes
+
+- Empty state "Add a record" button now calls `openScanner()` instead of `navigateTo('scanner')` which was a no-op
+- Empty state button no longer hidden by `_checkCamera()` on desktop — manual search still works without a camera
+- Fixed button contrast (`text-bg` instead of `text-on-primary`)
+- Simplified server startup log (only show HTTPS URL, cleaner iPhone instructions)
+
+## Docker Compose
+
+- Made `.env` file optional (`required: false`) so `docker compose up` works without it
+- Removed `build: .` — end users always pull the published image
+
 ## README updates
 
 - Removed prerequisites section (no more manual `.env` setup)
 - Updated quick start to mention the setup wizard
 - Configuration section explains tokens are set via wizard, env vars can override
+- Added "Advanced: environment variables" section for power users
 
 ## Tests
 

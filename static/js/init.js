@@ -80,7 +80,4 @@ function _hideAddButtons() {
   // Mobile bottom nav "Add"
   const mobileAdd = document.querySelector('#bottom-nav a[data-view="add"]');
   if (mobileAdd) mobileAdd.style.display = 'none';
-  // Dashboard "Add New Vinyl" button
-  const dashAdd = document.querySelector('#view-dashboard button[onclick*="openScanner"]');
-  if (dashAdd) dashAdd.style.display = 'none';
 }

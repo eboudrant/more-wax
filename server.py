@@ -130,14 +130,13 @@ def main():
     http_server = http.server.ThreadingHTTPServer(("0.0.0.0", HTTP_PORT), http_handler)
 
     print("\n🎵  More'Wax is running!")
-    print(f"    HTTP  →  http://localhost:{HTTP_PORT}")
     if https_server:
-        print(
-            f"    HTTPS →  https://localhost:{HTTPS_PORT}  (use this on iPhone — accept the cert warning once)"
-        )
+        print(f"    →  https://localhost:{HTTPS_PORT}")
+    else:
+        print(f"    →  http://localhost:{HTTP_PORT}")
     print(f"    📀  Collection: {DATA_DIR / 'collection.json'}")
-    print("\n    To open on iPhone, find your Mac's IP in System Settings → Wi-Fi")
-    print(f"    then open https://[your-mac-ip]:{HTTPS_PORT} in Safari\n")
+    if https_server:
+        print(f"\n    On iPhone: https://[your-mac-ip]:{HTTPS_PORT}")
     print("    Press Ctrl+C to stop\n")
 
     # Validate credentials in background (don't block server startup)
