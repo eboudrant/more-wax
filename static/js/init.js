@@ -7,17 +7,18 @@ async function _checkStatus() {
   try {
     const status = _serverStatus = await apiGet('/api/status');
     if (!status.discogs_token_set) {
-      _showSetupError(
-        'Discogs token not configured',
-        'Set <code>DISCOGS_TOKEN</code> in your <code>.env</code> file or run <code>./setup.sh</code> to get started.',
-        'https://www.discogs.com/settings/developers'
-      );
-    } else if (!status.discogs_connected) {
-      _showSetupError(
-        'Discogs token is invalid',
-        'The server could not authenticate with Discogs. Check that your <code>DISCOGS_TOKEN</code> is correct.',
-        'https://www.discogs.com/settings/developers'
-      );
+      showSetupWizard();
+      return;
+    }
+    if (!status.discogs_connected) {
+      showSetupWizard('Your Discogs token is no longer valid. Please enter a new one.');
+      return;
+    }
+    if (status.anthropic_key_set && status.anthropic_key_valid === false) {
+      showSetupWizard();
+      // Skip to step 2 with error
+      _setupError = '';
+      _renderStep2('Your Anthropic API key is no longer valid.');
     }
   } catch {
     // Server unreachable — nothing useful to show

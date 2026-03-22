@@ -257,44 +257,51 @@ test.describe('Navigation (mobile)', () => {
 // ─────────────────────────────────────────────────────────────────
 
 test.describe('Error Dialogs', () => {
-  test('shows banner when Discogs token is missing', async ({ page }) => {
+  test('shows setup wizard when Discogs token is missing', async ({ page }) => {
     await mockApi(page);
     await mockStatus(page, { discogs_token_set: false, discogs_connected: false });
     await page.goto('/');
     await page.waitForLoadState('networkidle');
 
-    const banner = page.locator('#setup-error');
-    await expect(banner).toBeVisible();
-    await expect(banner).toContainText(/not configured/i);
-    await expect(banner.locator('a')).toHaveAttribute('href', /discogs/);
+    const wizard = page.locator('#setup-wizard');
+    await expect(wizard).toBeVisible();
+    await expect(wizard).toContainText(/Connect to Discogs/i);
+    await expect(wizard.locator('a')).toHaveAttribute('href', /discogs/);
 
-    await expect(page).toHaveScreenshot('error-discogs-missing.png');
+    await expect(page).toHaveScreenshot('setup-wizard.png');
   });
 
-  test('shows banner when Discogs token is invalid', async ({ page }) => {
+  test('setup wizard step 2 shows Claude AI config', async ({ page }) => {
+    await mockApi(page);
+    await mockStatus(page, { discogs_token_set: false, discogs_connected: false });
+    await page.goto('/');
+    await page.waitForLoadState('networkidle');
+
+    const wizard = page.locator('#setup-wizard');
+    await expect(wizard).toBeVisible();
+
+    // Type a token and submit to advance to step 2
+    await page.fill('#setup-discogs-token', 'test-token-123');
+    await page.click('#setup-btn-1');
+    await page.waitForTimeout(300);
+
+    await expect(wizard).toContainText(/Claude AI/i);
+    await expect(wizard.locator('a[href*="anthropic"]')).toBeVisible();
+
+    await expect(page).toHaveScreenshot('setup-wizard-step2.png');
+  });
+
+  test('shows wizard with error when Discogs token is invalid', async ({ page }) => {
     await mockApi(page);
     await mockStatus(page, { discogs_token_set: true, discogs_connected: false });
     await page.goto('/');
     await page.waitForLoadState('networkidle');
 
-    const banner = page.locator('#setup-error');
-    await expect(banner).toBeVisible();
-    await expect(banner).toContainText(/invalid/i);
+    const wizard = page.locator('#setup-wizard');
+    await expect(wizard).toBeVisible();
+    await expect(wizard).toContainText(/no longer valid/i);
 
-    await expect(page).toHaveScreenshot('error-discogs-invalid.png');
-  });
-
-  test('dismisses Discogs error banner', async ({ page }) => {
-    await mockApi(page);
-    await mockStatus(page, { discogs_token_set: false, discogs_connected: false });
-    await page.goto('/');
-    await page.waitForLoadState('networkidle');
-
-    const banner = page.locator('#setup-error');
-    await expect(banner).toBeVisible();
-
-    await banner.locator('button').click();
-    await expect(banner).not.toBeVisible();
+    await expect(page).toHaveScreenshot('setup-wizard-invalid.png');
   });
 
   test('shows API key dialog when tapping photo mode', async ({ page }) => {

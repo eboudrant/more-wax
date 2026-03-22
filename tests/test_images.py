@@ -23,8 +23,8 @@ class TestIdentifyCoverParsing(unittest.TestCase):
         img_data = "data:image/jpeg;base64,/9j/4AAQSkZJRg=="
 
         with (
-            mock.patch("server.images.ANTHROPIC_API_KEY", api_key),
-            mock.patch("server.images.VISION_MODEL", "claude-sonnet-4-6"),
+            mock.patch("server.config.ANTHROPIC_API_KEY", api_key),
+            mock.patch("server.config.VISION_MODEL", "claude-sonnet-4-6"),
             mock.patch("urllib.request.urlopen") as mock_urlopen,
         ):
             mock_resp = mock.MagicMock()
@@ -200,8 +200,8 @@ class TestCodeFenceParsing(unittest.TestCase):
         img_data = "data:image/jpeg;base64,/9j/4AAQSkZJRg=="
 
         with (
-            mock.patch("server.images.ANTHROPIC_API_KEY", "test-key"),
-            mock.patch("server.images.VISION_MODEL", "claude-sonnet-4-6"),
+            mock.patch("server.config.ANTHROPIC_API_KEY", "test-key"),
+            mock.patch("server.config.VISION_MODEL", "claude-sonnet-4-6"),
             mock.patch("urllib.request.urlopen") as mock_urlopen,
         ):
             mock_resp = mock.MagicMock()

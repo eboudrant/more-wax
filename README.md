@@ -17,27 +17,6 @@ More'Wax is a self-hosted web app for managing your vinyl record collection. It 
 
 ## Quick start
 
-### Prerequisites
-
-Create a `.env` file with your API tokens:
-
-```env
-# Required — Discogs personal access token
-# Get one at https://www.discogs.com/settings/developers
-DISCOGS_TOKEN=your-discogs-token
-
-# Optional — Anthropic API key for cover photo identification (Claude Vision)
-# Get one at https://console.anthropic.com/
-ANTHROPIC_API_KEY=your-anthropic-key
-
-# Optional — Vision model (default: claude-sonnet-4-6)
-# VISION_MODEL=claude-sonnet-4-6
-
-# Optional — custom ports (defaults: 8765 / 8766)
-# HTTP_PORT=8765
-# HTTPS_PORT=8766
-```
-
 ### Option A: Docker run
 
 ```bash
@@ -45,7 +24,6 @@ docker run -d \
   --name more-wax \
   -p 8765:8765 -p 8766:8766 \
   -v morewax-data:/app/data \
-  --env-file .env \
   eboudrant/more-wax:latest
 ```
 
@@ -61,13 +39,17 @@ docker compose up -d
 python3 server.py
 ```
 
-Open `https://localhost:8766` in a browser and accept the self-signed certificate. On your phone or another device, use `https://<your-ip>:8766`. **Camera features (barcode scan, photo) require HTTPS** — on plain HTTP only collection browsing is available.
+Open `https://localhost:8766` in a browser and accept the self-signed certificate. A setup wizard will guide you through connecting your Discogs account and (optionally) enabling Claude Vision for cover photo identification.
+
+On your phone or another device, use `https://<your-ip>:8766`. **Camera features (barcode scan, photo) require HTTPS** — on plain HTTP only collection browsing is available.
 
 Press Ctrl+C to stop the server.
 
 ## Configuration
 
-More'Wax reads configuration from environment variables. You can set them in a `.env` file in the project root (see `.env.example`).
+API tokens (Discogs, Anthropic) are configured through the in-app setup wizard on first launch. They are saved to `data/.env` and persist across restarts.
+
+You can also set configuration via environment variables (these override the wizard values):
 
 | Variable | Required | Description |
 |----------|----------|-------------|
