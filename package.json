@@ -2,10 +2,11 @@
   "name": "more-wax",
   "private": true,
   "scripts": {
-    "test:screenshots": "playwright test",
-    "test:screenshots:update": "playwright test --update-snapshots"
+    "test:screenshots": "docker run --rm -e DISCOGS_TOKEN=test-token -e CI=true morewax-test npx playwright test",
+    "test:screenshots:update": "docker run --rm -e DISCOGS_TOKEN=test-token -v ./tests/screenshots:/app/tests/screenshots morewax-test npx playwright test --update-snapshots",
+    "test:screenshots:build": "docker build -f Dockerfile.test -t morewax-test ."
   },
   "devDependencies": {
-    "@playwright/test": "^1.52.0"
+    "@playwright/test": "1.58.2"
   }
 }

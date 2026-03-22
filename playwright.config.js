@@ -3,12 +3,14 @@ const { defineConfig } = require('@playwright/test');
 
 module.exports = defineConfig({
   testDir: './tests/screenshots',
+  // Platform-independent snapshot names — tests run in Docker so rendering
+  // is identical on macOS dev machines and Linux CI.
+  snapshotPathTemplate: '{snapshotDir}/{projectName}/{arg}{ext}',
   timeout: 30_000,
   fullyParallel: true,
   expect: {
     toHaveScreenshot: {
-      // Allow small pixel differences from font rendering across platforms
-      maxDiffPixelRatio: 0.02,
+      maxDiffPixels: 0,
     },
   },
   use: {

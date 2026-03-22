@@ -109,6 +109,15 @@ const MOCK_SEARCH_RESULTS = {
  * Call this before page.goto() in each test.
  */
 async function mockApi(page) {
+  // Seed Math.random for deterministic "Random Picks" order
+  await page.addInitScript(() => {
+    let seed = 42;
+    Math.random = () => {
+      seed = (seed * 16807 + 0) % 2147483647;
+      return (seed - 1) / 2147483646;
+    };
+  });
+
   // Mock collection endpoint
   await page.route('**/api/collection', (route) => {
     if (route.request().method() === 'GET') {

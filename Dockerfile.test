@@ -1,0 +1,21 @@
+FROM mcr.microsoft.com/playwright:v1.58.2-noble
+
+# Add Python for the backend server
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends python3 python3-venv openssl ffmpeg \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Install Node dependencies first (cacheable layer)
+COPY package.json ./
+RUN npm install
+
+# Copy app source
+COPY . .
+
+# Ensure data dir exists
+RUN mkdir -p data/covers
+
+# Default: run screenshot tests
+CMD ["npx", "playwright", "test"]
