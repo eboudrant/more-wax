@@ -248,4 +248,27 @@ async function mockStatus(page, overrides) {
   });
 }
 
-module.exports = { mockApi, mockStatus, MOCK_COLLECTION, MOCK_SEARCH_RESULTS };
+/**
+ * Mock API with an empty collection.
+ * Status endpoint still returns defaults (connected).
+ */
+async function mockEmptyApi(page) {
+  await mockApi(page);
+  await page.unroute('**/api/collection');
+  await page.route('**/api/collection', (route) => {
+    if (route.request().method() === 'GET') {
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify([]),
+      });
+    }
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, id: 99 }),
+    });
+  });
+}
+
+module.exports = { mockApi, mockEmptyApi, mockStatus, MOCK_COLLECTION, MOCK_SEARCH_RESULTS };

@@ -83,7 +83,19 @@ function _renderStatus() {
 }
 
 function renderDashboard() {
-  if (!collection.length) return;
+  const empty = !collection.length;
+  const emptyEl = document.getElementById('dash-empty');
+  const sections = ['dash-search-section', 'dash-picks-section', 'dash-recent-section'];
+
+  if (emptyEl) emptyEl.classList.toggle('hidden', !empty);
+  sections.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.toggle('hidden', empty);
+  });
+
+  _renderStatus();
+
+  if (empty) return;
 
   _renderPicks();
 
@@ -93,6 +105,4 @@ function renderDashboard() {
   if (recentGrid) {
     recentGrid.innerHTML = recent.map(r => recordCardHtml(r)).join('');
   }
-
-  _renderStatus();
 }
