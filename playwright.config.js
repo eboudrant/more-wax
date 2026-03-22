@@ -4,6 +4,7 @@ const { defineConfig } = require('@playwright/test');
 module.exports = defineConfig({
   testDir: './tests/screenshots',
   timeout: 30_000,
+  fullyParallel: true,
   expect: {
     toHaveScreenshot: {
       // Allow small pixel differences from font rendering across platforms
