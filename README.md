@@ -4,7 +4,7 @@ More'Wax is a self-hosted web app for managing your vinyl record collection. It 
 
 **A [Discogs personal access token](https://www.discogs.com/settings/developers) is required** — More'Wax uses your Discogs account to search releases, fetch prices, and sync your collection.
 
-**An [Anthropic API key](https://console.anthropic.com/) is optional** — only needed for photo-based cover identification (Claude Vision). Barcode scanning and manual search work without it.
+**An [Anthropic API key](https://console.anthropic.com/) is optional** — only needed for photo-based cover identification (Claude Vision). Barcode scanning and manual search work without it. Each photo identification costs ~$0.007 with Claude Sonnet (~$0.70 per 100 photos).
 
 ![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
 
@@ -17,6 +17,27 @@ More'Wax is a self-hosted web app for managing your vinyl record collection. It 
 
 ## Quick start
 
+### Prerequisites
+
+Create a `.env` file with your API tokens:
+
+```env
+# Required — Discogs personal access token
+# Get one at https://www.discogs.com/settings/developers
+DISCOGS_TOKEN=your-discogs-token
+
+# Optional — Anthropic API key for cover photo identification (Claude Vision)
+# Get one at https://console.anthropic.com/
+ANTHROPIC_API_KEY=your-anthropic-key
+
+# Optional — Vision model (default: claude-sonnet-4-6)
+# VISION_MODEL=claude-sonnet-4-6
+
+# Optional — custom ports (defaults: 8765 / 8766)
+# HTTP_PORT=8765
+# HTTPS_PORT=8766
+```
+
 ### Option A: Docker run
 
 ```bash
@@ -24,23 +45,19 @@ docker run -d \
   --name more-wax \
   -p 8765:8765 -p 8766:8766 \
   -v morewax-data:/app/data \
-  -e DISCOGS_TOKEN=your-token-here \
+  --env-file .env \
   eboudrant/more-wax:latest
 ```
 
 ### Option B: Docker Compose
 
 ```bash
-cp .env.example .env
-# Edit .env and add your Discogs token (required) and Anthropic API key (optional)
 docker compose up -d
 ```
 
 ### Option C: Run locally
 
 ```bash
-cp .env.example .env
-# Edit .env and add your Discogs token (required) and Anthropic API key (optional)
 python3 server.py
 ```
 

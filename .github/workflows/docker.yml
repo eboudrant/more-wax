@@ -5,6 +5,10 @@ on:
     branches: [main]
     tags: ["v*"]
 
+concurrency:
+  group: docker-push
+  cancel-in-progress: true
+
 env:
   IMAGE_NAME: eboudrant/more-wax
 
