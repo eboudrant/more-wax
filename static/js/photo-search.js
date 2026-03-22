@@ -97,6 +97,13 @@ async function _identifyWithClaudeForScanner(dataUrl, bodyEl) {
     if (myToken !== _photoSearchToken) return;  // stale result
     const json = await res.json();
 
+    // API key invalid or missing — open wizard to fix it
+    if (res.status === 501 || (json.error && /401|invalid|not configured/i.test(json.error))) {
+      showSetupWizard();
+      _renderStep2('Your Anthropic API key is invalid or missing. Please enter a valid key.');
+      return;
+    }
+
     if (json.success && (json.artist || json.title)) {
       const details = [json.label, json.catalog_number, json.country, json.year]
         .filter(Boolean).join(' · ');

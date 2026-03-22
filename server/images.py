@@ -13,7 +13,8 @@ import urllib.request
 import uuid
 from pathlib import Path
 
-from server.config import ANTHROPIC_API_KEY, COVERS_DIR, VISION_MODEL
+import server.config as _config
+from server.config import COVERS_DIR
 from server.database import db_update
 
 
@@ -142,8 +143,8 @@ def convert_image(img_data: str) -> dict:
 
 def identify_cover(img_data: str) -> dict:
     """Send a cover image to Claude Vision and return artist + title."""
-    if not ANTHROPIC_API_KEY:
-        return {"success": False, "error": "ANTHROPIC_API_KEY not configured"}
+    if not _config.ANTHROPIC_API_KEY:
+        return {"success": False, "error": "_config.ANTHROPIC_API_KEY not configured"}
 
     # Strip data-URL prefix, keep raw base64
     media_type = "image/jpeg"
@@ -167,7 +168,7 @@ def identify_cover(img_data: str) -> dict:
 
     body = json.dumps(
         {
-            "model": VISION_MODEL,
+            "model": _config.VISION_MODEL,
             "max_tokens": 300,
             "messages": [
                 {
@@ -211,7 +212,7 @@ def identify_cover(img_data: str) -> dict:
         "https://api.anthropic.com/v1/messages",
         data=body,
         headers={
-            "x-api-key": ANTHROPIC_API_KEY,
+            "x-api-key": _config.ANTHROPIC_API_KEY,
             "anthropic-version": "2023-06-01",
             "content-type": "application/json",
         },
