@@ -1,6 +1,6 @@
 services:
   morewax:
-    image: eboudrant/more-wax:latest
+    image: eboudrant/more-wax:latest@sha256:6b286d7ab514df840bd55d433ff8d8c5172c80952ae257d16082abff1c906c48
     env_file:
       - path: .env
         required: false
