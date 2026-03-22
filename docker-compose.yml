@@ -1,5 +1,6 @@
 services:
   morewax:
+    image: eboudrant/more-wax:latest
     build: .
     env_file: .env
     ports:
