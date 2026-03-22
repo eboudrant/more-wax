@@ -3,5 +3,18 @@
   "extends": [
     "config:recommended",
     "docker:pinDigests"
+  ],
+  "packageRules": [
+    {
+      "description": "Playwright Docker image and npm package must stay in sync",
+      "matchPackageNames": ["mcr.microsoft.com/playwright", "@playwright/test"],
+      "groupName": "playwright",
+      "pinDigests": false
+    },
+    {
+      "description": "Don't pin our own image — latest should always pull the newest build",
+      "matchPackageNames": ["eboudrant/more-wax"],
+      "enabled": false
+    }
   ]
 }
