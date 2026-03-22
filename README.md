@@ -159,6 +159,26 @@ npm run test:screenshots
 npm run test:screenshots:update
 ```
 
+## Advanced: environment variables
+
+The setup wizard is the recommended way to configure More'Wax. For advanced use cases (CI, scripting, Docker Compose), you can set tokens via environment variables instead — they take precedence over wizard-saved values.
+
+```bash
+# Docker: pass tokens directly
+docker run -d \
+  -e DISCOGS_TOKEN=your-token \
+  -e ANTHROPIC_API_KEY=your-key \
+  -p 8765:8765 -p 8766:8766 \
+  -v morewax-data:/app/data \
+  eboudrant/more-wax:latest
+
+# Local: export before running
+export DISCOGS_TOKEN=your-token
+python3 server.py
+```
+
+See `.env.example` for all available variables.
+
 ## Contributing
 
 1. Fork the repository
