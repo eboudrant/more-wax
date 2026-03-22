@@ -159,6 +159,18 @@ npm run test:screenshots
 npm run test:screenshots:update
 ```
 
+## Development
+
+To run from source with Docker:
+
+```bash
+# Build and run locally (uses your local code, not Docker Hub)
+docker build -t eboudrant/more-wax:latest .
+docker compose up
+```
+
+Note: `docker compose up` alone pulls the published image from Docker Hub. To test local changes, build the image first as shown above.
+
 ## Advanced: environment variables
 
 The setup wizard is the recommended way to configure More'Wax. For advanced use cases (CI, scripting, Docker Compose), you can set tokens via environment variables instead — they take precedence over wizard-saved values.

@@ -92,8 +92,10 @@ Replace the manual `.env` file setup with an in-app wizard that guides users thr
 | `static/js/setup.js` | New — setup wizard UI with inline validation |
 | `static/js/init.js` | Show wizard for missing/invalid tokens instead of banner |
 | `static/js/photo-search.js` | Open wizard on cover identification auth failure |
-| `static/index.html` | Added `setup.js` script tag |
-| `README.md` | Updated setup flow and configuration docs |
+| `static/index.html` | Added `setup.js` script tag, fixed empty state button |
+| `README.md` | Updated setup flow, configuration docs, advanced env vars section |
+| `docker-compose.yml` | Made `.env` optional, removed `build: .` |
+| `server.py` | Simplified startup log |
 | `tests/test_images.py` | Updated mock patches for dynamic config |
 | `tests/screenshots/views.spec.js` | Wizard tests, removed banner tests |
 | `tests/screenshots/fixtures.js` | Added setup/validate mocks, `anthropic_key_valid` |
