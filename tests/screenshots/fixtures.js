@@ -109,13 +109,9 @@ const MOCK_SEARCH_RESULTS = {
  * Call this before page.goto() in each test.
  */
 async function mockApi(page) {
-  // Seed Math.random for deterministic "Random Picks" order
+  // Disable shuffle so Random Picks always render in collection order
   await page.addInitScript(() => {
-    let seed = 42;
-    Math.random = () => {
-      seed = (seed * 16807 + 0) % 2147483647;
-      return (seed - 1) / 2147483646;
-    };
+    Math.random = () => 0.999;
   });
 
   // Mock collection endpoint
