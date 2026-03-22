@@ -27,6 +27,8 @@ docker run -d \
   eboudrant/more-wax:latest
 ```
 
+> **Docker Desktop users:** Use the command above, not the "Run" button — Docker Desktop does not map ports automatically without the `-p` flags.
+
 ### Option B: Docker Compose
 
 ```bash
@@ -39,9 +41,9 @@ docker compose up -d
 python3 server.py
 ```
 
-Open `https://localhost:8766` in a browser and accept the self-signed certificate. A setup wizard will guide you through connecting your Discogs account and (optionally) enabling Claude Vision for cover photo identification.
+Open `https://localhost:8766` and accept the self-signed certificate. A setup wizard will guide you through connecting your Discogs account and optionally enabling Claude Vision for cover photo identification.
 
-On your phone or another device, use `https://<your-ip>:8766`. **Camera features (barcode scan, photo) require HTTPS** — on plain HTTP only collection browsing is available.
+On mobile, use `https://<your-ip>:8766`. **Camera features (barcode scan, photo) require HTTPS** — on plain HTTP only collection browsing is available.
 
 Press Ctrl+C to stop the server.
 
