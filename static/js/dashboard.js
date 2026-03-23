@@ -53,16 +53,23 @@ function _renderStatus() {
 
   el.innerHTML = `
     <div class="bg-surface-low rounded-xl p-6 space-y-3">
-      <h4 class="font-label text-xs uppercase tracking-widest text-outline mb-3">Connections</h4>
+      <div class="flex items-center justify-between mb-3">
+        <h4 class="font-label text-xs uppercase tracking-widest text-outline">Connections</h4>
+        <button onclick="openSettings()" class="text-outline hover:text-on-surface transition-colors" title="Settings">
+          <i class="bi bi-gear text-sm"></i>
+        </button>
+      </div>
       <div class="flex items-center text-sm">
         ${dot(status.discogs_connected)}
         <span class="text-on-surface-v">Discogs</span>
-        ${status.discogs_username ? `<span class="ml-auto font-headline text-on-surface">${esc(status.discogs_username)}</span>` : '<span class="ml-auto text-outline">Not connected</span>'}
+        <span class="ml-auto text-outline text-xs">${status.format_filter && status.format_filter !== 'All' ? status.format_filter.toLowerCase() + ' only' : 'All formats'}</span>
+        ${status.discogs_username ? `<span class="ml-2 font-headline text-on-surface">${esc(status.discogs_username)}</span>` : '<span class="ml-2 text-outline">Not connected</span>'}
       </div>
       <div class="flex items-center text-sm">
         ${dot(status.anthropic_key_set)}
         <span class="text-on-surface-v">Claude AI</span>
-        <span class="ml-auto text-outline">${status.anthropic_key_set ? 'Cover identification' : 'Not configured'}</span>
+        <span class="ml-auto text-outline text-xs">${status.anthropic_key_set && status.vision_model ? status.vision_model : ''}</span>
+        <span class="ml-2 ${status.anthropic_key_set ? 'font-headline text-on-surface' : 'text-outline'}">${status.anthropic_key_set ? 'connected' : 'Not configured'}</span>
       </div>
     </div>
     <div class="bg-surface-low rounded-xl p-6 space-y-3">

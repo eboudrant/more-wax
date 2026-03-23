@@ -21,6 +21,7 @@ from server.database import (
     _db_add_unlocked,
     _lock,
     db_delete,
+    db_export,
     db_find_duplicate,
     db_get,
     db_list,
@@ -178,6 +179,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
                     "discogs_token_set": bool(_config.DISCOGS_TOKEN),
                     "anthropic_key_set": bool(_config.ANTHROPIC_API_KEY),
                     "anthropic_key_valid": _anthropic_key_valid,
+                    "vision_model": _config.VISION_MODEL,
+                    "format_filter": _config.FORMAT_FILTER,
                 }
             )
         elif p == "/api/collection":
@@ -188,6 +191,10 @@ class Handler(http.server.BaseHTTPRequestHandler):
             rid = self._tail_id(p)
             rec = db_get(rid)
             self.send_json(rec) if rec else self.send_json({"error": "Not found"}, 404)
+        elif p == "/api/settings":
+            self._api_get_settings()
+        elif p == "/api/export":
+            self._api_export()
         elif p == "/api/discogs/search":
             self._api_discogs_search()
         elif p.startswith("/api/discogs/release/"):
@@ -203,6 +210,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
             self._api_setup()
         elif p == "/api/setup/validate":
             self._api_setup_validate()
+        elif p == "/api/settings":
+            self._api_update_settings()
         elif p == "/api/collection":
             self._api_add()
         elif p == "/api/upload-cover":
@@ -295,6 +304,83 @@ class Handler(http.server.BaseHTTPRequestHandler):
             return
 
         self.send_json({"valid": False, "error": "No token provided"}, 400)
+
+    # ── settings endpoints ────────────────────────────────────────
+
+    def _api_get_settings(self):
+        """Return current settings with masked tokens."""
+        dt = _config.DISCOGS_TOKEN
+        ak = _config.ANTHROPIC_API_KEY
+        self.send_json(
+            {
+                "discogs_token_set": bool(dt),
+                "discogs_token_masked": f"••••{dt[-4:]}" if len(dt) > 4 else "",
+                "anthropic_key_set": bool(ak),
+                "anthropic_key_masked": f"••••{ak[-4:]}" if len(ak) > 4 else "",
+                "vision_model": _config.VISION_MODEL,
+                "supported_models": _config.SUPPORTED_MODELS,
+                "format_filter": _config.FORMAT_FILTER,
+            }
+        )
+
+    def _api_update_settings(self):
+        """Update individual settings."""
+        data = self.read_json()
+        global _anthropic_key_valid
+
+        # Token updates (reuse setup validation)
+        discogs_token = data.get("discogs_token", "").strip()
+        if discogs_token:
+            result = _discogs_mod.discogs_validate_token(discogs_token)
+            if not result["valid"]:
+                self.send_json({"success": False, "error": result["error"]}, 400)
+                return
+            _config.save_token("DISCOGS_TOKEN", discogs_token)
+            _discogs_mod._discogs_username = result["username"]
+
+        anthropic_key = data.get("anthropic_api_key", "").strip()
+        if anthropic_key:
+            result = _validate_anthropic_key(anthropic_key)
+            if not result["valid"]:
+                self.send_json({"success": False, "error": result["error"]}, 400)
+                return
+            _config.save_token("ANTHROPIC_API_KEY", anthropic_key)
+            _anthropic_key_valid = True
+
+        # Non-token settings
+        if "vision_model" in data:
+            model = data["vision_model"].strip()
+            if model in _config.SUPPORTED_MODELS:
+                _config.save_token("VISION_MODEL", model)
+
+        if "format_filter" in data:
+            fmt = data["format_filter"].strip()
+            if fmt in ("Vinyl", "CD", "All"):
+                _config.save_token("FORMAT_FILTER", fmt)
+
+        self._api_get_settings()
+
+    def _api_export(self):
+        """Export the collection as a downloadable JSON file."""
+        from datetime import datetime, timezone
+
+        data = db_export()
+        export = {
+            "schema_version": data.get("schema_version", "1.0"),
+            "exported_at": datetime.now(timezone.utc).isoformat(),
+            "records": data.get("records", []),
+        }
+        body = json.dumps(export, indent=2, ensure_ascii=False).encode("utf-8")
+        date_str = datetime.now().strftime("%Y-%m-%d")
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.send_header(
+            "Content-Disposition",
+            f'attachment; filename="morewax-export-{date_str}.json"',
+        )
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
 
     # ── collection endpoints ─────────────────────────────────────
 
@@ -411,7 +497,9 @@ class Handler(http.server.BaseHTTPRequestHandler):
             self.send_json({"results": [], "error": "No search query provided"}, 400)
             return
         try:
-            results = discogs_search(q=q, barcode=barcode)
+            results = discogs_search(
+                q=q, barcode=barcode, format_filter=_config.FORMAT_FILTER
+            )
             self.send_json({"results": results})
         except Exception as e:
             self._send_discogs_error(e)
