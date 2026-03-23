@@ -85,7 +85,7 @@ def _parse_prices(stats: dict, suggestions: dict) -> dict:
     return prices
 
 
-def discogs_search(q: str = "", barcode: str = "") -> list:
+def discogs_search(q: str = "", barcode: str = "", format_filter: str = "All") -> list:
     """Search Discogs for releases by text or barcode."""
     params = {"type": "release"}
     if barcode:
@@ -94,6 +94,8 @@ def discogs_search(q: str = "", barcode: str = "") -> list:
     else:
         params["q"] = q
         params["per_page"] = "25"
+        if format_filter and format_filter != "All":
+            params["format"] = format_filter
     data = _discogs_request("GET", "/database/search", params)
     return data.get("results", [])
 

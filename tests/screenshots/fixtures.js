@@ -250,6 +250,41 @@ async function mockApi(page) {
         discogs_token_set: true,
         anthropic_key_set: true,
         anthropic_key_valid: true,
+        vision_model: 'claude-sonnet-4-6',
+        format_filter: 'Vinyl',
+      }),
+    });
+  });
+
+  // Mock settings endpoint
+  await page.route('**/api/settings', (route) => {
+    if (route.request().method() === 'GET') {
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          discogs_token_set: true,
+          discogs_token_masked: '••••abcd',
+          anthropic_key_set: true,
+          anthropic_key_masked: '••••xyz1',
+          vision_model: 'claude-sonnet-4-6',
+          supported_models: ['claude-sonnet-4-6', 'claude-haiku-4', 'claude-opus-4'],
+          format_filter: 'Vinyl',
+        }),
+      });
+    }
+    // POST — return updated settings
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        discogs_token_set: true,
+        discogs_token_masked: '••••abcd',
+        anthropic_key_set: true,
+        anthropic_key_masked: '••••xyz1',
+        vision_model: 'claude-sonnet-4-6',
+        supported_models: ['claude-sonnet-4-6', 'claude-haiku-4', 'claude-opus-4'],
+        format_filter: 'Vinyl',
       }),
     });
   });
@@ -266,6 +301,8 @@ async function mockStatus(page, overrides) {
     discogs_token_set: true,
     anthropic_key_set: true,
     anthropic_key_valid: true,
+    vision_model: 'claude-sonnet-4-6',
+    vinyl_only: true,
     ...overrides,
   };
   await page.unroute('**/api/status');

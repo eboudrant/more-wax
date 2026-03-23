@@ -43,13 +43,21 @@ def _migrate_env():
         print("  📦 Migrated .env → data/.env")
 
 
+SUPPORTED_MODELS = [
+    "claude-sonnet-4-6",
+    "claude-haiku-4",
+    "claude-opus-4",
+]
+
+
 def _load_config():
     """(Re)load configuration from data/.env into module-level variables."""
-    global ANTHROPIC_API_KEY, VISION_MODEL, DISCOGS_TOKEN
+    global ANTHROPIC_API_KEY, VISION_MODEL, DISCOGS_TOKEN, FORMAT_FILTER, VINYL_ONLY
     _load_env_file(DATA_DIR / ".env")
     ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
     VISION_MODEL = os.environ.get("VISION_MODEL", "claude-sonnet-4-6")
     DISCOGS_TOKEN = os.environ.get("DISCOGS_TOKEN", "")
+    FORMAT_FILTER = os.environ.get("FORMAT_FILTER", "Vinyl")  # Vinyl, CD, or All
 
 
 def save_token(key: str, value: str):

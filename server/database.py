@@ -19,6 +19,10 @@ def _load() -> dict:
             with open(DB_FILE) as f:
                 data = json.load(f)
             if isinstance(data, dict) and "records" in data:
+                # Migration: add schema_version if missing
+                if "schema_version" not in data:
+                    data["schema_version"] = "1.0"
+                    _save(data)
                 return data
             print(f"  ⚠️ [db] Invalid structure in {DB_FILE}, resetting")
         except (json.JSONDecodeError, OSError) as e:
@@ -30,7 +34,7 @@ def _load() -> dict:
                 print(f"  ⚠️ [db] Corrupted file backed up to {backup}")
             except OSError:
                 pass
-    return {"records": [], "next_id": 1}
+    return {"schema_version": "1.0", "records": [], "next_id": 1}
 
 
 def _save(data: dict) -> None:
@@ -96,6 +100,12 @@ def db_update(rid: int, fields: dict) -> bool:
                 _save(data)
                 return True
         return False
+
+
+def db_export() -> dict:
+    """Return the full database for export, including schema version."""
+    with _lock:
+        return _load()
 
 
 def db_delete(rid: int) -> bool:

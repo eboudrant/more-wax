@@ -303,6 +303,94 @@
   </div>
 </div>
 
+<!-- ════════════════════════════════════════════════════════════
+     SETTINGS MODAL
+     ════════════════════════════════════════════════════════════ -->
+<div class="app-modal" id="settings-modal">
+  <div class="app-modal-dialog">
+    <div class="app-modal-content bg-surface rounded-xl overflow-hidden">
+      <div id="settings-body" class="p-6 space-y-6">
+
+        <!-- Header -->
+        <div class="flex items-center justify-between">
+          <h2 class="font-headline text-xl text-on-surface">Settings</h2>
+          <button data-dismiss="modal" class="text-outline hover:text-on-surface transition-colors">
+            <i class="bi bi-x-lg text-xl"></i>
+          </button>
+        </div>
+
+        <!-- Connections -->
+        <div class="space-y-4">
+          <h3 class="font-label text-xs uppercase tracking-widest text-outline">Connections</h3>
+
+          <!-- Discogs token -->
+          <div class="space-y-2">
+            <div class="flex items-center justify-between">
+              <label class="text-sm text-on-surface-v">Discogs Token</label>
+              <span id="settings-discogs-mask" class="text-xs text-outline font-mono"></span>
+            </div>
+            <div id="settings-discogs-input-wrap" class="hidden">
+              <div class="relative">
+                <input id="settings-discogs-token" type="text" placeholder="Paste new token"
+                  class="w-full bg-surface-high border border-on-surface/20 rounded-lg px-3 py-2.5 pr-10 text-on-surface text-sm focus:border-primary focus:outline-none">
+                <span id="settings-discogs-status" class="absolute right-3 top-1/2 -translate-y-1/2 text-base"></span>
+              </div>
+              <p id="settings-discogs-error" class="text-xs text-danger mt-1 hidden"></p>
+            </div>
+            <button id="settings-discogs-change" onclick="settingsToggleToken('discogs')"
+              class="text-xs text-primary hover:text-primary-dim transition-colors">Change token</button>
+            <div class="flex items-center gap-3 mt-2">
+              <label class="text-sm text-on-surface-v">Format filter</label>
+              <select id="settings-format-filter" onchange="settingsSaveFormat(this.value)"
+                class="bg-surface-high border border-on-surface/20 rounded-lg px-3 py-2 text-on-surface text-sm focus:border-primary focus:outline-none">
+                <option value="Vinyl">Vinyl</option>
+                <option value="CD">CD</option>
+                <option value="All">All formats</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Anthropic key -->
+          <div class="space-y-2">
+            <div class="flex items-center justify-between">
+              <label class="text-sm text-on-surface-v">Anthropic API Key</label>
+              <span id="settings-anthropic-mask" class="text-xs text-outline font-mono"></span>
+            </div>
+            <div id="settings-anthropic-input-wrap" class="hidden">
+              <div class="relative">
+                <input id="settings-anthropic-key" type="text" placeholder="Paste new API key"
+                  class="w-full bg-surface-high border border-on-surface/20 rounded-lg px-3 py-2.5 pr-10 text-on-surface text-sm focus:border-primary focus:outline-none">
+                <span id="settings-anthropic-status" class="absolute right-3 top-1/2 -translate-y-1/2 text-base"></span>
+              </div>
+              <p id="settings-anthropic-error" class="text-xs text-danger mt-1 hidden"></p>
+            </div>
+            <button id="settings-anthropic-change" onclick="settingsToggleToken('anthropic')"
+              class="text-xs text-primary hover:text-primary-dim transition-colors">Change key</button>
+          </div>
+        </div>
+
+        <!-- AI Model -->
+        <div class="space-y-2">
+          <h3 class="font-label text-xs uppercase tracking-widest text-outline">AI Model</h3>
+          <select id="settings-vision-model" onchange="settingsSaveModel(this.value)"
+            class="w-full bg-surface-high border border-on-surface/20 rounded-lg px-3 py-2.5 text-on-surface text-sm focus:border-primary focus:outline-none">
+          </select>
+        </div>
+
+        <!-- Data -->
+        <div class="space-y-2">
+          <h3 class="font-label text-xs uppercase tracking-widest text-outline">Data</h3>
+          <button onclick="settingsExport()"
+            class="flex items-center gap-2 text-sm text-primary hover:text-primary-dim transition-colors">
+            <i class="bi bi-download"></i> Export collection (JSON)
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/quagga@0.12.1/dist/quagga.min.js"></script>
 <script src="https://unpkg.com/heic2any@0.0.4/dist/heic2any.min.js"></script>
 <script src="/static/js/modal.js"></script>
@@ -318,6 +406,7 @@
 <script src="/static/js/photo-search.js"></script>
 <script src="/static/js/add-modal.js"></script>
 <script src="/static/js/setup.js"></script>
+<script src="/static/js/settings.js"></script>
 <script src="/static/js/init.js"></script>
 </body>
 </html>

@@ -253,6 +253,30 @@ test.describe('Navigation (mobile)', () => {
 });
 
 // ─────────────────────────────────────────────────────────────────
+//  SETTINGS MODAL
+// ─────────────────────────────────────────────────────────────────
+
+test.describe('Settings', () => {
+  test('opens from dashboard cog icon', async ({ page }) => {
+    await mockApi(page);
+    await page.goto('/');
+    await waitForCollection(page);
+    await page.waitForTimeout(TRANSITION);
+
+    // Click the settings cog in the Connections card
+    await page.locator('#dash-status button[onclick="openSettings()"]').click();
+    await page.waitForSelector('#settings-modal.app-modal-visible', { timeout: 5_000 });
+    await page.waitForTimeout(TRANSITION);
+
+    // Verify settings content loaded
+    await expect(page.locator('#settings-discogs-mask')).toContainText('••••');
+    await expect(page.locator('#settings-anthropic-mask')).toContainText('••••');
+
+    await expect(page).toHaveScreenshot('settings-modal.png');
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────
 //  ERROR DIALOGS
 // ─────────────────────────────────────────────────────────────────
 
