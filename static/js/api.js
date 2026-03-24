@@ -21,8 +21,16 @@ async function addToDiscogsCollection(releaseId) {
 // ─────────────────────────────────────────────────────────────────
 //  LOCAL API  (Python backend on localhost)
 // ─────────────────────────────────────────────────────────────────
+function _checkUnauthorized(res) {
+  if (res.status === 401) {
+    window.location.href = '/auth/login';
+    throw new Error('Not authenticated');
+  }
+}
+
 async function apiGet(path) {
   const res = await fetch(path);
+  _checkUnauthorized(res);
   if (!res.ok) throw new Error('Backend error ' + res.status);
   return res.json();
 }
@@ -33,12 +41,14 @@ async function apiPost(path, body) {
     headers: { 'Content-Type': 'application/json' },
     body:    JSON.stringify(body)
   });
+  _checkUnauthorized(res);
   if (!res.ok && res.status !== 409) throw new Error('Backend error ' + res.status);
   return res.json();
 }
 
 async function apiDelete(path) {
   const res = await fetch(path, { method: 'DELETE' });
+  _checkUnauthorized(res);
   if (!res.ok) throw new Error('Backend error ' + res.status);
   return res.json();
 }
@@ -49,6 +59,7 @@ async function apiPut(path, body) {
     headers: { 'Content-Type': 'application/json' },
     body:    JSON.stringify(body)
   });
+  _checkUnauthorized(res);
   if (!res.ok) throw new Error('Backend error ' + res.status);
   return res.json();
 }

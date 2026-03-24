@@ -14,6 +14,7 @@ from pathlib import Path
 
 import urllib.request as _urllib_request
 
+import server.auth as _auth
 import server.config as _config
 import server.discogs as _discogs_mod
 from server.config import DATA_DIR, STATIC_DIR
@@ -157,6 +158,20 @@ class Handler(http.server.BaseHTTPRequestHandler):
     def do_GET(self):
         p = self.path_parts()
 
+        # ── Auth routes (always public) ───────────────────────
+        if p == "/auth/login":
+            return _auth.handle_login(self)
+        elif p == "/auth/callback":
+            return _auth.handle_callback(self)
+        elif p == "/auth/logout":
+            return _auth.handle_logout(self)
+        elif p == "/auth/status":
+            return _auth.handle_status(self)
+
+        # ── Auth gate ─────────────────────────────────────────
+        if not self._check_auth():
+            return
+
         if p in ("/", "/index.html"):
             self.send_file(STATIC_DIR / "index.html")
         elif p.startswith("/static/"):
@@ -205,6 +220,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
             self._404()
 
     def do_POST(self):
+        if not self._check_auth():
+            return
         p = self.path_parts()
         if p == "/api/setup":
             self._api_setup()
@@ -230,6 +247,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
             self._404()
 
     def do_PUT(self):
+        if not self._check_auth():
+            return
         p = self.path_parts()
         if p.startswith("/api/collection/"):
             self._api_update(self._tail_id(p))
@@ -237,6 +256,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
             self._404()
 
     def do_DELETE(self):
+        if not self._check_auth():
+            return
         p = self.path_parts()
         if p.startswith("/api/collection/"):
             ok = db_delete(self._tail_id(p))
@@ -247,6 +268,84 @@ class Handler(http.server.BaseHTTPRequestHandler):
     def _404(self):
         self.send_response(404)
         self.end_headers()
+
+    def _send_html(self, status: int, html: str):
+        body = html.encode("utf-8")
+        self.send_response(status)
+        self.send_header("Content-Type", "text/html; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    # ── auth middleware ────────────────────────────────────────────
+
+    # Paths that never require authentication
+    _PUBLIC_PATHS = frozenset(
+        {
+            "/auth/login",
+            "/auth/callback",
+            "/auth/logout",
+            "/auth/status",
+        }
+    )
+
+    @staticmethod
+    def _is_private_ip(ip: str) -> bool:
+        """True if the IP is localhost or a private network address."""
+        if not ip:
+            return True
+        if ip in ("127.0.0.1", "::1", "localhost"):
+            return True
+        if ip.startswith("192.168.") or ip.startswith("10."):
+            return True
+        if ip.startswith("172."):
+            parts = ip.split(".")
+            try:
+                if len(parts) >= 2 and 16 <= int(parts[1]) <= 31:
+                    return True
+            except ValueError:
+                pass
+        return False
+
+    def _check_auth(self) -> bool:
+        """Return True if request is authorized. If False, a response was sent."""
+        if not _config.GOOGLE_CLIENT_ID or not _config.GOOGLE_CLIENT_SECRET:
+            return True  # auth disabled — need both client ID and secret
+        # If a reverse proxy is forwarding the request, auth is required
+        # (even if the proxy itself connects from a private IP like Docker).
+        # Otherwise, skip auth for direct LAN connections so users are never locked out.
+        is_proxied = bool(
+            self.headers.get("X-Forwarded-For")
+            or self.headers.get("X-Forwarded-Proto")
+            or self.headers.get("Cf-Connecting-Ip")
+        )
+        if not is_proxied:
+            client_ip = self.client_address[0] if self.client_address else ""
+            if self._is_private_ip(client_ip):
+                return True
+        p = self.path_parts()
+        # Auth routes are always public
+        if p in self._PUBLIC_PATHS:
+            return True
+        # The index page, static assets, and covers are public so
+        # auth.js can load and show the login overlay
+        if p in ("/", "/index.html"):
+            return True
+        if p.startswith("/static/") or p.startswith("/covers/"):
+            return True
+        # Check session cookie
+        session = _auth.get_session(self.headers.get("Cookie", ""))
+        if session:
+            return True
+        # Not authenticated
+        if p.startswith("/api/"):
+            self.send_json({"error": "Not authenticated"}, 401)
+        else:
+            # Redirect to home (auth.js will show login overlay)
+            self.send_response(302)
+            self.send_header("Location", "/")
+            self.end_headers()
+        return False
 
     @staticmethod
     def _tail_id(path: str) -> int:
@@ -311,6 +410,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
         """Return current settings with masked tokens."""
         dt = _config.DISCOGS_TOKEN
         ak = _config.ANTHROPIC_API_KEY
+        gid = _config.GOOGLE_CLIENT_ID
+        gs = _config.GOOGLE_CLIENT_SECRET
         self.send_json(
             {
                 "discogs_token_set": bool(dt),
@@ -320,6 +421,11 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 "vision_model": _config.VISION_MODEL,
                 "supported_models": _config.SUPPORTED_MODELS,
                 "format_filter": _config.FORMAT_FILTER,
+                "google_client_id_set": bool(gid),
+                "google_client_id_masked": f"••••{gid[-4:]}" if len(gid) > 4 else "",
+                "google_client_secret_set": bool(gs),
+                "google_client_secret_masked": f"••••{gs[-4:]}" if len(gs) > 4 else "",
+                "allowed_emails": _config.ALLOWED_EMAILS,
             }
         )
 
@@ -357,6 +463,18 @@ class Handler(http.server.BaseHTTPRequestHandler):
             fmt = data["format_filter"].strip()
             if fmt in ("Vinyl", "CD", "All"):
                 _config.save_token("FORMAT_FILTER", fmt)
+
+        # Google OAuth settings (no validation — just save; empty string disables)
+        if "google_client_id" in data:
+            _config.save_token("GOOGLE_CLIENT_ID", data["google_client_id"].strip())
+
+        if "google_client_secret" in data:
+            _config.save_token(
+                "GOOGLE_CLIENT_SECRET", data["google_client_secret"].strip()
+            )
+
+        if "allowed_emails" in data:
+            _config.save_token("ALLOWED_EMAILS", data["allowed_emails"].strip())
 
         self._api_get_settings()
 

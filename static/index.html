@@ -73,6 +73,7 @@
       <a href="#" class="nav-link-top" onclick="openScanner();return false">Add</a>
     </nav>
     <span id="nav-badge" class="text-xs px-2 py-0.5 rounded-full bg-surface-high text-outline font-label">Loading…</span>
+    <div id="auth-avatar" class="hidden relative ml-2"></div>
   </div>
 </header>
 
@@ -312,7 +313,7 @@
 <div class="app-modal" id="settings-modal">
   <div class="app-modal-dialog">
     <div class="app-modal-content bg-surface rounded-xl overflow-hidden">
-      <div id="settings-body" class="p-6 space-y-6">
+      <div id="settings-body" class="p-6 space-y-6 overflow-y-auto max-h-[90vh] sm:max-h-[85vh]">
 
         <!-- Header -->
         <div class="flex items-center justify-between">
@@ -380,6 +381,66 @@
           </select>
         </div>
 
+        <!-- Authentication -->
+        <div class="space-y-4">
+          <h3 class="font-label text-xs uppercase tracking-widest text-outline">Authentication</h3>
+          <div class="flex items-center justify-between">
+            <p class="text-xs text-on-surface-v">Optional. Enable Google Sign-In to protect your app when exposed to the internet.</p>
+            <button id="settings-auth-disable" onclick="settingsDisableAuth()"
+              class="shrink-0 ml-4 text-xs text-red-400 hover:text-red-300 transition-colors" style="display:none">
+              Disable
+            </button>
+          </div>
+
+          <!-- Google Client ID -->
+          <div class="space-y-2">
+            <div class="flex items-center justify-between">
+              <label class="text-sm text-on-surface-v">Google Client ID</label>
+              <span id="settings-google-id-mask" class="text-xs text-outline font-mono"></span>
+            </div>
+            <div id="settings-google-id-input-wrap" class="hidden">
+              <div class="relative">
+                <input id="settings-google-client-id" type="text" placeholder="Paste Google Client ID"
+                  class="w-full bg-surface-high border border-on-surface/20 rounded-lg px-3 py-2.5 pr-10 text-on-surface text-sm focus:border-primary focus:outline-none">
+                <span id="settings-google-id-status" class="absolute right-3 top-1/2 -translate-y-1/2 text-base"></span>
+              </div>
+              <p id="settings-google-id-error" class="text-xs text-danger mt-1 hidden"></p>
+            </div>
+            <button id="settings-google-id-change" onclick="settingsToggleToken('google-id')"
+              class="text-xs text-primary hover:text-primary-dim transition-colors">Change</button>
+          </div>
+
+          <!-- Google Client Secret -->
+          <div class="space-y-2">
+            <div class="flex items-center justify-between">
+              <label class="text-sm text-on-surface-v">Google Client Secret</label>
+              <span id="settings-google-secret-mask" class="text-xs text-outline font-mono"></span>
+            </div>
+            <div id="settings-google-secret-input-wrap" class="hidden">
+              <div class="relative">
+                <input id="settings-google-client-secret" type="text" placeholder="Paste Google Client Secret"
+                  class="w-full bg-surface-high border border-on-surface/20 rounded-lg px-3 py-2.5 pr-10 text-on-surface text-sm focus:border-primary focus:outline-none">
+                <span id="settings-google-secret-status" class="absolute right-3 top-1/2 -translate-y-1/2 text-base"></span>
+              </div>
+              <p id="settings-google-secret-error" class="text-xs text-danger mt-1 hidden"></p>
+            </div>
+            <button id="settings-google-secret-change" onclick="settingsToggleToken('google-secret')"
+              class="text-xs text-primary hover:text-primary-dim transition-colors">Change</button>
+          </div>
+
+          <!-- Allowed Emails -->
+          <div class="space-y-2">
+            <div class="flex items-center justify-between">
+              <label class="text-sm text-on-surface-v">Allowed Emails</label>
+            </div>
+            <input id="settings-allowed-emails" type="text" placeholder="email@example.com (auto-set on first login)"
+              class="w-full bg-surface-high border border-on-surface/20 rounded-lg px-3 py-2.5 text-on-surface text-sm focus:border-primary focus:outline-none"
+              onchange="settingsSaveAllowedEmails(this.value)">
+            <p class="text-xs text-on-surface-v">Comma-separated. Leave blank for first-login-locks (first user to sign in becomes the owner).</p>
+          </div>
+
+        </div>
+
         <!-- Data -->
         <div class="space-y-2">
           <h3 class="font-label text-xs uppercase tracking-widest text-outline">Data</h3>
@@ -410,6 +471,7 @@
 <script src="/static/js/add-modal.js"></script>
 <script src="/static/js/setup.js"></script>
 <script src="/static/js/settings.js"></script>
+<script src="/static/js/auth.js"></script>
 <script src="/static/js/init.js"></script>
 </body>
 </html>

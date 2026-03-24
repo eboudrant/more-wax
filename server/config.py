@@ -52,12 +52,18 @@ SUPPORTED_MODELS = [
 
 def _load_config():
     """(Re)load configuration from data/.env into module-level variables."""
-    global ANTHROPIC_API_KEY, VISION_MODEL, DISCOGS_TOKEN, FORMAT_FILTER, VINYL_ONLY
+    global ANTHROPIC_API_KEY, VISION_MODEL, DISCOGS_TOKEN, FORMAT_FILTER
+    global GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, ALLOWED_EMAILS
     _load_env_file(DATA_DIR / ".env")
     ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
     VISION_MODEL = os.environ.get("VISION_MODEL", "claude-sonnet-4-6")
     DISCOGS_TOKEN = os.environ.get("DISCOGS_TOKEN", "")
     FORMAT_FILTER = os.environ.get("FORMAT_FILTER", "Vinyl")  # Vinyl, CD, or All
+    # Google OAuth (auth enabled when GOOGLE_CLIENT_ID is set)
+    GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID", "")
+    GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET", "")
+    # Comma-separated list of allowed emails; blank = first-login-locks
+    ALLOWED_EMAILS = os.environ.get("ALLOWED_EMAILS", "")
 
 
 def save_token(key: str, value: str):

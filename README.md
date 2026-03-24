@@ -193,6 +193,37 @@ python3 server.py
 
 See `.env.example` for all available variables.
 
+## Publishing on the internet
+
+To access More'Wax outside your local network, put it behind a reverse proxy with a real domain. **Google OAuth** is available to protect access — auth is disabled by default on LAN and only activates for requests through your public domain.
+
+### 1. Set up a reverse proxy
+
+**Cloudflare Tunnel** (easiest — no port forwarding needed):
+```bash
+cloudflared tunnel --url http://localhost:8765
+```
+
+**Caddy** (automatic HTTPS via Let's Encrypt):
+```
+wax.yourdomain.com {
+    reverse_proxy localhost:8765
+}
+```
+
+### 2. Enable Google OAuth
+
+1. Create a project at [console.cloud.google.com](https://console.cloud.google.com)
+2. Go to **APIs & Services** → **OAuth consent screen** → create (External)
+3. Go to **Credentials** → **Create OAuth client ID** (Web application)
+4. Add `https://yourdomain.com/auth/callback` as an authorized redirect URI
+5. Add `https://yourdomain.com` as an authorized JavaScript origin
+6. In More'Wax, open **Settings** and paste the Client ID and Client Secret under **Authentication**
+
+The first Google account to sign in becomes the owner — no further configuration needed. Additional emails can be added in settings.
+
+> **Note:** Google may take up to 5 minutes to propagate new OAuth credentials. If you get a redirect error, wait and try in an incognito window.
+
 ## Contributing
 
 1. Fork the repository

@@ -10,6 +10,7 @@ import ssl
 import subprocess
 import threading
 
+from server.auth import start_cleanup_thread as _start_session_cleanup
 from server.config import ANTHROPIC_API_KEY, DATA_DIR, DISCOGS_TOKEN
 from server.discogs import discogs_fetch_identity
 from server.handler import Handler, check_anthropic_key
@@ -144,6 +145,8 @@ def main():
         threading.Thread(target=discogs_fetch_identity, daemon=True).start()
     if ANTHROPIC_API_KEY:
         threading.Thread(target=check_anthropic_key, daemon=True).start()
+    # Session cleanup for OAuth
+    _start_session_cleanup()
 
     if https_server:
         t = threading.Thread(target=https_server.serve_forever, daemon=True)
