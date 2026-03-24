@@ -93,6 +93,21 @@ test.describe('Collection', () => {
     await expect(page.locator('#filter-input')).toBeVisible();
   });
 
+  test('wall view renders on desktop', async ({ page }) => {
+    test.skip(!isDesktop(page), 'wall view only on desktop');
+    await mockApi(page);
+    await page.goto('/#collection');
+    await waitForCollection(page);
+
+    // Click wall toggle
+    await page.locator('#view-toggle').click();
+    await page.waitForTimeout(TRANSITION);
+
+    // Verify wall cards rendered
+    await expect(page.locator('.wall-card').first()).toBeVisible();
+    await expect(page).toHaveScreenshot('collection-wall.png');
+  });
+
   test('sort dropdown defaults to Recently Added', async ({ page }) => {
     await mockApi(page);
     await page.goto('/#collection');

@@ -1,6 +1,24 @@
 // ─────────────────────────────────────────────────────────────────
 //  COLLECTION — load / sort / render
 // ─────────────────────────────────────────────────────────────────
+let _viewMode = localStorage.getItem('viewMode') || 'grid';
+
+function toggleViewMode() {
+  _viewMode = _viewMode === 'grid' ? 'wall' : 'grid';
+  localStorage.setItem('viewMode', _viewMode);
+  _updateViewToggleIcon();
+  renderCollection();
+}
+
+function _updateViewToggleIcon() {
+  const btn = document.getElementById('view-toggle');
+  if (!btn) return;
+  const icon = btn.querySelector('i');
+  if (!icon) return;
+  icon.className = _viewMode === 'wall' ? 'bi bi-grid-3x3-gap' : 'bi bi-grid-3x3';
+  btn.title = _viewMode === 'wall' ? 'Switch to card view' : 'Switch to wall view';
+}
+
 async function loadCollection() {
   try {
     collection = await apiGet('/api/collection');
@@ -79,16 +97,29 @@ function renderCollection() {
   const label = `${collection.length} record${collection.length !== 1 ? 's' : ''}`;
   badge.textContent = label;
 
+  _updateViewToggleIcon();
+
   const items = sortedFiltered();
 
   if (items.length === 0) {
     grid.innerHTML = '';
+    grid.className = 'grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-12';
     empty.classList.remove('hidden');
     return;
   }
   empty.classList.add('hidden');
 
-  grid.innerHTML = items.map(r => recordCardHtml(r)).join('');
+  // Check viewport — wall mode only on desktop (md: 768px+)
+  const isDesktop = window.innerWidth >= 768;
+  const useWall = _viewMode === 'wall' && isDesktop;
+
+  if (useWall) {
+    grid.className = 'grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-1';
+    grid.innerHTML = items.map(r => wallCardHtml(r)).join('');
+  } else {
+    grid.className = 'grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-12';
+    grid.innerHTML = items.map(r => recordCardHtml(r)).join('');
+  }
 }
 
 function filterCollection() { renderCollection(); }

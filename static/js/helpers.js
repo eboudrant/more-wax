@@ -160,6 +160,28 @@ function recordCardHtml(r) {
     </div>`;
 }
 
+// ── Wall card template (cover-only grid with 3D flip on hover) ──
+function wallCardHtml(r) {
+  const cover = r.local_cover || r.cover_image_url;
+  const coverHtml = cover
+    ? `<img src="${esc(cover)}" class="w-full h-full object-cover" onerror="this.parentElement.innerHTML='<i class=\\'bi bi-vinyl text-3xl text-outline-v\\'></i>'">`
+    : `<i class="bi bi-vinyl text-3xl text-outline-v"></i>`;
+
+  return `
+    <div class="wall-card aspect-square" data-record-id="${r.id}" onclick="showDetail(${r.id})">
+      <div class="wall-card-inner">
+        <div class="wall-card-front flex items-center justify-center bg-surface-low">
+          ${coverHtml}
+        </div>
+        <div class="wall-card-back">
+          <p class="font-headline font-bold text-xs text-on-surface leading-tight text-center px-2 line-clamp-2 break-all">${esc(r.title)}</p>
+          <p class="font-body text-[10px] text-on-surface-v text-center px-2 truncate break-all mt-1">${esc(r.artist)}</p>
+          ${r.year ? `<span class="mt-2 text-[9px] font-label uppercase tracking-widest text-outline">${esc(r.year)}</span>` : ''}
+        </div>
+      </div>
+    </div>`;
+}
+
 function toast(msg, type = '') {
   const el = document.createElement('div');
   el.className = `app-toast ${type}`;

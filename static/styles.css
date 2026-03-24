@@ -360,6 +360,44 @@ body { overscroll-behavior: none; }
   to   { opacity: 1; transform: translateY(0); }
 }
 
+/* ── WALL VIEW (cover grid with 3D flip) ──────────────── */
+.wall-card {
+  perspective: 800px;
+  cursor: pointer;
+  overflow: hidden;
+  border-radius: 4px;
+}
+.wall-card-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  transform-style: preserve-3d;
+}
+.wall-card:hover .wall-card-inner {
+  transform: rotateY(180deg);
+}
+.wall-card-front,
+.wall-card-back {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+.wall-card-front {
+  overflow: hidden;
+}
+.wall-card-back {
+  transform: rotateY(180deg);
+  background: rgba(19, 19, 19, 0.92);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 8px;
+}
+
 /* ── SCROLLBAR ──────────────────────────────────────────── */
 ::-webkit-scrollbar { width: 4px; height: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
