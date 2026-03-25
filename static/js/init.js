@@ -50,6 +50,10 @@ function _showSetupError(title, message, linkUrl) {
 }
 
 window.addEventListener('DOMContentLoaded', async () => {
+  // Check auth first — if not authenticated, show login overlay and stop
+  const authOk = await checkAuth();
+  if (!authOk) return;
+
   _checkStatus();           // non-blocking — don't await
   _checkCamera();           // hide Add buttons if no camera
   await loadCollection();
