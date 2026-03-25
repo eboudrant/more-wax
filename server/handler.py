@@ -78,10 +78,13 @@ def _validate_anthropic_key(key: str) -> dict:
 
 class Handler(http.server.BaseHTTPRequestHandler):
     def log_message(self, fmt, *args):
+        from datetime import datetime, timezone
+
         status = args[1] if len(args) > 1 else "?"
         # Sanitise path for log output (strip control chars)
         safe_path = self.path.replace("\n", "").replace("\r", "")
-        print(f"  {self.command:6s} {safe_path}  →  {status}")
+        ts = datetime.now(timezone.utc).strftime("%H:%M:%S")
+        print(f"  {ts}  {self.command:6s} {safe_path}  →  {status}")
 
     # ── path safety ───────────────────────────────────────────
 
@@ -475,6 +478,10 @@ class Handler(http.server.BaseHTTPRequestHandler):
 
         if "allowed_emails" in data:
             _config.save_token("ALLOWED_EMAILS", data["allowed_emails"].strip())
+            # Invalidate all sessions when allowed emails change
+            from server.auth import clear_all_sessions
+
+            clear_all_sessions()
 
         self._api_get_settings()
 
