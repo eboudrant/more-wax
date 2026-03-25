@@ -5,6 +5,7 @@ Auth is enabled when GOOGLE_CLIENT_ID is configured.
 """
 
 import hashlib
+import html
 import json
 import secrets
 import threading
@@ -13,9 +14,48 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from base64 import urlsafe_b64encode
+from datetime import datetime, timezone
 from pathlib import Path
 
 from server import config
+
+# ── Audit log ──────────────────────────────────────────────────
+_AUDIT_LOG = config.DATA_DIR / "auth.log"
+_AUDIT_MAX_SIZE = 512 * 1024  # 512 KB
+_audit_lock = threading.Lock()
+
+
+def _mask_email(email: str) -> str:
+    """Mask an email: em...@gmail.com"""
+    if "@" not in email:
+        return email[:2] + "..." if len(email) > 2 else email
+    local, domain = email.rsplit("@", 1)
+    masked = local[:2] + "..." if len(local) > 2 else local
+    return f"{masked}@{domain}"
+
+
+def audit(event: str, detail: str = "", ip: str = ""):
+    """Append a line to the audit log with rotation."""
+    ts = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+    # Mask emails in detail
+    if "@" in detail:
+        detail = _mask_email(detail)
+    line = f"{ts}  {event:20s}  {detail}"
+    if ip:
+        line += f"  ip={ip}"
+    with _audit_lock:
+        try:
+            # Rotate if too large
+            if _AUDIT_LOG.exists() and _AUDIT_LOG.stat().st_size > _AUDIT_MAX_SIZE:
+                backup = _AUDIT_LOG.with_suffix(".log.1")
+                if backup.exists():
+                    backup.unlink()
+                _AUDIT_LOG.rename(backup)
+            with open(_AUDIT_LOG, "a") as f:
+                f.write(line + "\n")
+        except OSError:
+            pass
+
 
 # ── Google endpoints ────────────────────────────────────────────
 GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
@@ -35,6 +75,13 @@ _session_cache_lock = threading.Lock()
 _pending_states: dict[str, dict] = {}
 _pending_lock = threading.Lock()
 _STATE_TTL = 300  # 5 minutes
+_first_login_lock = threading.Lock()
+
+# Rate limiting for /auth/callback
+_callback_attempts: dict[str, list[float]] = {}
+_callback_rate_lock = threading.Lock()
+_CALLBACK_MAX_ATTEMPTS = 10  # per minute per IP
+_CALLBACK_WINDOW = 60  # seconds
 
 
 # ── PKCE helpers ────────────────────────────────────────────────
@@ -53,7 +100,7 @@ def _generate_code_challenge(verifier: str) -> str:
 
 
 def _hash_token(token: str) -> str:
-    return hashlib.sha256(token.encode()).hexdigest()[:32]
+    return hashlib.sha256(token.encode()).hexdigest()
 
 
 def _session_path(token_hash: str) -> Path:
@@ -141,6 +188,16 @@ def delete_session(cookie_header: str):
         delete_session_by_hash(_hash_token(token))
 
 
+def clear_all_sessions():
+    """Remove all sessions. Called when auth config changes."""
+    for path in SESSION_DIR.glob("*.json"):
+        path.unlink(missing_ok=True)
+    with _session_cache_lock:
+        _session_cache.clear()
+    audit("SESSIONS_CLEARED", "config changed")
+    print("  🔒 [auth] All sessions cleared")
+
+
 def cleanup_expired_sessions():
     """Delete expired session files. Called periodically."""
     now = time.time()
@@ -213,6 +270,20 @@ def _get_redirect_uri(handler) -> str:
     return uri
 
 
+def _check_rate_limit(client_ip: str) -> bool:
+    """Return True if the client is rate-limited."""
+    now = time.time()
+    with _callback_rate_lock:
+        attempts = _callback_attempts.get(client_ip, [])
+        # Remove old attempts outside the window
+        attempts = [t for t in attempts if t > now - _CALLBACK_WINDOW]
+        _callback_attempts[client_ip] = attempts
+        if len(attempts) >= _CALLBACK_MAX_ATTEMPTS:
+            return True
+        attempts.append(now)
+    return False
+
+
 def handle_login(handler):
     """GET /auth/login — Redirect to Google's OAuth consent screen."""
     if not config.GOOGLE_CLIENT_ID:
@@ -222,6 +293,7 @@ def handle_login(handler):
     state = secrets.token_urlsafe(32)
     verifier = _generate_code_verifier()
     challenge = _generate_code_challenge(verifier)
+    redirect_uri = _get_redirect_uri(handler)
 
     with _pending_lock:
         # Clean old states
@@ -231,9 +303,11 @@ def handle_login(handler):
         ]
         for k in expired:
             del _pending_states[k]
-        _pending_states[state] = {"code_verifier": verifier, "created_at": now}
-
-    redirect_uri = _get_redirect_uri(handler)
+        _pending_states[state] = {
+            "code_verifier": verifier,
+            "redirect_uri": redirect_uri,
+            "created_at": now,
+        }
     params = urllib.parse.urlencode(
         {
             "client_id": config.GOOGLE_CLIENT_ID,
@@ -255,6 +329,15 @@ def handle_login(handler):
 
 def handle_callback(handler):
     """GET /auth/callback — Exchange code for token, create session."""
+    # Rate limit
+    client_ip = handler.client_address[0]
+    if _check_rate_limit(client_ip):
+        audit("RATE_LIMITED", "callback", ip=client_ip)
+        handler._send_html(
+            429, _error_page("Too many attempts", "Please wait a minute and try again.")
+        )
+        return
+
     parsed = urllib.parse.urlparse(handler.path)
     qs = urllib.parse.parse_qs(parsed.query)
 
@@ -264,7 +347,8 @@ def handle_callback(handler):
 
     if error:
         handler._send_html(
-            400, _error_page("Login cancelled", f"Google returned: {error}")
+            400,
+            _error_page("Login cancelled", f"Google returned: {html.escape(error)}"),
         )
         return
 
@@ -291,7 +375,8 @@ def handle_callback(handler):
         )
         return
 
-    redirect_uri = _get_redirect_uri(handler)
+    # Use the redirect_uri from the original login request (defense-in-depth)
+    redirect_uri = pending.get("redirect_uri") or _get_redirect_uri(handler)
 
     # Exchange code for access token
     token_data = urllib.parse.urlencode(
@@ -342,31 +427,37 @@ def handle_callback(handler):
         )
         return
 
-    # Check if this is a first-login-locks scenario
-    if not config.ALLOWED_EMAILS.strip():
-        # First login — lock to this email
-        config.save_token("ALLOWED_EMAILS", email)
-        print(f"  🔒 [auth] First login — locked to {email}")
+    # Check if this is a first-login-locks scenario (atomic check-and-set)
+    with _first_login_lock:
+        if not config.ALLOWED_EMAILS.strip():
+            config.save_token("ALLOWED_EMAILS", email)
+            audit("FIRST_LOGIN_LOCK", email, ip=client_ip)
+            print(f"  🔒 [auth] First login — locked to {_mask_email(email)}")
 
     # Check if email is allowed
     if not is_email_allowed(email):
+        audit("ACCESS_DENIED", email, ip=client_ip)
         handler._send_html(
             403,
             _error_page(
                 "Access denied",
-                f"The account {email} is not authorized to use this app.",
+                f"The account {html.escape(email)} is not authorized to use this app.",
             ),
         )
         return
 
     # Create session
     session_token = create_session(email, name, picture)
-    print(f"  ✅ [auth] {email} logged in")
+    audit("LOGIN_OK", email, ip=client_ip)
+    print(f"  ✅ [auth] {_mask_email(email)} logged in")
 
-    # Set cookie and redirect
-    secure_flag = (
-        "; Secure" if handler.headers.get("X-Forwarded-Proto") == "https" else ""
+    # Set cookie — always Secure when behind a reverse proxy or on HTTPS
+    is_secure = (
+        handler.headers.get("X-Forwarded-Proto") == "https"
+        or handler.headers.get("X-Forwarded-Host")  # proxy present
+        or hasattr(handler.server, "ssl_context")
     )
+    secure_flag = "; Secure" if is_secure else ""
     cookie = f"morewax_session={session_token}; HttpOnly; SameSite=Lax{secure_flag}; Path=/; Max-Age={SESSION_MAX_AGE}"
     handler.send_response(302)
     handler.send_header("Location", "/")
@@ -376,6 +467,9 @@ def handle_callback(handler):
 
 def handle_logout(handler):
     """GET /auth/logout — Clear session and redirect to login."""
+    session = get_session(handler.headers.get("Cookie", ""))
+    email = session.get("email", "unknown") if session else "unknown"
+    audit("LOGOUT", email, ip=handler.client_address[0])
     delete_session(handler.headers.get("Cookie", ""))
     handler.send_response(302)
     handler.send_header("Location", "/")
@@ -405,9 +499,11 @@ def handle_status(handler):
 
 
 def _error_page(title: str, message: str) -> str:
+    t = html.escape(title)
+    m = html.escape(message)
     return f"""<!DOCTYPE html>
 <html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>{title} — More'Wax</title>
+<title>{t} — More'Wax</title>
 <style>
   body {{ background: #131313; color: #e0c097; font-family: system-ui; display: flex;
          align-items: center; justify-content: center; min-height: 100vh; margin: 0; }}
@@ -419,5 +515,5 @@ def _error_page(title: str, message: str) -> str:
        border: 1px solid #fddcb133; border-radius: 9999px; display: inline-block; }}
   a:hover {{ background: #fddcb110; }}
 </style></head><body>
-<div class="card"><h1>{title}</h1><p>{message}</p><a href="/">Back to More'Wax</a></div>
+<div class="card"><h1>{t}</h1><p>{m}</p><a href="/">Back to More'Wax</a></div>
 </body></html>"""

@@ -58,25 +58,45 @@ function _showUserAvatar() {
   if (!_authUser) return;
   const avatar = document.getElementById('auth-avatar');
   if (!avatar) return;
-  avatar.innerHTML = `
-    <button onclick="document.getElementById('auth-menu').classList.toggle('hidden')"
-            class="relative flex items-center">
-      <img src="${_authUser.picture}" alt="${_authUser.name}"
-           class="h-7 w-7 rounded-full border border-outline-v/30 object-cover"
-           onerror="this.style.display='none'">
-    </button>
-    <div id="auth-menu" class="hidden absolute right-0 top-full mt-2 w-48 bg-surface rounded-xl
-                                shadow-xl border border-outline-v/20 py-2 z-50">
-      <div class="px-3 py-2 border-b border-outline-v/10">
-        <p class="text-sm font-medium text-on-surface truncate">${_authUser.name}</p>
-        <p class="text-xs text-on-surface-v truncate">${_authUser.email}</p>
-      </div>
-      <a href="/auth/logout" class="block px-3 py-2 text-sm text-on-surface-v hover:text-on-surface
-                                     hover:bg-surface-high transition-colors">
-        Sign out
-      </a>
-    </div>
-  `;
+
+  // Build avatar UI safely — no user data in innerHTML
+  const btn = document.createElement('button');
+  btn.className = 'relative flex items-center';
+  btn.onclick = () => document.getElementById('auth-menu')?.classList.toggle('hidden');
+
+  const img = document.createElement('img');
+  img.src = _authUser.picture || '';
+  img.alt = _authUser.name || '';
+  img.className = 'h-7 w-7 rounded-full border border-outline-v/30 object-cover';
+  img.onerror = () => { img.style.display = 'none'; };
+  btn.appendChild(img);
+
+  const menu = document.createElement('div');
+  menu.id = 'auth-menu';
+  menu.className = 'hidden absolute right-0 top-full mt-2 w-48 bg-surface rounded-xl shadow-xl border border-outline-v/20 py-2 z-50';
+
+  const info = document.createElement('div');
+  info.className = 'px-3 py-2 border-b border-outline-v/10';
+  const nameP = document.createElement('p');
+  nameP.className = 'text-sm font-medium text-on-surface truncate';
+  nameP.textContent = _authUser.name || '';
+  const emailP = document.createElement('p');
+  emailP.className = 'text-xs text-on-surface-v truncate';
+  emailP.textContent = _authUser.email || '';
+  info.appendChild(nameP);
+  info.appendChild(emailP);
+
+  const signOut = document.createElement('a');
+  signOut.href = '/auth/logout';
+  signOut.className = 'block px-3 py-2 text-sm text-on-surface-v hover:text-on-surface hover:bg-surface-high transition-colors';
+  signOut.textContent = 'Sign out';
+
+  menu.appendChild(info);
+  menu.appendChild(signOut);
+
+  avatar.innerHTML = '';
+  avatar.appendChild(btn);
+  avatar.appendChild(menu);
   avatar.classList.remove('hidden');
 
   // Close menu on outside click
