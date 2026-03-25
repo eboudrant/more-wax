@@ -247,6 +247,15 @@ def is_email_allowed(email: str) -> bool:
 # ── OAuth handlers ──────────────────────────────────────────────
 
 
+def _get_client_ip(handler) -> str:
+    """Get real client IP, respecting reverse proxy headers."""
+    return (
+        handler.headers.get("Cf-Connecting-Ip")
+        or (handler.headers.get("X-Forwarded-For") or "").split(",")[0].strip()
+        or _get_client_ip(handler)
+    )
+
+
 def _get_redirect_uri(handler) -> str:
     """Build the OAuth redirect URI from the request."""
     # Respect X-Forwarded-Proto/Host from reverse proxy (Cloudflare, Caddy, nginx)
@@ -330,7 +339,7 @@ def handle_login(handler):
 def handle_callback(handler):
     """GET /auth/callback — Exchange code for token, create session."""
     # Rate limit
-    client_ip = handler.client_address[0]
+    client_ip = _get_client_ip(handler)
     if _check_rate_limit(client_ip):
         audit("RATE_LIMITED", "callback", ip=client_ip)
         handler._send_html(
@@ -469,7 +478,7 @@ def handle_logout(handler):
     """GET /auth/logout — Clear session and redirect to login."""
     session = get_session(handler.headers.get("Cookie", ""))
     email = session.get("email", "unknown") if session else "unknown"
-    audit("LOGOUT", email, ip=handler.client_address[0])
+    audit("LOGOUT", email, ip=_get_client_ip(handler))
     delete_session(handler.headers.get("Cookie", ""))
     handler.send_response(302)
     handler.send_header("Location", "/")
