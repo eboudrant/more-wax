@@ -198,9 +198,8 @@ def _get_redirect_uri(handler) -> str:
         or handler.headers.get("Cf-Visitor", "").split('"scheme":"')[-1].rstrip('"}')
         or ""
     )
-    host = (
-        handler.headers.get("X-Forwarded-Host")
-        or handler.headers.get("Host", "localhost")
+    host = handler.headers.get("X-Forwarded-Host") or handler.headers.get(
+        "Host", "localhost"
     )
     if not proto:
         proto = "https" if hasattr(handler.server, "ssl_context") else "http"
@@ -309,7 +308,7 @@ def handle_callback(handler):
     try:
         req = urllib.request.Request(GOOGLE_TOKEN_URL, data=token_data, method="POST")
         req.add_header("Content-Type", "application/x-www-form-urlencoded")
-        with urllib.request.urlopen(req, timeout=10) as resp:
+        with urllib.request.urlopen(req, timeout=10) as resp:  # nosec B310 — hardcoded Google URL
             tokens = json.loads(resp.read())
     except (urllib.error.URLError, json.JSONDecodeError) as e:
         handler._send_html(500, _error_page("Token exchange failed", str(e)))
@@ -327,7 +326,7 @@ def handle_callback(handler):
     try:
         req = urllib.request.Request(GOOGLE_USERINFO_URL)
         req.add_header("Authorization", f"Bearer {access_token}")
-        with urllib.request.urlopen(req, timeout=10) as resp:
+        with urllib.request.urlopen(req, timeout=10) as resp:  # nosec B310 — hardcoded Google URL
             userinfo = json.loads(resp.read())
     except (urllib.error.URLError, json.JSONDecodeError) as e:
         handler._send_html(500, _error_page("Userinfo fetch failed", str(e)))

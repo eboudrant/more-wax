@@ -5,7 +5,7 @@
 
 ## Intent
 
-Protect the app when exposed to the internet. Single-user gate using Google OAuth — disabled by default for LAN use, automatically enabled when Google credentials are configured.
+Protect the app when exposed to the internet. Single-user gate using Google OAuth — disabled by default for LAN use, automatically enabled when Google credentials are configured. Includes lock-out prevention, clear button to disable auth, and safe fallback for local access.
 
 ### Prompts summary
 
@@ -13,6 +13,10 @@ Protect the app when exposed to the internet. Single-user gate using Google OAut
 2. Single-user gate, not multi-user
 3. Will use reverse proxy (Cloudflare Tunnel) for trusted HTTPS
 4. First-login-locks behavior for allowed email
+5. Add clear button to disable auth from settings
+6. Ensure user never gets locked out (local access bypasses auth)
+7. Remove HTTP→HTTPS redirect (incompatible with Cloudflare Tunnel)
+8. Add README section for publishing on internet with OAuth setup guide
 
 ## Changes
 
@@ -33,6 +37,8 @@ Protect the app when exposed to the internet. Single-user gate using Google OAut
 - API endpoints return 401 when not authenticated
 - `_send_html()` helper for OAuth error pages
 - Settings endpoint extended with Google OAuth fields
+- `POST /api/settings` with `clear_google_auth` action removes OAuth config and all sessions
+- Lock-out prevention: local/private IP requests always bypass auth
 
 ### `server/config.py`
 - Added `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `ALLOWED_EMAILS`

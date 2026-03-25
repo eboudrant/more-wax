@@ -16,56 +16,6 @@ from server.discogs import discogs_fetch_identity
 from server.handler import Handler, check_anthropic_key
 
 
-class _HttpsRedirectHandler(Handler):
-    """Subclass of Handler that redirects non-localhost HTTP to HTTPS.
-
-    Localhost requests are served normally (via Handler).
-    """
-
-    https_port = 8766
-
-    def _is_remote(self):
-        host = self.headers.get("Host", "")
-        return not (host.startswith("localhost") or host.startswith("127.0.0.1"))
-
-    def _redirect(self, status=301):
-        host = self.headers.get("Host", "").split(":")[0]
-        target = f"https://{host}:{self.https_port}{self.path}"
-        self.send_response(status)
-        self.send_header("Location", target)
-        self.end_headers()
-
-    def do_GET(self):
-        if self._is_remote():
-            self._redirect(301)
-        else:
-            super().do_GET()
-
-    def do_POST(self):
-        if self._is_remote():
-            self._redirect(308)
-        else:
-            super().do_POST()
-
-    def do_PUT(self):
-        if self._is_remote():
-            self._redirect(308)
-        else:
-            super().do_PUT()
-
-    def do_DELETE(self):
-        if self._is_remote():
-            self._redirect(308)
-        else:
-            super().do_DELETE()
-
-    def do_OPTIONS(self):
-        if self._is_remote():
-            self._redirect(308)
-        else:
-            super().do_OPTIONS()
-
-
 def _generate_cert():
     """Generate a self-signed TLS cert (needed for camera on non-localhost)."""
     cert = DATA_DIR / "server.crt"
@@ -122,22 +72,13 @@ def main():
 
     https_server = _start_https(HTTPS_PORT)
 
-    # When HTTPS is available, redirect remote HTTP requests to HTTPS
-    if https_server:
-        _HttpsRedirectHandler.https_port = HTTPS_PORT
-        http_handler = _HttpsRedirectHandler
-    else:
-        http_handler = Handler
-    http_server = http.server.ThreadingHTTPServer(("0.0.0.0", HTTP_PORT), http_handler)
+    http_server = http.server.ThreadingHTTPServer(("0.0.0.0", HTTP_PORT), Handler)
 
     print("\n🎵  More'Wax is running!")
+    print(f"    →  http://localhost:{HTTP_PORT}")
     if https_server:
-        print(f"    →  https://localhost:{HTTPS_PORT}")
-    else:
-        print(f"    →  http://localhost:{HTTP_PORT}")
+        print(f"    →  https://localhost:{HTTPS_PORT}  (for camera on LAN)")
     print(f"    📀  Collection: {DATA_DIR / 'collection.json'}")
-    if https_server:
-        print(f"\n    On iPhone: https://[your-mac-ip]:{HTTPS_PORT}")
     print("    Press Ctrl+C to stop\n")
 
     # Validate credentials in background (don't block server startup)
