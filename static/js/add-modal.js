@@ -551,7 +551,8 @@ async function saveRecord() {
   }
 
   try {
-    const payload = { ...selectedRelease, notes };
+    const sourceMap = { barcode: 'barcode', photo: 'photo', search: 'search' };
+    const payload = { ...selectedRelease, notes, add_source: sourceMap[scannerMode] || 'search' };
     const res     = await fetch('/api/collection', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },

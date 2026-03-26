@@ -46,6 +46,7 @@ function _renderPanelHtml(r, peek = false) {
             <i class="bi bi-clipboard text-xs"></i>
           </button>` : ''}
           ${r.discogs_id ? `<a href="https://www.discogs.com/release/${r.discogs_id}" target="_blank" class="w-8 h-8 rounded-full bg-surface-high/50 flex items-center justify-center text-outline hover:text-primary transition-colors" title="View on Discogs"><i class="bi bi-box-arrow-up-right text-xs"></i></a>` : ''}
+          ${r.discogs_id && !peek ? _renderDiscogsToggleBtn(r.discogs_id) : ''}
         </div>
       </div>
 
@@ -150,11 +151,19 @@ async function showDetail(id) {
   const modalEl = document.getElementById('detail-modal');
   _attachDetailListeners(modalEl);
 
+  _lazyLoadDetailData(r);
+}
+
+/** Fetch prices, extra details, and collection status if needed. */
+function _lazyLoadDetailData(r) {
   if (r.discogs_id && (!r.price_median || !r.price_high || !r.rating_average)) {
     _refreshDetailPrices(r);
   }
   if (r.discogs_id && !r.discogs_extra) {
     _loadDiscogsExtra(r);
+  }
+  if (r.discogs_id) {
+    _checkDiscogsCollection(r.discogs_id);
   }
 }
 
@@ -203,12 +212,7 @@ function _navigateDetail(dir) {
       _detailAnimating = false;
     });
 
-    if (r.discogs_id && (!r.price_median || !r.price_high || !r.rating_average)) {
-      _refreshDetailPrices(r);
-    }
-    if (r.discogs_id && !r.discogs_extra) {
-      _loadDiscogsExtra(r);
-    }
+    _lazyLoadDetailData(r);
   });
 }
 
@@ -392,6 +396,84 @@ function _updateCardBadge(r) {
   else if (newRatingBadge) {
     const yearEl = card.querySelector('.record-year');
     if (yearEl) yearEl.insertAdjacentHTML('afterend', newRatingBadge);
+  }
+}
+
+// ── Discogs collection toggle ────────────────────────────────────
+let _discogsCollectionState = {};  // discogs_id → bool
+
+function _renderDiscogsToggleBtn(discogsId) {
+  const cached = _discogsCollectionState[discogsId];
+  const icon = cached === true ? 'bi-dash-circle' : 'bi-plus-circle';
+  const color = cached === true ? 'text-primary' : 'text-outline';
+  const title = cached === true ? 'In Discogs collection — click to remove'
+    : cached === false ? 'Not in Discogs — click to add' : 'Checking Discogs...';
+  return `<button id="detail-discogs-toggle" data-discogs-id="${esc(discogsId)}" class="w-8 h-8 rounded-full bg-surface-high/50 flex items-center justify-center ${color} hover:text-primary transition-colors" onclick="_toggleDiscogsCollection('${esc(discogsId)}')" title="${esc(title)}">
+    <i class="bi ${icon} text-xs"></i>
+  </button>`;
+}
+
+async function _checkDiscogsCollection(discogsId) {
+  const did = String(discogsId);
+  try {
+    const res = await apiGet(`/api/discogs/in-collection/${did}`);
+    _discogsCollectionState[did] = res.in_collection;
+    const btn = document.getElementById('detail-discogs-toggle');
+    if (btn) _updateDiscogsToggle(btn, res.in_collection);
+  } catch {
+    // ignore — button stays in initial state
+  }
+}
+
+function _updateDiscogsToggle(btn, inCollection) {
+  const icon = btn.querySelector('i');
+  if (inCollection) {
+    icon.className = 'bi bi-dash-circle text-xs';
+    btn.classList.remove('text-outline');
+    btn.classList.add('text-primary');
+    btn.title = 'In Discogs collection — click to remove';
+  } else {
+    icon.className = 'bi bi-plus-circle text-xs';
+    btn.classList.remove('text-primary');
+    btn.classList.add('text-outline');
+    btn.title = 'Not in Discogs — click to add';
+  }
+}
+
+async function _toggleDiscogsCollection(discogsId) {
+  const did = String(discogsId);
+  const btn = document.getElementById('detail-discogs-toggle');
+  if (!btn) return;
+  const inCollection = _discogsCollectionState[did];
+  const icon = btn.querySelector('i');
+
+  // Show spinner
+  icon.className = 'bi bi-arrow-repeat animate-spin text-xs';
+
+  try {
+    if (inCollection) {
+      const res = await apiDelete(`/api/discogs/collection/${did}`);
+      if (res && res.success) {
+        _discogsCollectionState[did] = false;
+        toast('Removed from Discogs collection');
+      } else {
+        toast('Could not remove from Discogs', 'error');
+      }
+    } else {
+      const res = await apiPost(`/api/discogs/add-to-collection/${did}`, {});
+      if (res && res.success) {
+        _discogsCollectionState[did] = true;
+        toast('Added to Discogs collection');
+      } else {
+        toast('Could not add to Discogs', 'error');
+      }
+    }
+    const currentBtn = document.getElementById('detail-discogs-toggle');
+    if (currentBtn) _updateDiscogsToggle(currentBtn, _discogsCollectionState[did]);
+  } catch (e) {
+    toast('Failed: ' + e.message, 'error');
+    const currentBtn = document.getElementById('detail-discogs-toggle');
+    if (currentBtn) _updateDiscogsToggle(currentBtn, !!inCollection);
   }
 }
 

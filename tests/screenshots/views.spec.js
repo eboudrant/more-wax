@@ -1,6 +1,6 @@
 // @ts-check
 const { test, expect } = require('@playwright/test');
-const { mockApi, mockEmptyApi, mockStatus } = require('./fixtures');
+const { mockApi, mockEmptyApi, mockStatus, mockSyncApi } = require('./fixtures');
 
 // ── Helper: wait for the collection to load ────────────────────
 async function waitForCollection(page) {
@@ -287,7 +287,98 @@ test.describe('Settings', () => {
     await expect(page.locator('#settings-discogs-mask')).toContainText('••••');
     await expect(page.locator('#settings-anthropic-mask')).toContainText('••••');
 
-    await expect(page).toHaveScreenshot('settings-modal.png');
+    // Remove all overflow/height constraints so the element screenshot captures full content
+    await page.evaluate(() => {
+      for (const sel of ['#settings-modal', '#settings-modal .app-modal-dialog', '#settings-modal .app-modal-content', '#settings-body']) {
+        const el = document.querySelector(sel);
+        if (el) {
+          el.style.maxHeight = 'none';
+          el.style.overflow = 'visible';
+          el.style.height = 'auto';
+          el.style.position = 'relative';
+        }
+      }
+    });
+
+    await expect(page.locator('#settings-modal')).toHaveScreenshot('settings-modal.png', { maxDiffPixels: 50 });
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────
+//  DISCOGS SYNC
+// ─────────────────────────────────────────────────────────────────
+
+test.describe('Discogs Sync', () => {
+  test('shows diff review with selectable records', async ({ page }) => {
+    await mockApi(page);
+    await mockSyncApi(page);
+    await page.goto('/');
+    await waitForCollection(page);
+    await page.waitForTimeout(TRANSITION);
+
+    // Trigger sync via JS (fire-and-forget async)
+    page.evaluate(() => startDiscogsSync()).catch(() => {});
+    await page.waitForFunction(() => {
+      const el = document.getElementById('sync-overlay');
+      return el && el.style.display === 'flex';
+    }, { timeout: 8_000 });
+
+    // Wait for diff to render (4 new + 2 duplicates)
+    await expect(page.locator('#sync-content')).toContainText('DJ Shadow');
+    await expect(page.locator('#sync-content')).toContainText('4 new record');
+    await expect(page.locator('#sync-content')).toContainText('2 possible duplicate');
+
+    // Expand first duplicate to show comparison
+    await page.locator('#sync-content >> text=Discovery').first().click();
+    await page.waitForTimeout(200);
+
+    // Increase viewport to fit all content without scrolling
+    await page.setViewportSize({ width: page.viewportSize().width, height: 1400 });
+    await page.waitForTimeout(100);
+
+    await expect(page).toHaveScreenshot('sync-diff.png');
+  });
+
+  test('shows completion message after import', async ({ page }) => {
+    await mockApi(page);
+    await mockSyncApi(page, { importResult: { imported: 4, skipped: 0 } });
+    await page.goto('/');
+    await waitForCollection(page);
+    await page.waitForTimeout(TRANSITION);
+
+    // Trigger sync and wait for diff
+    page.evaluate(() => startDiscogsSync()).catch(() => {});
+    await page.waitForFunction(() => {
+      const el = document.getElementById('sync-overlay');
+      return el && el.style.display === 'flex';
+    }, { timeout: 8_000 });
+    await expect(page.locator('#sync-content')).toContainText('DJ Shadow');
+
+    // Click import button
+    await page.locator('#sync-footer button:has-text("Import")').click();
+
+    // Wait for completion
+    await expect(page.locator('#sync-content')).toContainText(/Imported 4 record/);
+
+    await expect(page).toHaveScreenshot('sync-complete.png');
+  });
+
+  test('shows already in sync message', async ({ page }) => {
+    await mockApi(page);
+    await mockSyncApi(page, { diff: [] });
+    await page.goto('/');
+    await waitForCollection(page);
+    await page.waitForTimeout(TRANSITION);
+
+    page.evaluate(() => startDiscogsSync()).catch(() => {});
+    await page.waitForFunction(() => {
+      const el = document.getElementById('sync-overlay');
+      return el && el.style.display === 'flex';
+    }, { timeout: 8_000 });
+
+    await expect(page.locator('#sync-content')).toContainText(/Already in sync/);
+
+    await expect(page).toHaveScreenshot('sync-in-sync.png');
   });
 });
 

@@ -30,12 +30,15 @@ from server.database import (
 )
 from server.discogs import (
     discogs_add_to_collection,
+    discogs_check_collection,
     discogs_refresh_prices,
     discogs_release_details,
     discogs_release_full,
+    discogs_remove_from_collection,
     discogs_search,
 )
 from server.images import convert_image, identify_cover, upload_cover
+from server.sync import sync_get_state, sync_start_fetch, sync_start_import
 
 MAX_BODY_BYTES = 20 * 1024 * 1024  # 20 MB cap on request bodies
 
@@ -213,12 +216,17 @@ class Handler(http.server.BaseHTTPRequestHandler):
             self._api_get_settings()
         elif p == "/api/export":
             self._api_export()
+        elif p == "/api/sync/status":
+            self._api_sync_status()
         elif p == "/api/discogs/search":
             self._api_discogs_search()
         elif p.startswith("/api/discogs/release/"):
             self._api_discogs_release(p.split("/")[-1])
         elif p.startswith("/api/discogs/prices/"):
             self._api_discogs_prices(p.split("/")[-1])
+        elif p.startswith("/api/discogs/in-collection/"):
+            rid = p.split("/")[-1]
+            self.send_json({"in_collection": discogs_check_collection(rid)})
         else:
             self._404()
 
@@ -246,6 +254,10 @@ class Handler(http.server.BaseHTTPRequestHandler):
             self.send_json({"success": ok})
         elif p == "/api/collection/refresh-prices":
             self._api_refresh_all_prices()
+        elif p == "/api/sync/fetch":
+            self._api_sync_fetch()
+        elif p == "/api/sync/import":
+            self._api_sync_import()
         else:
             self._404()
 
@@ -262,7 +274,11 @@ class Handler(http.server.BaseHTTPRequestHandler):
         if not self._check_auth():
             return
         p = self.path_parts()
-        if p.startswith("/api/collection/"):
+        if p.startswith("/api/discogs/collection/"):
+            rid = p.split("/")[-1]
+            ok = discogs_remove_from_collection(rid)
+            self.send_json({"success": ok})
+        elif p.startswith("/api/collection/"):
             ok = db_delete(self._tail_id(p))
             self.send_json({"success": ok})
         else:
@@ -409,6 +425,11 @@ class Handler(http.server.BaseHTTPRequestHandler):
 
     # ── settings endpoints ────────────────────────────────────────
 
+    def _count_missing_master_ids(self) -> int:
+        """Count records with discogs_id but no master_id."""
+        records = db_list()
+        return sum(1 for r in records if r.get("discogs_id") and not r.get("master_id"))
+
     def _api_get_settings(self):
         """Return current settings with masked tokens."""
         dt = _config.DISCOGS_TOKEN
@@ -429,6 +450,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 "google_client_secret_set": bool(gs),
                 "google_client_secret_masked": f"••••{gs[-4:]}" if len(gs) > 4 else "",
                 "allowed_emails": _config.ALLOWED_EMAILS,
+                "sync_missing_master_ids": self._count_missing_master_ids(),
             }
         )
 
@@ -507,12 +529,43 @@ class Handler(http.server.BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    # ── sync endpoints ────────────────────────────────────────────
+
+    def _api_sync_status(self):
+        """Return current sync state."""
+        self.send_json(sync_get_state())
+
+    def _api_sync_fetch(self):
+        """Fetch Discogs collection and return diff."""
+        result = sync_start_fetch()
+        if "error" in result:
+            self.send_json(result, 400 if result.get("status") != "error" else 500)
+        else:
+            self.send_json(result)
+
+    def _api_sync_import(self):
+        """Import selected records from the diff."""
+        data = self.read_json()
+        selected = data.get("selected", [])
+        replace_ids = data.get("replace", [])
+        if not isinstance(selected, list) or not selected:
+            self.send_json({"error": "No records selected"}, 400)
+            return
+        if not isinstance(replace_ids, list):
+            replace_ids = []
+        result = sync_start_import(selected, replace_ids)
+        if "error" in result:
+            self.send_json(result, 400)
+        else:
+            self.send_json(result)
+
     # ── collection endpoints ─────────────────────────────────────
 
     def _api_add(self):
         data = self.read_json()
         allowed = (
             "discogs_id",
+            "master_id",
             "title",
             "artist",
             "year",
@@ -533,6 +586,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
             "num_for_sale",
             "rating_average",
             "rating_count",
+            "add_source",
         )
         record = {k: data[k] for k in allowed if k in data}
         record.setdefault("title", "")

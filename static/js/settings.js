@@ -68,6 +68,20 @@ function _renderSettings() {
   // Allowed emails
   const ae = document.getElementById('settings-allowed-emails');
   if (ae) ae.value = d.allowed_emails || '';
+
+  // Discogs sync — only show when Discogs is connected
+  const syncSection = document.getElementById('settings-sync-section');
+  if (syncSection) syncSection.style.display = d.discogs_token_set ? '' : 'none';
+
+  const syncStatus = document.getElementById('settings-sync-status');
+  if (syncStatus && d.discogs_token_set) {
+    const missing = d.sync_missing_master_ids || 0;
+    if (missing > 0) {
+      syncStatus.textContent = `${missing} record${missing === 1 ? '' : 's'} missing release metadata — first sync will index them automatically.`;
+    } else {
+      syncStatus.textContent = '';
+    }
+  }
 }
 
 function settingsToggleToken(type) {
