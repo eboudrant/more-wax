@@ -10,8 +10,6 @@ jobs:
   python-checks:
     name: Python
     runs-on: ubuntu-latest
-    permissions:
-      checks: write
     strategy:
       matrix:
         python-version: ["3.10", "3.11", "3.12", "3.13"]
@@ -39,15 +37,31 @@ jobs:
         run: pip install pytest
 
       - name: Run unit tests
-        run: pytest tests/ --junitxml=test-results-${{ matrix.python-version }}.xml -v
+        run: pytest tests/ --junitxml=test-results.xml -v
 
-      - name: Test Report
+      - name: Test summary
         if: always()
-        uses: dorny/test-reporter@v2
-        with:
-          name: Unit Tests (Python ${{ matrix.python-version }})
-          path: test-results-${{ matrix.python-version }}.xml
-          reporter: java-junit
+        run: |
+          pip install junitparser
+          python3 -c "
+          from junitparser import JUnitXml
+          xml = JUnitXml.fromfile('test-results.xml')
+          total = sum(1 for suite in xml for case in suite)
+          failed = sum(1 for suite in xml for case in suite if case.result and case.result[0].tag in ('failure', 'error'))
+          skipped = sum(1 for suite in xml for case in suite if case.result and case.result[0].tag == 'skipped')
+          passed = total - failed - skipped
+          icon = '✅' if failed == 0 else '❌'
+          print(f'### {icon} Unit Tests — Python ${{ matrix.python-version }}')
+          print(f'**{passed}** passed, **{failed}** failed, **{skipped}** skipped ({total} total)')
+          if failed > 0:
+              print()
+              print('| Test | Error |')
+              print('|------|-------|')
+              for suite in xml:
+                  for case in suite:
+                      if case.result and case.result[0].tag in ('failure', 'error'):
+                          print(f'| {case.classname}.{case.name} | {case.result[0].message[:80] if case.result[0].message else \"\"} |')
+          " >> "$GITHUB_STEP_SUMMARY"
 
   python-lint:
     name: Python Lint
