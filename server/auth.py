@@ -252,7 +252,7 @@ def _get_client_ip(handler) -> str:
     return (
         handler.headers.get("Cf-Connecting-Ip")
         or (handler.headers.get("X-Forwarded-For") or "").split(",")[0].strip()
-        or _get_client_ip(handler)
+        or handler.client_address[0]
     )
 
 
@@ -486,13 +486,15 @@ def handle_logout(handler):
     handler.end_headers()
 
 
-def handle_status(handler):
+def handle_status(handler, skip_auth=False):
     """GET /auth/status — Return auth state (always public)."""
-    enabled = is_auth_enabled()
-    session = get_session(handler.headers.get("Cookie", "")) if enabled else None
+    enabled = is_auth_enabled() and not skip_auth
+    session = (
+        get_session(handler.headers.get("Cookie", "")) if is_auth_enabled() else None
+    )
     result = {
         "auth_enabled": enabled,
-        "authenticated": session is not None,
+        "authenticated": session is not None or skip_auth,
         "user": None,
     }
     if session:

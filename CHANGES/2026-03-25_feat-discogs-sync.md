@@ -19,6 +19,15 @@ Import records from the user's Discogs collection that aren't in More'Wax yet. O
 8. Group Discogs settings together in settings modal
 9. Show sync readiness status in settings
 10. Bug fixes: race conditions, input validation, XSS, stale DOM updates
+11. Import runs in background thread with live progress polling (percentage)
+12. Import crash recovery (try/finally ensures status resets)
+13. Polling timeout (5 min max) prevents infinite loops
+14. Rate limit toast on 429 errors in detail view
+15. Suppress background price refresh after sync import to avoid rate limits
+16. Price refresh spacing increased to 5s (leaves 50% rate budget for browsing)
+17. Import prompt after setup wizard when collection is empty
+18. Confirm dialog before removing from Discogs collection
+19. DATA_DIR configurable via env var for isolated testing
 
 ## Changes
 
@@ -38,11 +47,12 @@ Import records from the user's Discogs collection that aren't in More'Wax yet. O
 - Thread-safe sync state machine with `_sync_lock`
 - `backfill_master_ids()`: startup background job — bulk via collection API, individual release fallback
 - `sync_start_fetch()`: fetches collection, backfills master_ids, computes diff with duplicate detection (master_id + fuzzy name)
-- `sync_start_import()`: atomic duplicate check + add under DB lock, deep-copies diff data, clears diff after import, normalizes input types
+- `sync_start_import()`: atomic duplicate check + add under DB lock, deep-copies diff data, clears diff after import, normalizes input types, try/finally crash recovery
 - `sync_get_state()`: returns status without diff (too large for polling)
 
 ### `server/handler.py`
-- Sync routes: `POST /api/sync/fetch`, `GET /api/sync/status`, `POST /api/sync/import`
+- Sync routes: `POST /api/sync/fetch`, `GET /api/sync/status`, `POST /api/sync/import` (background thread)
+- Price refresh spacing increased from 2.5s to 5s
 - Collection routes: `GET /api/discogs/in-collection/{id}`, `DELETE /api/discogs/collection/{id}`
 - Added `add_source` and `master_id` to allowed fields in `_api_add`
 - Input validation on sync import (list type check, string normalization)
@@ -52,7 +62,8 @@ Import records from the user's Discogs collection that aren't in More'Wax yet. O
 - Startup: chains `discogs_fetch_identity` → `backfill_master_ids` in background thread
 
 ### `static/js/sync.js` (new)
-- Full-screen sync overlay: fetching → diff review → importing → complete
+- Full-screen sync overlay: fetching → diff review → importing (with % progress) → complete
+- Polling timeout (5 min max) prevents infinite loops if server hangs
 - New records section with select all / deselect all
 - Duplicate section with expand/compare, skip/keep both/replace actions
 - Discogs links on all items (new and duplicate)
@@ -64,6 +75,8 @@ Import records from the user's Discogs collection that aren't in More'Wax yet. O
 - Source tag display (barcode, photo, search, synced)
 - Toggle button only on main panel (not peek panels)
 - Server confirmation before showing toast
+- Rate limit toast on 429 errors (single toast, no duplicates)
+- Confirm dialog before removing from Discogs collection
 
 ### `static/js/add-modal.js`
 - Sets `add_source` based on scanner mode
@@ -72,12 +85,37 @@ Import records from the user's Discogs collection that aren't in More'Wax yet. O
 - Grouped Discogs settings (token, format filter, import)
 - Sync readiness status (missing master_ids count)
 
+### `static/js/setup.js`
+- Import prompt after wizard completes when collection is empty and Discogs connected
+
+### `static/js/collection.js`
+- `_syncJustImported` flag suppresses background price refresh after import
+
+### `server/config.py`
+- `DATA_DIR` configurable via env var for isolated testing
+
 ### `static/index.html`
 - Sync overlay HTML, settings restructured (Discogs → Claude AI → Auth → Data)
+- Empty state "Import from Discogs" button
 - `sync.js` script tag
 
+### `server/auth.py`
+- Fixed `_get_client_ip()` infinite recursion when no proxy headers present
+
 ### `tests/test_sync.py` (new)
-- 16 unit tests: diff computation, duplicate detection (master_id + fuzzy), import, replace, skip, concurrent rejection, input normalization, schema migration
+- 34 unit tests: diff, duplicate detection (master_id + fuzzy), import (new, replace, skip, mixed, large batch, crash recovery, progress, stale diff, lost diff), concurrent rejection, backfill master_ids (phase 1 bulk, phase 2 individual, zero sentinel, error handling, mixed), schema migration
+
+### `tests/test_auth.py` (new)
+- 51 unit tests: email masking, PKCE (verifier, challenge), token hashing, cookie parsing, session management (create, get, delete, clear, expiry, cache, cleanup), auth enabled/disabled, email allowlist, client IP extraction, audit logging (write, rotation), rate limiting
+
+### `tests/test_discogs.py` (new)
+- 20 unit tests: name cleaning, artist formatting, price parsing (full, partial, fallback grades, currency propagation, zero/none values)
+
+### `tests/test_config.py` (expanded)
+- 13 new tests: .env parsing (key-value, quotes, comments, blanks, whitespace, setdefault precedence), save_token (new, update, preserve), supported models
+
+### `tests/test_database.py` (expanded)
+- 7 new tests: export (full, empty, schema version), corrupted DB recovery, backup creation, minimal records
 
 ## Files modified
 
@@ -93,5 +131,13 @@ Import records from the user's Discogs collection that aren't in More'Wax yet. O
 | `static/js/add-modal.js` | Set add_source on save |
 | `static/js/settings.js` | Grouped Discogs settings, sync status |
 | `static/index.html` | Sync overlay, restructured settings |
-| `tests/test_sync.py` | New — 16 unit tests for sync module |
+| `static/js/setup.js` | Import prompt after wizard |
+| `static/js/collection.js` | Suppress price refresh after sync |
+| `server/config.py` | DATA_DIR env var support |
+| `server/auth.py` | Fixed _get_client_ip infinite recursion |
+| `tests/test_sync.py` | New — 34 unit tests for sync + backfill |
+| `tests/test_auth.py` | New — 51 unit tests for auth module |
+| `tests/test_discogs.py` | New — 20 unit tests for Discogs parsing |
+| `tests/test_config.py` | 13 new tests for .env and save_token |
+| `tests/test_database.py` | 7 new tests for export and recovery |
 | `tests/screenshots/` | Updated baselines (settings, sync diff/complete/in-sync) |

@@ -54,9 +54,16 @@ window.addEventListener('DOMContentLoaded', async () => {
   const authOk = await checkAuth();
   if (!authOk) return;
 
-  _checkStatus();           // non-blocking — don't await
+  const statusPromise = _checkStatus();
   _checkCamera();           // hide Add buttons if no camera
   await loadCollection();
+  await statusPromise;      // ensure status is loaded before checking
+
+  // If collection is empty and Discogs is connected, show import option
+  if (collection.length === 0 && _serverStatus && _serverStatus.discogs_connected) {
+    const importBtn = document.getElementById('dash-empty-import');
+    if (importBtn) importBtn.classList.remove('hidden');
+  }
 
   // Navigate to initial view from hash
   navigateTo(_getViewFromHash());

@@ -452,6 +452,10 @@ async function _toggleDiscogsCollection(discogsId) {
 
   try {
     if (inCollection) {
+      // Restore icon while waiting for confirmation
+      _updateDiscogsToggle(btn, true);
+      if (!confirm('Remove this release from your Discogs collection?')) return;
+      icon.className = 'bi bi-arrow-repeat animate-spin text-xs';
       const res = await apiDelete(`/api/discogs/collection/${did}`);
       if (res && res.success) {
         _discogsCollectionState[did] = false;
@@ -547,6 +551,9 @@ async function _loadDiscogsExtra(r) {
   } catch (e) {
     clearTimeout(spinTimer);
     console.warn('Could not load release details:', e.message);
+    if (e.message && e.message.includes('429')) {
+      toast('Discogs rate limit — try again in a minute', 'error');
+    }
     const el = document.getElementById(`detail-extra-${r.id}`);
     if (el) el.innerHTML = _deleteButton(r.id);
   }

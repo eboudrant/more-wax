@@ -29,6 +29,7 @@ from server.database import (
     db_update,
 )
 from server.discogs import (
+    _discogs_request,
     discogs_add_to_collection,
     discogs_check_collection,
     discogs_refresh_prices,
@@ -172,7 +173,17 @@ class Handler(http.server.BaseHTTPRequestHandler):
         elif p == "/auth/logout":
             return _auth.handle_logout(self)
         elif p == "/auth/status":
-            return _auth.handle_status(self)
+            # Tell the client if auth is actually required for this connection.
+            # Local/private IPs bypass auth even when credentials are configured.
+            is_proxied = bool(
+                self.headers.get("X-Forwarded-For")
+                or self.headers.get("X-Forwarded-Proto")
+                or self.headers.get("Cf-Connecting-Ip")
+            )
+            skip_auth = not is_proxied and self._is_private_ip(
+                self.client_address[0] if self.client_address else ""
+            )
+            return _auth.handle_status(self, skip_auth=skip_auth)
 
         # ── Auth gate ─────────────────────────────────────────
         if not self._check_auth():
@@ -251,6 +262,9 @@ class Handler(http.server.BaseHTTPRequestHandler):
         elif p.startswith("/api/discogs/add-to-collection/"):
             rid = p.split("/")[-1]
             ok = discogs_add_to_collection(rid)
+            if ok:
+                # Backfill master_id if the local record is missing it
+                self._backfill_master_id(rid)
             self.send_json({"success": ok})
         elif p == "/api/collection/refresh-prices":
             self._api_refresh_all_prices()
@@ -283,6 +297,22 @@ class Handler(http.server.BaseHTTPRequestHandler):
             self.send_json({"success": ok})
         else:
             self._404()
+
+    def _backfill_master_id(self, discogs_id: str):
+        """Fetch and save master_id for a local record if missing."""
+        records = db_list()
+        rec = next(
+            (r for r in records if str(r.get("discogs_id", "")) == discogs_id),
+            None,
+        )
+        if not rec or rec.get("master_id"):
+            return  # already has master_id or not in local DB
+        try:
+            release = _discogs_request("GET", f"/releases/{discogs_id}")
+            mid = str(release.get("master_id", "") or "0")
+            db_update(rec["id"], {"master_id": mid})
+        except Exception:
+            pass  # non-critical, will be retried on next startup
 
     def _404(self):
         self.send_response(404)
@@ -544,7 +574,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
             self.send_json(result)
 
     def _api_sync_import(self):
-        """Import selected records from the diff."""
+        """Start importing selected records in a background thread."""
         data = self.read_json()
         selected = data.get("selected", [])
         replace_ids = data.get("replace", [])
@@ -553,11 +583,13 @@ class Handler(http.server.BaseHTTPRequestHandler):
             return
         if not isinstance(replace_ids, list):
             replace_ids = []
-        result = sync_start_import(selected, replace_ids)
-        if "error" in result:
-            self.send_json(result, 400)
-        else:
-            self.send_json(result)
+
+        def _run():
+            sync_start_import(selected, replace_ids)
+
+        t = threading.Thread(target=_run, daemon=True)
+        t.start()
+        self.send_json({"status": "importing", "total": len(selected)})
 
     # ── collection endpoints ─────────────────────────────────────
 
@@ -744,9 +776,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
                     if "429" in str(e):
                         print(f"  ⚠️ Rate limit hit after {updated} updates, stopping")
                         break
-                time.sleep(
-                    2.5
-                )  # respect rate limits (3 calls per record when rating needed)
+                # 5s between records — leaves ~50% rate budget for user browsing
+                time.sleep(5)
             print(f"  📊 Background price refresh done: {updated}/{len(stale)} updated")
 
         t = threading.Thread(target=_do_refresh, daemon=True)

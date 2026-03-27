@@ -16,12 +16,13 @@ function _showSyncOverlay() {
   if (el) { el.style.display = 'flex'; document.body.style.overflow = 'hidden'; }
 }
 
-function closeSyncOverlay() {
+async function closeSyncOverlay() {
   const el = document.getElementById('sync-overlay');
   if (el) { el.style.display = 'none'; document.body.style.overflow = ''; }
   if (_syncDidImport) {
     _syncDidImport = false;
-    loadCollection();
+    await loadCollection();
+    navigateTo('home');
   }
 }
 
@@ -270,7 +271,8 @@ async function _startSyncImport() {
   const selected = [..._syncSelected];
   if (selected.length === 0) return;
   const replace = [..._syncReplace];
-  _showSyncLoading(`Importing ${selected.length} record${selected.length === 1 ? '' : 's'}...`);
+  const total = selected.length;
+  _showSyncLoading(`Importing 0 of ${total} records (0%)…`);
 
   try {
     const res = await apiPost('/api/sync/import', { selected, replace });
@@ -278,10 +280,27 @@ async function _startSyncImport() {
       _showSyncMessage('bi-exclamation-triangle', 'Import failed', esc(res.error));
       return;
     }
-    const imported = res.imported || 0;
-    const replaced = res.replaced || 0;
-    const skipped = res.skipped || 0;
-    if (imported > 0 || replaced > 0) _syncDidImport = true;
+
+    // Poll progress until done (timeout after 5 min)
+    let imported = 0, replaced = 0, skipped = 0;
+    let s;
+    const maxPolls = 1500; // 1500 × 200ms = 5 min
+    let polls = 0;
+    do {
+      await new Promise(r => setTimeout(r, 200));
+      s = await apiGet('/api/sync/status');
+      const prog = s.progress || 0;
+      const pct = total > 0 ? Math.round((prog / total) * 100) : 0;
+      _showSyncLoading(`Importing ${prog} of ${total} records (${pct}%)…`);
+      if (++polls >= maxPolls) { s.status = 'timeout'; break; }
+    } while (s.status === 'importing');
+    imported = s.imported || 0;
+    replaced = s.replaced || 0;
+    skipped = s.skipped || 0;
+    if (imported > 0 || replaced > 0) {
+      _syncDidImport = true;
+      window._syncJustImported = true;  // suppress background price refresh
+    }
     let parts = [];
     if (replaced > 0) parts.push(`${replaced} replaced`);
     if (skipped > 0) parts.push(`${skipped} skipped`);

@@ -85,9 +85,14 @@
       <i class="bi bi-vinyl text-7xl text-outline-v/30"></i>
       <h3 class="font-headline font-bold text-2xl text-on-surface">Your vault is empty</h3>
       <p class="text-outline max-w-sm mx-auto">Scan a barcode, snap a cover photo, or search Discogs to add your first record.</p>
-      <button onclick="openScanner()" class="inline-flex items-center gap-2 px-6 py-3 bg-primary text-bg rounded-full font-label text-sm uppercase tracking-wider hover:brightness-110 transition">
-        <i class="bi bi-plus-lg"></i> Add a record
-      </button>
+      <div class="flex flex-col items-center gap-3">
+        <button onclick="openScanner()" class="inline-flex items-center gap-2 px-6 py-3 bg-primary text-bg rounded-full font-label text-sm uppercase tracking-wider hover:brightness-110 transition">
+          <i class="bi bi-plus-lg"></i> Add a record
+        </button>
+        <button id="dash-empty-import" onclick="startDiscogsSync()" class="hidden inline-flex items-center gap-2 text-sm text-primary hover:text-primary-dim transition-colors">
+          <i class="bi bi-arrow-repeat"></i> Import from Discogs
+        </button>
+      </div>
     </div>
 
     <!-- Search -->

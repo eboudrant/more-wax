@@ -319,50 +319,53 @@ def sync_start_import(selected_ids: list, replace_ids: list = None) -> dict:
     skipped = 0
     replaced = 0
 
-    for i, rec in enumerate(to_import):
-        record = {
-            "discogs_id": rec["discogs_id"],
-            "master_id": rec.get("master_id", ""),
-            "title": rec.get("title", ""),
-            "artist": rec.get("artist", ""),
-            "year": rec.get("year", ""),
-            "label": rec.get("label", ""),
-            "catalog_number": rec.get("catalog_number", ""),
-            "format": rec.get("format", ""),
-            "genres": rec.get("genres", "[]"),
-            "styles": rec.get("styles", "[]"),
-            "cover_image_url": rec.get("cover_image_url", ""),
-            "add_source": "discogs_sync",
-        }
+    try:
+        for i, rec in enumerate(to_import):
+            record = {
+                "discogs_id": rec["discogs_id"],
+                "master_id": rec.get("master_id", ""),
+                "title": rec.get("title", ""),
+                "artist": rec.get("artist", ""),
+                "year": rec.get("year", ""),
+                "label": rec.get("label", ""),
+                "catalog_number": rec.get("catalog_number", ""),
+                "format": rec.get("format", ""),
+                "genres": rec.get("genres", "[]"),
+                "styles": rec.get("styles", "[]"),
+                "cover_image_url": rec.get("cover_image_url", ""),
+                "add_source": "discogs_sync",
+            }
 
-        # Handle replace: delete old record first
-        if rec["discogs_id"] in replace_set and rec.get("_local_match"):
-            old_id = rec["_local_match"].get("id")
-            if old_id:
-                db_delete(old_id)
-                replaced += 1
+            # Handle replace: delete old record first
+            if rec["discogs_id"] in replace_set and rec.get("_local_match"):
+                old_id = rec["_local_match"].get("id")
+                if old_id:
+                    db_delete(old_id)
+                    replaced += 1
 
-        # Atomic duplicate check + add under the DB lock
-        with _db_lock:
-            dup = db_find_duplicate(record)
-            if dup:
-                skipped += 1
-            else:
-                _db_add_unlocked(record)
-                imported += 1
+            # Atomic duplicate check + add under the DB lock
+            with _db_lock:
+                dup = db_find_duplicate(record)
+                if dup:
+                    skipped += 1
+                else:
+                    _db_add_unlocked(record)
+                    imported += 1
 
+            with _sync_lock:
+                _sync_state["progress"] = i + 1
+                _sync_state["imported"] = imported
+                _sync_state["skipped"] = skipped
+                _sync_state["replaced"] = replaced
+    except Exception as e:
+        print(f"  ⚠️ [sync] Import error: {e}")
+    finally:
         with _sync_lock:
-            _sync_state["progress"] = i + 1
-            _sync_state["imported"] = imported
-            _sync_state["skipped"] = skipped
-            _sync_state["replaced"] = replaced
-
-    with _sync_lock:
-        _sync_state.update(
-            status="done",
-            phase="",
-            diff=[],  # Clear diff to free memory
-        )
+            _sync_state.update(
+                status="done",
+                phase="",
+                diff=[],  # Clear diff to free memory
+            )
 
     print(
         f"  📦 [sync] Import complete: {imported} imported,"
