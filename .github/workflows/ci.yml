@@ -33,35 +33,8 @@ jobs:
           python -c "import server.images"
           python -c "import server.handler"
 
-      - name: Install pytest
-        run: pip install pytest
-
       - name: Run unit tests
-        run: pytest tests/ --junitxml=test-results.xml -v
-
-      - name: Test summary
-        if: always()
-        run: |
-          pip install junitparser
-          python3 -c "
-          from junitparser import JUnitXml
-          xml = JUnitXml.fromfile('test-results.xml')
-          total = sum(1 for suite in xml for case in suite)
-          failed = sum(1 for suite in xml for case in suite if case.result and case.result[0].tag in ('failure', 'error'))
-          skipped = sum(1 for suite in xml for case in suite if case.result and case.result[0].tag == 'skipped')
-          passed = total - failed - skipped
-          icon = '✅' if failed == 0 else '❌'
-          print(f'### {icon} Unit Tests — Python ${{ matrix.python-version }}')
-          print(f'**{passed}** passed, **{failed}** failed, **{skipped}** skipped ({total} total)')
-          if failed > 0:
-              print()
-              print('| Test | Error |')
-              print('|------|-------|')
-              for suite in xml:
-                  for case in suite:
-                      if case.result and case.result[0].tag in ('failure', 'error'):
-                          print(f'| {case.classname}.{case.name} | {case.result[0].message[:80] if case.result[0].message else \"\"} |')
-          " >> "$GITHUB_STEP_SUMMARY"
+        run: python -m unittest discover -s tests -v
 
   python-lint:
     name: Python Lint

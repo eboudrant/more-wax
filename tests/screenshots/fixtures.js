@@ -447,12 +447,14 @@ async function mockSyncApi(page, { diff = MOCK_SYNC_DIFF, importResult = null } 
     });
   });
 
+  const importCount = importResult ? importResult.imported : diff.length;
+  const skipCount = importResult ? (importResult.skipped || 0) : 0;
+
   await page.route('**/api/sync/import', (route) => {
-    const result = importResult || { imported: diff.length, skipped: 0 };
     return route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify(result),
+      body: JSON.stringify({ status: 'importing', total: importCount }),
     });
   });
 
@@ -460,7 +462,14 @@ async function mockSyncApi(page, { diff = MOCK_SYNC_DIFF, importResult = null } 
     return route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({ status: 'done', imported: diff.length, total: diff.length, progress: diff.length }),
+      body: JSON.stringify({
+        status: 'done',
+        imported: importCount,
+        skipped: skipCount,
+        replaced: 0,
+        total: importCount,
+        progress: importCount,
+      }),
     });
   });
 }

@@ -49,7 +49,7 @@ test.describe('Dashboard', () => {
 
     await expect(page.locator('#dash-empty')).toBeVisible();
     await expect(page.locator('#dash-empty')).toContainText(/vault is empty/i);
-    await expect(page.locator('#dash-empty button')).toContainText(/Add a record/i);
+    await expect(page.locator('#dash-empty button').first()).toContainText(/Add a record/i);
 
     await expect(page.locator('#dash-picks-section')).not.toBeVisible();
     await expect(page.locator('#dash-recent-section')).not.toBeVisible();
