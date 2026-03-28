@@ -2,11 +2,16 @@
   "name": "more-wax",
   "private": true,
   "scripts": {
+    "css:build": "tailwindcss -i static/src/input.css -o static/styles.css --minify",
+    "css:watch": "tailwindcss -i static/src/input.css -o static/styles.css --watch",
     "test:screenshots": "docker run --rm -e DISCOGS_TOKEN=test-token -e CI=true morewax-test npx playwright test",
     "test:screenshots:update": "docker run --rm -e DISCOGS_TOKEN=test-token -v ./tests/screenshots:/app/tests/screenshots morewax-test npx playwright test --update-snapshots",
     "test:screenshots:build": "docker build -f Dockerfile.test -t morewax-test ."
   },
   "devDependencies": {
-    "@playwright/test": "1.58.2"
+    "@playwright/test": "1.58.2",
+    "@tailwindcss/container-queries": "^0.1.1",
+    "@tailwindcss/forms": "^0.5.11",
+    "tailwindcss": "^3.4.19"
   }
 }

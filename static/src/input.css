@@ -1,0 +1,417 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* More'Wax – Design System Styles */
+
+:root {
+  --bg:        #131313;
+  --surface:   #201f1f;
+  --surface2:  #2a2a2a;
+  --border:    #4e453c;
+  --accent:    #fddcb1;
+  --accent2:   #e1c198;
+  --text:      #e5e2e1;
+  --muted:     #9a8f83;
+  --danger:    #f87171;
+  --green:     #4ade80;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { overscroll-behavior: none; }
+
+/* ── VIEWS ──────────────────────────────────────────────── */
+.view { min-height: calc(100dvh - 56px); }
+
+/* ── NAV ────────────────────────────────────────────────── */
+.nav-link-top {
+  color: #d1c4b8;
+  transition: opacity 0.2s;
+  text-decoration: none;
+}
+.nav-link-top:hover { opacity: 0.8; }
+.nav-link-top.active { color: #fddcb1; }
+
+.bottom-nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #d1c4b8;
+  opacity: 0.6;
+  transition: color 0.2s, opacity 0.2s;
+  text-decoration: none;
+  padding: 4px 20px;
+  flex: 1;
+}
+.bottom-nav-item.active {
+  opacity: 1;
+  color: #fddcb1;
+}
+
+/* ── CUSTOM MODAL SYSTEM ────────────────────────────────── */
+.app-modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 1050;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.app-modal.app-modal-visible {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 2rem 1rem;
+}
+.app-modal.active .app-modal-content {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.app-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 1040;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  backdrop-filter: blur(4px);
+}
+.app-modal-backdrop.active { opacity: 1; }
+
+.app-modal-dialog {
+  position: relative;
+  z-index: 1050;
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+}
+.app-modal-lg { max-width: 700px; }
+
+.app-modal-content {
+  border: 1px solid rgba(78, 69, 60, 0.2);
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.25s ease, transform 0.25s ease;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-modal-scrollable .app-modal-content {
+  max-height: 90vh;
+}
+.app-modal-scrollable #detail-body {
+  overflow-x: clip;
+  overflow-y: auto;
+  max-height: 90vh;
+  min-height: 60vh;
+}
+
+/* Full-screen modals on mobile */
+@media (max-width: 639px) {
+  .app-modal.app-modal-visible {
+    padding: 0;
+    align-items: stretch;
+  }
+  .app-modal-dialog {
+    max-width: 100%;
+    min-height: 100dvh;
+  }
+  .app-modal-content {
+    border-radius: 0 !important;
+    border: none !important;
+    min-height: 100dvh;
+    max-height: 100dvh;
+  }
+  .app-modal-scrollable .app-modal-content,
+  .app-modal-scrollable #detail-body {
+    max-height: 100dvh;
+    min-height: 100dvh;
+  }
+}
+
+/* ── DETAIL OVERLAY BUTTONS ─────────────────────────────── */
+.detail-overlay-btn {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: background 0.15s;
+}
+.detail-overlay-btn:hover { background: rgba(0, 0, 0, 0.75); }
+.detail-overlay-btn:disabled { opacity: 0.25; pointer-events: none; }
+
+/* ── DETAIL CAROUSEL TRACK ──────────────────────────────── */
+.detail-track {
+  position: relative;
+  will-change: transform;
+}
+.detail-track.animating {
+  transition: transform 280ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.detail-panel {
+  min-width: 0;
+}
+
+/* ── BUTTONS ────────────────────────────────────────────── */
+.btn-primary-new {
+  background: linear-gradient(135deg, #fddcb1, #e0c097);
+  color: #402d0f;
+  border: none;
+  font-weight: 700;
+  padding: 10px 20px;
+  border-radius: 9999px;
+  font-size: 0.875rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  transition: transform 0.15s, opacity 0.15s;
+  min-height: 44px;
+}
+.btn-primary-new:active { transform: scale(0.95); }
+.btn-primary-new:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.btn-ghost-new {
+  background: transparent;
+  border: 1px solid rgba(78, 69, 60, 0.3);
+  color: #d1c4b8;
+  padding: 8px 16px;
+  border-radius: 9999px;
+  font-size: 0.875rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  transition: border-color 0.15s, color 0.15s;
+  min-height: 44px;
+}
+.btn-ghost-new:hover { border-color: #e5e2e1; color: #e5e2e1; }
+
+/* ── METHOD CARDS ───────────────────────────────────────── */
+.method-card {
+  background: #2a2a2a;
+  border-radius: 12px;
+  padding: 20px 10px;
+  text-align: center;
+  cursor: pointer;
+  transition: transform 0.15s, background 0.15s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 110px;
+  -webkit-tap-highlight-color: transparent;
+}
+.method-card:active { transform: scale(0.96); }
+.method-card:hover { background: #353534; }
+
+/* ── META ROW (legacy compat for helpers.js) ────────────── */
+.meta-row {
+  display: flex;
+  gap: 8px;
+  font-size: 0.84rem;
+  margin-bottom: 5px;
+}
+.meta-row .label { color: var(--muted); width: 82px; flex-shrink: 0; }
+.meta-row .value { color: var(--text); }
+
+/* ── BADGES ─────────────────────────────────────────────── */
+.record-price-badge {
+  font-size: 0.66rem;
+  color: var(--green);
+  font-weight: 600;
+  background: rgba(74, 222, 128, 0.1);
+  border-radius: 4px;
+  padding: 1px 5px;
+  white-space: nowrap;
+}
+.record-rating-badge {
+  font-size: 0.66rem;
+  color: #f59e0b;
+  font-weight: 600;
+  background: rgba(245, 158, 11, 0.1);
+  border-radius: 4px;
+  padding: 1px 5px;
+  white-space: nowrap;
+}
+
+/* ── SCANNER VIEW ──────────────────────────────────────── */
+.scanner-frame {
+  border: 2px solid rgba(253, 220, 177, 0.35);
+  box-shadow: 0 0 0 9999px rgba(19, 19, 19, 0.7);
+  transition: aspect-ratio 0.3s ease, max-width 0.3s ease;
+}
+.scanner-frame.photo-mode {
+  aspect-ratio: 1 / 1;
+  max-width: 280px;
+}
+.scanner-scan-line {
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #fddcb1, transparent);
+  box-shadow: 0 0 15px rgba(253, 220, 177, 0.6);
+  animation: scanLine 3s infinite linear;
+}
+@keyframes scanLine {
+  0%   { top: 10%; }
+  50%  { top: 90%; }
+  100% { top: 10%; }
+}
+
+/* Scanner mode toggle */
+.scanner-mode-btn {
+  flex: 1;
+  padding: 6px 16px;
+  border-radius: 9999px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #d1c4b8;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.scanner-mode-btn.active {
+  background: linear-gradient(135deg, #fddcb1, #e0c097);
+  color: #402d0f;
+}
+.scanner-mode-btn:not(.active):hover {
+  color: #e5e2e1;
+}
+
+/* Desktop: constrain scanner to phone-width column */
+@media (min-width: 768px) {
+  #view-scanner.open {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+  }
+  #view-scanner > * {
+    max-width: 430px;
+  }
+  #view-scanner > video {
+    max-width: 100%;
+  }
+  #scanner-sheet,
+  #scanner-sheet-backdrop {
+    max-width: 430px;
+    left: 50%;
+    transform: translateX(-50%) translateY(100%);
+    right: auto;
+  }
+  #scanner-search-panel {
+    max-width: 430px;
+    left: 50%;
+    transform: translateX(-50%);
+    right: auto;
+  }
+  #scanner-sheet.sheet-open {
+    transform: translateX(-50%) translateY(5%) !important;
+  }
+}
+
+/* ── LEGACY CAMERA (kept for compat) ─────────────────────── */
+#camera-viewport {
+  position: relative;
+  width: 100%;
+  background: #000;
+  border-radius: 10px;
+  overflow: hidden;
+  max-height: 50dvh;
+}
+
+/* ── TOAST ──────────────────────────────────────────────── */
+#toast-container {
+  position: fixed;
+  bottom: 90px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  width: min(360px, calc(100vw - 32px));
+  pointer-events: none;
+}
+.app-toast {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 11px 18px;
+  border-radius: 10px;
+  margin-top: 8px;
+  font-size: 0.85rem;
+  animation: fadeInUp 0.22s ease;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+  text-align: center;
+}
+.app-toast.success { border-color: var(--green); }
+.app-toast.error   { border-color: var(--danger); }
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── WALL VIEW (cover grid with 3D flip) ──────────────── */
+.wall-card {
+  perspective: 800px;
+  cursor: pointer;
+  overflow: hidden;
+  border-radius: 4px;
+}
+.wall-card-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  transform-style: preserve-3d;
+}
+.wall-card:hover .wall-card-inner {
+  transform: rotateY(180deg);
+}
+.wall-card-front,
+.wall-card-back {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+.wall-card-front {
+  overflow: hidden;
+}
+.wall-card-back {
+  transform: rotateY(180deg);
+  background: rgba(19, 19, 19, 0.92);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 8px;
+}
+
+/* ── SCROLLBAR ──────────────────────────────────────────── */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+/* ── QUAGGA canvas ──────────────────────────────────────── */
+#camera-viewport canvas.drawingBuffer {
+  position: absolute !important;
+  top: 0; left: 0;
+  width: 100% !important;
+  height: 100% !important;
+  opacity: 0.35;
+}
