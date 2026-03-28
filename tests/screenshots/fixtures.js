@@ -338,4 +338,140 @@ async function mockEmptyApi(page) {
   });
 }
 
-module.exports = { mockApi, mockEmptyApi, mockStatus, MOCK_COLLECTION, MOCK_SEARCH_RESULTS };
+const MOCK_SYNC_DIFF = [
+  {
+    discogs_id: '555001',
+    title: 'Endtroducing.....',
+    artist: 'DJ Shadow',
+    year: '1996',
+    label: 'Mo Wax',
+    format: 'Vinyl',
+    cover_image_url: '',
+    thumb: '',
+  },
+  {
+    discogs_id: '555002',
+    title: 'Since I Left You',
+    artist: 'The Avalanches',
+    year: '2000',
+    label: 'Modular Recordings',
+    format: 'Vinyl',
+    cover_image_url: '',
+    thumb: '',
+  },
+  {
+    discogs_id: '555003',
+    title: 'Donuts',
+    artist: 'J Dilla',
+    year: '2006',
+    label: 'Stones Throw Records',
+    format: 'Vinyl',
+    cover_image_url: '',
+    thumb: '',
+  },
+  {
+    discogs_id: '555004',
+    title: 'Cosmogramma',
+    artist: 'Flying Lotus',
+    year: '2010',
+    label: 'Warp Records',
+    format: 'Vinyl',
+    cover_image_url: '',
+    thumb: '',
+  },
+  // Possible duplicate — same title/artist as MOCK_COLLECTION[0] but different pressing
+  {
+    discogs_id: '555005',
+    title: 'Discovery',
+    artist: 'Daft Punk',
+    year: '2001',
+    label: 'Parlophone',
+    catalog_number: '0190295195014',
+    format: 'Vinyl, LP, Album, Reissue',
+    cover_image_url: '',
+    thumb: '',
+    _duplicate: true,
+    _local_match: {
+      id: 1,
+      discogs_id: '123456',
+      title: 'Discovery',
+      artist: 'Daft Punk',
+      year: '2001',
+      label: 'Virgin',
+      catalog_number: 'V2940',
+      format: 'Vinyl, LP, Album',
+      cover_image_url: '',
+    },
+  },
+  // Second duplicate — different pressing of MOCK_COLLECTION[1]
+  {
+    discogs_id: '555006',
+    title: 'Music Has the Right to Children',
+    artist: 'Boards of Canada',
+    year: '2013',
+    label: 'Warp Records',
+    catalog_number: 'WARPLP55R',
+    format: 'Vinyl, LP, Album, Reissue, Remastered',
+    cover_image_url: '',
+    thumb: '',
+    _duplicate: true,
+    _local_match: {
+      id: 2,
+      discogs_id: '789012',
+      title: 'Music Has the Right to Children',
+      artist: 'Boards of Canada',
+      year: '1998',
+      label: 'Warp Records',
+      catalog_number: 'WARPCD55',
+      format: 'Vinyl, LP, Album',
+      cover_image_url: '',
+    },
+  },
+];
+
+/**
+ * Mock sync API endpoints for screenshot tests.
+ * Call after mockApi().
+ */
+async function mockSyncApi(page, { diff = MOCK_SYNC_DIFF, importResult = null } = {}) {
+  await page.route('**/api/sync/fetch', (route) => {
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        status: 'ok',
+        diff,
+        total_in_discogs: MOCK_COLLECTION.length + diff.length,
+        already_in_morewax: MOCK_COLLECTION.length,
+      }),
+    });
+  });
+
+  const importCount = importResult ? importResult.imported : diff.length;
+  const skipCount = importResult ? (importResult.skipped || 0) : 0;
+
+  await page.route('**/api/sync/import', (route) => {
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ status: 'importing', total: importCount }),
+    });
+  });
+
+  await page.route('**/api/sync/status', (route) => {
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        status: 'done',
+        imported: importCount,
+        skipped: skipCount,
+        replaced: 0,
+        total: importCount,
+        progress: importCount,
+      }),
+    });
+  });
+}
+
+module.exports = { mockApi, mockEmptyApi, mockStatus, mockSyncApi, MOCK_COLLECTION, MOCK_SEARCH_RESULTS, MOCK_SYNC_DIFF };

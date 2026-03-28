@@ -12,6 +12,24 @@ from server.config import DB_FILE
 
 _lock = threading.Lock()
 
+CURRENT_SCHEMA = "1.1"
+
+
+def _migrate(data: dict) -> dict:
+    """Run schema migrations in order."""
+    version = data.get("schema_version", "1.0")
+
+    if version == "1.0":
+        # 1.0 → 1.1: add add_source field to all existing records
+        for r in data["records"]:
+            if "add_source" not in r:
+                r["add_source"] = "barcode"
+        data["schema_version"] = "1.1"
+        print("  📦 [db] Migrated schema 1.0 → 1.1 (added add_source field)")
+        version = "1.1"
+
+    return data
+
 
 def _load() -> dict:
     if DB_FILE.exists():
@@ -22,6 +40,9 @@ def _load() -> dict:
                 # Migration: add schema_version if missing
                 if "schema_version" not in data:
                     data["schema_version"] = "1.0"
+                # Run any pending migrations
+                if data["schema_version"] != CURRENT_SCHEMA:
+                    data = _migrate(data)
                     _save(data)
                 return data
             print(f"  ⚠️ [db] Invalid structure in {DB_FILE}, resetting")
@@ -34,7 +55,7 @@ def _load() -> dict:
                 print(f"  ⚠️ [db] Corrupted file backed up to {backup}")
             except OSError:
                 pass
-    return {"schema_version": "1.0", "records": [], "next_id": 1}
+    return {"schema_version": CURRENT_SCHEMA, "records": [], "next_id": 1}
 
 
 def _save(data: dict) -> None:
@@ -63,7 +84,11 @@ def db_get(rid: int):
 
 
 def db_find_duplicate(record: dict):
-    """Return an existing record that looks like a duplicate, or None."""
+    """Return an existing record that looks like a duplicate, or None.
+
+    WARNING: Does NOT acquire _lock. Caller must hold _lock if atomicity
+    with db_add is needed (e.g. check-then-add pattern).
+    """
     discogs_id = str(record.get("discogs_id", "")).strip()
     barcode = str(record.get("barcode", "")).strip()
     data = _load()

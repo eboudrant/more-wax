@@ -7,6 +7,18 @@
       "runtimeArgs": ["server.py"],
       "port": 8765,
       "autoPort": false
+    },
+    {
+      "name": "more-wax-test",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["server.py"],
+      "port": 9765,
+      "autoPort": false,
+      "env": {
+        "DATA_DIR": "/tmp/morewax-test-data",
+        "HTTP_PORT": "9765",
+        "HTTPS_PORT": "9766"
+      }
     }
   ]
 }

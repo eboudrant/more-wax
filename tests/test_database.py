@@ -168,6 +168,66 @@ class TestDatabase(unittest.TestCase):
         ids = [r["id"] for r in records]
         self.assertEqual(len(set(ids)), 20)
 
+    # ── Export ────────────────────────────────────────────
+
+    def test_export_returns_full_data(self):
+        db = self._get_db()
+        db.db_add({"artist": "DJ Shadow", "title": "Endtroducing"})
+        db.db_add({"artist": "UNKLE", "title": "Psyence Fiction"})
+        data = db.db_export()
+        self.assertIn("records", data)
+        self.assertIn("schema_version", data)
+        self.assertEqual(len(data["records"]), 2)
+
+    def test_export_empty_db(self):
+        db = self._get_db()
+        data = db.db_export()
+        self.assertEqual(len(data["records"]), 0)
+
+    def test_export_includes_schema_version(self):
+        db = self._get_db()
+        data = db.db_export()
+        self.assertIn("schema_version", data)
+        self.assertEqual(data["schema_version"], db.CURRENT_SCHEMA)
+
+    # ── Corrupted DB recovery ────────────────────────────
+
+    def test_corrupted_json_resets(self):
+        _db_file.write_text("not valid json{{{")
+        db = self._get_db()
+        records = db.db_list()
+        self.assertEqual(len(records), 0)  # should recover with empty DB
+
+    def test_invalid_structure_resets(self):
+        _db_file.write_text(json.dumps({"wrong": "structure"}))
+        db = self._get_db()
+        records = db.db_list()
+        self.assertEqual(len(records), 0)
+
+    def test_corrupted_creates_backup(self):
+        _db_file.write_text("corrupted{{{")
+        db = self._get_db()
+        db.db_list()  # triggers load
+        backup = _db_file.with_suffix(".json.bak")
+        self.assertTrue(backup.exists())
+        backup.unlink(missing_ok=True)
+
+    # ── Partial fields ───────────────────────────────────
+
+    def test_add_minimal_record(self):
+        db = self._get_db()
+        rid = db.db_add({})
+        self.assertIsInstance(rid, int)
+        rec = db.db_get(rid)
+        self.assertIsNotNone(rec)
+
+    def test_partial_fields_preserved(self):
+        db = self._get_db()
+        rid = db.db_add({"artist": "Test", "custom_field": "value"})
+        rec = db.db_get(rid)
+        # custom fields should be preserved
+        self.assertEqual(rec.get("custom_field", ""), "value")
+
 
 if __name__ == "__main__":
     unittest.main()

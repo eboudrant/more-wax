@@ -85,9 +85,14 @@
       <i class="bi bi-vinyl text-7xl text-outline-v/30"></i>
       <h3 class="font-headline font-bold text-2xl text-on-surface">Your vault is empty</h3>
       <p class="text-outline max-w-sm mx-auto">Scan a barcode, snap a cover photo, or search Discogs to add your first record.</p>
-      <button onclick="openScanner()" class="inline-flex items-center gap-2 px-6 py-3 bg-primary text-bg rounded-full font-label text-sm uppercase tracking-wider hover:brightness-110 transition">
-        <i class="bi bi-plus-lg"></i> Add a record
-      </button>
+      <div class="flex flex-col items-center gap-3">
+        <button onclick="openScanner()" class="inline-flex items-center gap-2 px-6 py-3 bg-primary text-bg rounded-full font-label text-sm uppercase tracking-wider hover:brightness-110 transition">
+          <i class="bi bi-plus-lg"></i> Add a record
+        </button>
+        <button id="dash-empty-import" onclick="startDiscogsSync()" class="hidden inline-flex items-center gap-2 text-sm text-primary hover:text-primary-dim transition-colors">
+          <i class="bi bi-arrow-repeat"></i> Import from Discogs
+        </button>
+      </div>
     </div>
 
     <!-- Search -->
@@ -275,6 +280,18 @@
   <input type="file" id="scanner-file-input" accept="image/*,.heic,.heif" class="hidden" onchange="handleScannerPhotoUpload(event)">
 </div>
 
+<!-- ── DISCOGS SYNC OVERLAY ─────────────────────────────────── -->
+<div id="sync-overlay" class="fixed inset-0 z-[60] bg-bg" style="display:none;flex-direction:column">
+  <div class="flex items-center justify-between px-6 py-4 border-b border-outline-v/10">
+    <h2 class="font-headline font-bold text-xl text-on-surface">Discogs Sync</h2>
+    <button onclick="closeSyncOverlay()" class="text-outline hover:text-on-surface transition-colors">
+      <i class="bi bi-x-lg text-xl"></i>
+    </button>
+  </div>
+  <div id="sync-content" class="flex-1 overflow-y-auto px-6 py-8"></div>
+  <div id="sync-footer" class="px-6 py-4 border-t border-outline-v/10"></div>
+</div>
+
 <!-- ── TOAST CONTAINER ──────────────────────────────────────── -->
 <div id="toast-container"></div>
 
@@ -323,14 +340,14 @@
           </button>
         </div>
 
-        <!-- Connections -->
+        <!-- Discogs -->
         <div class="space-y-4">
-          <h3 class="font-label text-xs uppercase tracking-widest text-outline">Connections</h3>
+          <h3 class="font-label text-xs uppercase tracking-widest text-outline">Discogs</h3>
 
           <!-- Discogs token -->
           <div class="space-y-2">
             <div class="flex items-center justify-between">
-              <label class="text-sm text-on-surface-v">Discogs Token</label>
+              <label class="text-sm text-on-surface-v">Token</label>
               <span id="settings-discogs-mask" class="text-xs text-outline font-mono"></span>
             </div>
             <div id="settings-discogs-input-wrap" class="hidden">
@@ -343,21 +360,38 @@
             </div>
             <button id="settings-discogs-change" onclick="settingsToggleToken('discogs')"
               class="text-xs text-primary hover:text-primary-dim transition-colors">Change token</button>
-            <div class="flex items-center gap-3 mt-2">
-              <label class="text-sm text-on-surface-v">Format filter</label>
-              <select id="settings-format-filter" onchange="settingsSaveFormat(this.value)"
-                class="bg-surface-high border border-on-surface/20 rounded-lg px-3 py-2 text-on-surface text-sm focus:border-primary focus:outline-none">
-                <option value="Vinyl">Vinyl</option>
-                <option value="CD">CD</option>
-                <option value="All">All formats</option>
-              </select>
-            </div>
           </div>
+
+          <!-- Format filter -->
+          <div class="flex items-center gap-3">
+            <label class="text-sm text-on-surface-v">Search filter</label>
+            <select id="settings-format-filter" onchange="settingsSaveFormat(this.value)"
+              class="bg-surface-high border border-on-surface/20 rounded-lg px-3 py-2 text-on-surface text-sm focus:border-primary focus:outline-none">
+              <option value="Vinyl">Vinyl</option>
+              <option value="CD">CD</option>
+              <option value="All">All formats</option>
+            </select>
+          </div>
+
+          <!-- Import from Discogs -->
+          <div id="settings-sync-section">
+            <button id="settings-sync-btn" onclick="startDiscogsSync()"
+              class="flex items-center gap-2 text-sm text-primary hover:text-primary-dim transition-colors">
+              <i class="bi bi-arrow-repeat"></i> Import from Discogs
+            </button>
+            <p class="text-xs text-on-surface-v mt-1">Import records from your Discogs collection that aren't in More'Wax yet.</p>
+            <p id="settings-sync-status" class="text-xs text-outline mt-1"></p>
+          </div>
+        </div>
+
+        <!-- Claude AI -->
+        <div class="space-y-4">
+          <h3 class="font-label text-xs uppercase tracking-widest text-outline">Claude AI</h3>
 
           <!-- Anthropic key -->
           <div class="space-y-2">
             <div class="flex items-center justify-between">
-              <label class="text-sm text-on-surface-v">Anthropic API Key</label>
+              <label class="text-sm text-on-surface-v">API Key</label>
               <span id="settings-anthropic-mask" class="text-xs text-outline font-mono"></span>
             </div>
             <div id="settings-anthropic-input-wrap" class="hidden">
@@ -371,14 +405,14 @@
             <button id="settings-anthropic-change" onclick="settingsToggleToken('anthropic')"
               class="text-xs text-primary hover:text-primary-dim transition-colors">Change key</button>
           </div>
-        </div>
 
-        <!-- AI Model -->
-        <div class="space-y-2">
-          <h3 class="font-label text-xs uppercase tracking-widest text-outline">AI Model</h3>
-          <select id="settings-vision-model" onchange="settingsSaveModel(this.value)"
-            class="w-full bg-surface-high border border-on-surface/20 rounded-lg px-3 py-2.5 text-on-surface text-sm focus:border-primary focus:outline-none">
-          </select>
+          <!-- Vision model -->
+          <div class="space-y-2">
+            <label class="text-sm text-on-surface-v">Model</label>
+            <select id="settings-vision-model" onchange="settingsSaveModel(this.value)"
+              class="w-full bg-surface-high border border-on-surface/20 rounded-lg px-3 py-2.5 text-on-surface text-sm focus:border-primary focus:outline-none">
+            </select>
+          </div>
         </div>
 
         <!-- Authentication -->
@@ -430,15 +464,12 @@
 
           <!-- Allowed Emails -->
           <div class="space-y-2">
-            <div class="flex items-center justify-between">
-              <label class="text-sm text-on-surface-v">Allowed Emails</label>
-            </div>
+            <label class="text-sm text-on-surface-v">Allowed Emails</label>
             <input id="settings-allowed-emails" type="text" placeholder="email@example.com (auto-set on first login)"
               class="w-full bg-surface-high border border-on-surface/20 rounded-lg px-3 py-2.5 text-on-surface text-sm focus:border-primary focus:outline-none"
               onchange="settingsSaveAllowedEmails(this.value)">
             <p class="text-xs text-on-surface-v">Comma-separated. Leave blank for first-login-locks (first user to sign in becomes the owner).</p>
           </div>
-
         </div>
 
         <!-- Data -->
@@ -471,6 +502,7 @@
 <script src="/static/js/add-modal.js"></script>
 <script src="/static/js/setup.js"></script>
 <script src="/static/js/settings.js"></script>
+<script src="/static/js/sync.js"></script>
 <script src="/static/js/auth.js"></script>
 <script src="/static/js/init.js"></script>
 </body>

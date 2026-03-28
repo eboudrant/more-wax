@@ -8,7 +8,9 @@ from pathlib import Path
 
 BASE_DIR = Path(__file__).parent.parent
 STATIC_DIR = BASE_DIR / "static"
-DATA_DIR = BASE_DIR / "data"
+DATA_DIR = (
+    Path(os.environ["DATA_DIR"]) if "DATA_DIR" in os.environ else BASE_DIR / "data"
+)
 COVERS_DIR = DATA_DIR / "covers"
 DB_FILE = DATA_DIR / "collection.json"
 

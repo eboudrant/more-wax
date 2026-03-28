@@ -83,7 +83,15 @@ def main():
 
     # Validate credentials in background (don't block server startup)
     if DISCOGS_TOKEN:
-        threading.Thread(target=discogs_fetch_identity, daemon=True).start()
+
+        def _init_discogs():
+            discogs_fetch_identity()
+            # Backfill master_id for existing records (uses collection API, no per-record calls)
+            from server.sync import backfill_master_ids
+
+            backfill_master_ids()
+
+        threading.Thread(target=_init_discogs, daemon=True).start()
     if ANTHROPIC_API_KEY:
         threading.Thread(target=check_anthropic_key, daemon=True).start()
     # Session cleanup for OAuth

@@ -27,8 +27,8 @@ async function loadCollection() {
     collection = [];
   }
   renderCollection();
-  // One-time backfill: only run once per session, not on every loadCollection() call
-  if (!window._pricesBackfilled) {
+  // One-time backfill: only run once per session, skip if a sync import just ran
+  if (!window._pricesBackfilled && !window._syncJustImported) {
     window._pricesBackfilled = true;
     _backgroundRefreshPrices();
   }

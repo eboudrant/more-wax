@@ -293,5 +293,43 @@ async function _finishSetup() {
     _setupOverlay = null;
   }
   await loadCollection();
+  // Re-render status cards
+  if (typeof _renderStatus === 'function') _renderStatus();
   navigateTo('home');
+
+  // If collection is empty and Discogs is connected, offer to import
+  if (collection.length === 0 && _serverStatus && _serverStatus.discogs_connected) {
+    // Show import prompt
+    const importBtn = document.getElementById('dash-empty-import');
+    if (importBtn) importBtn.classList.remove('hidden');
+    _showImportPrompt();
+  }
+}
+
+function _showImportPrompt() {
+  const overlay = document.createElement('div');
+  overlay.id = 'import-prompt';
+  overlay.className = 'fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm';
+  overlay.innerHTML = `
+    <div class="bg-surface rounded-2xl p-6 max-w-sm mx-4 space-y-4 shadow-2xl">
+      <div class="flex items-center gap-3">
+        <i class="bi bi-arrow-repeat text-2xl text-primary"></i>
+        <h3 class="font-headline font-bold text-lg text-on-surface">Import your collection?</h3>
+      </div>
+      <p class="text-outline text-sm leading-relaxed">
+        You have records on Discogs. Would you like to import them into More'Wax?
+      </p>
+      <div class="flex gap-3">
+        <button onclick="document.getElementById('import-prompt').remove()"
+                class="flex-1 border border-on-surface/20 text-on-surface/70 font-medium py-2.5 rounded-lg hover:bg-surface-high transition text-sm">
+          Not now
+        </button>
+        <button onclick="document.getElementById('import-prompt').remove(); startDiscogsSync()"
+                class="flex-1 bg-primary text-bg font-medium py-2.5 rounded-lg hover:brightness-110 transition text-sm">
+          Import
+        </button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
 }
