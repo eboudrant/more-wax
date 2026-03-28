@@ -270,6 +270,10 @@ async function mockApi(page) {
           vision_model: 'claude-sonnet-4-6',
           supported_models: ['claude-sonnet-4-6', 'claude-haiku-4', 'claude-opus-4'],
           format_filter: 'Vinyl',
+          google_client_id_set: false,
+          google_client_secret_set: false,
+          allowed_emails: '',
+          sync_missing_master_ids: 0,
         }),
       });
     }
@@ -285,6 +289,10 @@ async function mockApi(page) {
         vision_model: 'claude-sonnet-4-6',
         supported_models: ['claude-sonnet-4-6', 'claude-haiku-4', 'claude-opus-4'],
         format_filter: 'Vinyl',
+        google_client_id_set: false,
+        google_client_secret_set: false,
+        allowed_emails: '',
+        sync_missing_master_ids: 0,
       }),
     });
   });
@@ -474,4 +482,72 @@ async function mockSyncApi(page, { diff = MOCK_SYNC_DIFF, importResult = null } 
   });
 }
 
-module.exports = { mockApi, mockEmptyApi, mockStatus, mockSyncApi, MOCK_COLLECTION, MOCK_SEARCH_RESULTS, MOCK_SYNC_DIFF };
+/**
+ * Mock auth endpoint. By default auth is not required (local access).
+ * Call with authRequired=true to simulate remote access with auth enabled.
+ */
+async function mockAuth(page, { authRequired = false, email = '', avatar = '' } = {}) {
+  await page.route('**/auth/status', (route) => {
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        auth_enabled: authRequired,
+        authenticated: authRequired ? !!email : true,
+        email: email || null,
+        name: email ? email.split('@')[0] : null,
+        picture: avatar || null,
+      }),
+    });
+  });
+}
+
+/**
+ * Override settings mock to include Google OAuth credentials (auth active).
+ * Call AFTER mockApi.
+ */
+async function mockSettingsWithAuth(page) {
+  await page.unroute('**/api/settings');
+  await page.route('**/api/settings', (route) => {
+    if (route.request().method() === 'GET') {
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          discogs_token_set: true,
+          discogs_token_masked: '••••abcd',
+          anthropic_key_set: true,
+          anthropic_key_masked: '••••xyz1',
+          vision_model: 'claude-sonnet-4-6',
+          supported_models: ['claude-sonnet-4-6', 'claude-haiku-4', 'claude-opus-4'],
+          format_filter: 'Vinyl',
+          google_client_id_set: true,
+          google_client_id_masked: '••••.com',
+          google_client_secret_set: true,
+          google_client_secret_masked: '••••qA_-',
+          allowed_emails: 'user@example.com',
+          sync_missing_master_ids: 0,
+        }),
+      });
+    }
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        discogs_token_set: true,
+        discogs_token_masked: '••••abcd',
+        anthropic_key_set: true,
+        anthropic_key_masked: '••••xyz1',
+        vision_model: 'claude-sonnet-4-6',
+        supported_models: ['claude-sonnet-4-6', 'claude-haiku-4', 'claude-opus-4'],
+        format_filter: 'Vinyl',
+        google_client_id_set: false,
+        google_client_secret_set: false,
+        allowed_emails: '',
+        sync_missing_master_ids: 0,
+      }),
+    });
+  });
+}
+
+module.exports = { mockApi, mockEmptyApi, mockStatus, mockAuth, mockSettingsWithAuth, mockSyncApi, MOCK_COLLECTION, MOCK_SEARCH_RESULTS, MOCK_SYNC_DIFF };
