@@ -48,7 +48,7 @@ def _discogs_request(method: str, path: str, params: dict = None) -> dict:
         },
     )
     try:
-        with urllib.request.urlopen(req, timeout=15) as resp:  # nosec B310 -- scheme validated above
+        with urllib.request.urlopen(req, timeout=15) as resp:  # nosec B310
             rate_remain = resp.headers.get("X-Discogs-Ratelimit-Remaining", "?")
             raw = resp.read()
             body = json.loads(raw) if raw else {}

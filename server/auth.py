@@ -402,7 +402,7 @@ def handle_callback(handler):
     try:
         req = urllib.request.Request(GOOGLE_TOKEN_URL, data=token_data, method="POST")
         req.add_header("Content-Type", "application/x-www-form-urlencoded")
-        with urllib.request.urlopen(req, timeout=10) as resp:  # nosec B310 — hardcoded Google URL
+        with urllib.request.urlopen(req, timeout=10) as resp:  # nosec B310
             tokens = json.loads(resp.read())
     except (urllib.error.URLError, json.JSONDecodeError) as e:
         handler._send_html(500, _error_page("Token exchange failed", str(e)))
@@ -420,7 +420,7 @@ def handle_callback(handler):
     try:
         req = urllib.request.Request(GOOGLE_USERINFO_URL)
         req.add_header("Authorization", f"Bearer {access_token}")
-        with urllib.request.urlopen(req, timeout=10) as resp:  # nosec B310 — hardcoded Google URL
+        with urllib.request.urlopen(req, timeout=10) as resp:  # nosec B310
             userinfo = json.loads(resp.read())
     except (urllib.error.URLError, json.JSONDecodeError) as e:
         handler._send_html(500, _error_page("Userinfo fetch failed", str(e)))

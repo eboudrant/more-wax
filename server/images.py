@@ -221,7 +221,7 @@ def identify_cover(img_data: str) -> dict:
 
     text = ""
     try:
-        with urllib.request.urlopen(req, timeout=30) as resp:  # nosec B310 -- hardcoded HTTPS URL
+        with urllib.request.urlopen(req, timeout=30) as resp:  # nosec B310
             result = json.loads(resp.read())
 
         content = result.get("content") or []

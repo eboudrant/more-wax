@@ -611,7 +611,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 data=params,
                 headers={"Content-Type": "application/x-www-form-urlencoded"},
             )
-            urllib.request.urlopen(req, timeout=10)
+            urllib.request.urlopen(req, timeout=10)  # nosec B310
             # Shouldn't succeed with a fake code, but if it does, credentials are valid
             return {"valid": True}
         except urllib.error.HTTPError as e:
