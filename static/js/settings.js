@@ -2,7 +2,6 @@
 //  SETTINGS MODAL
 // ─────────────────────────────────────────────────────────────────
 let _settingsData = null;
-let _settingsDebounce = null;
 
 async function openSettings() {
   AppModal.show('settings-modal');
@@ -46,28 +45,30 @@ function _renderSettings() {
   const fmt = document.getElementById('settings-format-filter');
   if (fmt) fmt.value = d.format_filter || 'Vinyl';
 
-  // Google OAuth
-  const gidm = document.getElementById('settings-google-id-mask');
-  const gsm = document.getElementById('settings-google-secret-mask');
-  if (gidm) gidm.textContent = d.google_client_id_set ? d.google_client_id_masked : 'Not set';
-  if (gsm) gsm.textContent = d.google_client_secret_set ? d.google_client_secret_masked : 'Not set';
-  document.getElementById('settings-google-id-input-wrap')?.classList.add('hidden');
-  document.getElementById('settings-google-secret-input-wrap')?.classList.add('hidden');
-  const gidc = document.getElementById('settings-google-id-change');
-  const gsc = document.getElementById('settings-google-secret-change');
-  if (gidc) gidc.textContent = d.google_client_id_set ? 'Change' : 'Add';
-  if (gsc) gsc.textContent = d.google_client_secret_set ? 'Change' : 'Add';
+  // Google OAuth — show active state or setup form
+  const authActive = !!(d.google_client_id_set && d.google_client_secret_set);
+  const activeEl = document.getElementById('settings-auth-active');
+  const setupEl = document.getElementById('settings-auth-setup');
+  if (activeEl) activeEl.classList.toggle('hidden', !authActive);
+  if (setupEl) setupEl.classList.toggle('hidden', authActive);
 
-  // Disable auth button — only show when auth is fully configured
-  const disableBtn = document.getElementById('settings-auth-disable');
-  if (disableBtn) {
-    const authConfigured = d.google_client_id_set || d.google_client_secret_set;
-    disableBtn.style.display = authConfigured ? 'inline' : 'none';
-  }
-
-  // Allowed emails
+  // Allowed emails (in active state)
   const ae = document.getElementById('settings-allowed-emails');
   if (ae) ae.value = d.allowed_emails || '';
+
+  // Enable button — activate when both fields have content
+  const gidInput = document.getElementById('settings-google-client-id');
+  const gsInput = document.getElementById('settings-google-client-secret');
+  const enableBtn = document.getElementById('settings-auth-enable-btn');
+  if (gidInput && gsInput && enableBtn) {
+    const updateBtn = () => { enableBtn.disabled = !gidInput.value.trim() || !gsInput.value.trim(); };
+    gidInput.oninput = updateBtn;
+    gsInput.oninput = updateBtn;
+    gidInput.onpaste = () => setTimeout(updateBtn, 0);
+    gsInput.onpaste = () => setTimeout(updateBtn, 0);
+    gidInput.onchange = updateBtn;
+    gsInput.onchange = updateBtn;
+  }
 
   // Discogs sync — only show when Discogs is connected
   const syncSection = document.getElementById('settings-sync-section');
@@ -94,57 +95,37 @@ function settingsToggleToken(type) {
   const labels = {
     'discogs': [_settingsData?.discogs_token_set, 'Change token', 'Add token'],
     'anthropic': [_settingsData?.anthropic_key_set, 'Change key', 'Add key'],
-    'google-id': [_settingsData?.google_client_id_set, 'Change', 'Add'],
-    'google-secret': [_settingsData?.google_client_secret_set, 'Change', 'Add'],
   };
   const [isSet, changeLabel, addLabel] = labels[type] || [false, 'Change', 'Add'];
   if (btn) btn.textContent = isHidden ? 'Cancel' : (isSet ? changeLabel : addLabel);
 
   if (isHidden) {
-    // Clear and focus
     const input = wrap.querySelector('input');
     if (input) { input.value = ''; input.focus(); }
     _setStatus(type, '');
     _setError(type, '');
 
-    // Bind validation
-    const inputIds = {
-      'discogs': 'settings-discogs-token',
-      'anthropic': 'settings-anthropic-key',
-      'google-id': 'settings-google-client-id',
-      'google-secret': 'settings-google-client-secret',
-    };
+    const inputIds = { 'discogs': 'settings-discogs-token', 'anthropic': 'settings-anthropic-key' };
     const inputEl = document.getElementById(inputIds[type]);
     if (inputEl) {
-      inputEl.oninput = () => _debounceValidate(type);
-      inputEl.onpaste = () => setTimeout(() => _debounceValidate(type), 50);
+      inputEl.onblur = () => _triggerValidate(type);
+      inputEl.onchange = () => _triggerValidate(type);
     }
   }
 }
 
-function _debounceValidate(type) {
-  clearTimeout(_settingsDebounce);
-  const inputIds = {
-    'discogs': 'settings-discogs-token',
-    'anthropic': 'settings-anthropic-key',
-    'google-id': 'settings-google-client-id',
-    'google-secret': 'settings-google-client-secret',
-  };
+function _triggerValidate(type) {
+  const inputIds = { 'discogs': 'settings-discogs-token', 'anthropic': 'settings-anthropic-key' };
   const input = document.getElementById(inputIds[type]);
   const val = input?.value.trim();
   if (!val) { _setStatus(type, ''); _setError(type, ''); return; }
 
   _setStatus(type, 'loading');
-  _settingsDebounce = setTimeout(() => _validateAndSave(type, val), 600);
+  _validateAndSave(type, val);
 }
 
 async function _validateAndSave(type, value) {
-  const keyMap = {
-    'discogs': 'discogs_token',
-    'anthropic': 'anthropic_api_key',
-    'google-id': 'google_client_id',
-    'google-secret': 'google_client_secret',
-  };
+  const keyMap = { 'discogs': 'discogs_token', 'anthropic': 'anthropic_api_key' };
   const key = keyMap[type] || type;
   try {
     const res = await apiPost('/api/settings', { [key]: value });
@@ -155,15 +136,45 @@ async function _validateAndSave(type, value) {
     }
     _setStatus(type, 'valid');
     _setError(type, '');
-    // Refresh settings data
-    _settingsData = await apiGet('/api/settings');
+    _settingsData = res;
     _renderSettings();
     // Refresh status for dashboard
-    _serverStatus = await apiGet('/api/status');
-    _renderStatus();
+    try {
+      _serverStatus = await apiGet('/api/status');
+      _renderStatus();
+    } catch { /* ignore */ }
   } catch (e) {
     _setStatus(type, 'invalid');
     _setError(type, 'Validation failed');
+  }
+}
+
+/** Enable Google OAuth — validates credentials with Google, then saves. */
+async function settingsEnableAuth() {
+  const clientId = document.getElementById('settings-google-client-id')?.value.trim();
+  const clientSecret = document.getElementById('settings-google-client-secret')?.value.trim();
+  const errEl = document.getElementById('settings-auth-error');
+  const btn = document.getElementById('settings-auth-enable-btn');
+  if (!clientId || !clientSecret) return;
+
+  // Show loading
+  if (btn) { btn.disabled = true; btn.innerHTML = '<i class="bi bi-arrow-repeat animate-spin"></i> Validating…'; }
+  if (errEl) { errEl.classList.add('hidden'); errEl.textContent = ''; }
+
+  try {
+    const res = await apiPost('/api/settings', { google_client_id: clientId, google_client_secret: clientSecret });
+    if (res.success === false) {
+      if (errEl) { errEl.textContent = res.error || 'Invalid credentials'; errEl.classList.remove('hidden'); }
+      if (btn) { btn.disabled = false; btn.innerHTML = '<i class="bi bi-shield-lock"></i> Enable Authentication'; }
+      return;
+    }
+    // Success — show confirmation
+    _settingsData = res;
+    AppModal.hide('settings-modal');
+    _showAuthConfirm('enabled');
+  } catch (e) {
+    if (errEl) { errEl.textContent = 'Failed to validate credentials'; errEl.classList.remove('hidden'); }
+    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="bi bi-shield-lock"></i> Enable Authentication'; }
   }
 }
 
@@ -201,15 +212,65 @@ async function settingsSaveFormat(value) {
   }
 }
 
-async function settingsDisableAuth() {
-  if (!confirm('Disable Google authentication? Anyone with access to the server will be able to use it.')) return;
+function _showAuthConfirm(mode) {
+  const body = document.getElementById('auth-confirm-body');
+  if (!body) return;
+
+  if (mode === 'enabled') {
+    body.innerHTML = `
+      <div class="text-4xl">🔒</div>
+      <h3 class="font-headline font-bold text-lg text-on-surface">Authentication enabled</h3>
+      <p class="text-on-surface-v text-sm leading-relaxed">
+        Google Sign-In is now active. When accessed from the internet,
+        users will need to sign in with an authorized Google account.
+      </p>
+      <p class="text-on-surface-v text-sm">
+        The <strong class="text-on-surface">first person to sign in</strong> will become the owner —
+        no other account will be able to access the app unless you add them in settings.
+      </p>
+      <p class="text-on-surface-v text-xs">Local access (LAN) remains open without sign-in.</p>
+      <button onclick="AppModal.hide('auth-confirm-modal'); location.reload();"
+        class="w-full px-6 py-3 bg-primary text-bg rounded-full font-label text-sm uppercase tracking-wider hover:brightness-110 transition">
+        Got it
+      </button>
+    `;
+  } else if (mode === 'disable') {
+    body.innerHTML = `
+      <div class="text-4xl">🔓</div>
+      <h3 class="font-headline font-bold text-lg text-on-surface">Disable authentication?</h3>
+      <p class="text-on-surface-v text-sm leading-relaxed">
+        Anyone with access to the server will be able to use More'Wax without signing in.
+        Your Google credentials will be removed.
+      </p>
+      <div class="flex gap-3">
+        <button data-dismiss="modal"
+          class="flex-1 px-4 py-2.5 border border-outline-v/30 text-on-surface-v rounded-full text-sm hover:bg-surface-high transition">
+          Cancel
+        </button>
+        <button onclick="_doDisableAuth()"
+          class="flex-1 px-4 py-2.5 bg-red-500/20 text-red-400 border border-red-500/30 rounded-full text-sm hover:bg-red-500/30 transition">
+          Disable
+        </button>
+      </div>
+    `;
+  }
+
+  // Show after a tick to let settings modal finish closing
+  setTimeout(() => AppModal.show('auth-confirm-modal', { staticBackdrop: true }), 300);
+}
+
+function settingsDisableAuth() {
+  AppModal.hide('settings-modal');
+  _showAuthConfirm('disable');
+}
+
+async function _doDisableAuth() {
   try {
-    await apiPost('/api/settings', { google_client_id: '', google_client_secret: '', allowed_emails: '' });
-    _settingsData = await apiGet('/api/settings');
-    _renderSettings();
+    await apiPost('/api/settings', { clear_google_auth: true });
   } catch (e) {
     console.warn('Failed to disable auth', e);
   }
+  location.reload();
 }
 
 async function settingsSaveAllowedEmails(value) {

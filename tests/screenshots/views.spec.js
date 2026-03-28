@@ -1,6 +1,6 @@
 // @ts-check
 const { test, expect } = require('@playwright/test');
-const { mockApi, mockEmptyApi, mockStatus, mockSyncApi } = require('./fixtures');
+const { mockApi, mockEmptyApi, mockStatus, mockAuth, mockSettingsWithAuth, mockSyncApi } = require('./fixtures');
 
 // ── Helper: wait for the collection to load ────────────────────
 async function waitForCollection(page) {
@@ -287,20 +287,71 @@ test.describe('Settings', () => {
     await expect(page.locator('#settings-discogs-mask')).toContainText('••••');
     await expect(page.locator('#settings-anthropic-mask')).toContainText('••••');
 
-    // Remove all overflow/height constraints so the element screenshot captures full content
+    // Verify auth setup fields exist
+    await expect(page.locator('#settings-auth-setup')).toBeVisible();
+    await expect(page.locator('#settings-google-client-id')).toBeVisible();
+    await expect(page.locator('#settings-auth-enable-btn')).toBeVisible();
+
+    // Remove scroll/overflow constraints on modal and all parents so element screenshot captures everything
     await page.evaluate(() => {
-      for (const sel of ['#settings-modal', '#settings-modal .app-modal-dialog', '#settings-modal .app-modal-content', '#settings-body']) {
+      for (const sel of ['#settings-body', '#settings-modal .app-modal-content', '#settings-modal .app-modal-dialog', '#settings-modal']) {
         const el = document.querySelector(sel);
-        if (el) {
-          el.style.maxHeight = 'none';
-          el.style.overflow = 'visible';
-          el.style.height = 'auto';
-          el.style.position = 'relative';
-        }
+        if (el) { el.style.maxHeight = 'none'; el.style.overflow = 'visible'; el.style.height = 'auto'; }
       }
     });
 
-    await expect(page.locator('#settings-modal')).toHaveScreenshot('settings-modal.png', { maxDiffPixels: 50 });
+    await expect(page.locator('#settings-body')).toHaveScreenshot('settings-modal.png');
+  });
+
+  test('shows auth active state when Google OAuth is configured', async ({ page }) => {
+    await mockApi(page);
+    await mockSettingsWithAuth(page);
+    await page.goto('/');
+    await waitForCollection(page);
+    await page.waitForTimeout(TRANSITION);
+
+    await page.locator('#dash-status button[onclick="openSettings()"]').click();
+    await page.waitForSelector('#settings-modal.app-modal-visible', { timeout: 5_000 });
+    await page.waitForTimeout(TRANSITION);
+
+    // Verify auth active state is shown
+    await expect(page.locator('#settings-auth-active')).toBeVisible();
+    await expect(page.locator('#settings-auth-setup')).not.toBeVisible();
+    await expect(page.locator('#settings-auth-active')).toContainText(/Google Sign-In is active/);
+    await expect(page.locator('#settings-allowed-emails')).toHaveValue('user@example.com');
+
+    await expect(page).toHaveScreenshot('settings-auth-active.png');
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────
+//  AUTHENTICATION
+// ─────────────────────────────────────────────────────────────────
+
+test.describe('Authentication', () => {
+  test('shows login overlay when auth is required and not authenticated', async ({ page }) => {
+    await mockAuth(page, { authRequired: true });
+    await mockApi(page);
+    await page.goto('/');
+    await page.waitForTimeout(TRANSITION);
+
+    // Login overlay should be visible
+    await expect(page.locator('#auth-overlay')).toBeVisible();
+    await expect(page.locator('#auth-overlay')).toContainText(/Sign in/);
+
+    await expect(page).toHaveScreenshot('auth-login.png');
+  });
+
+  test('does not show login overlay when auth is not required', async ({ page }) => {
+    await mockAuth(page, { authRequired: false });
+    await mockApi(page);
+    await page.goto('/');
+    await waitForCollection(page);
+    await page.waitForTimeout(TRANSITION);
+
+    // No login overlay
+    const overlay = page.locator('#auth-overlay');
+    await expect(overlay).not.toBeVisible();
   });
 });
 

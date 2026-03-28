@@ -42,7 +42,7 @@ async function apiPost(path, body) {
     body:    JSON.stringify(body)
   });
   _checkUnauthorized(res);
-  if (!res.ok && res.status !== 409) throw new Error('Backend error ' + res.status);
+  if (!res.ok && res.status !== 409 && res.status !== 400) throw new Error('Backend error ' + res.status);
   return res.json();
 }
 

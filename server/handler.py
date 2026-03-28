@@ -519,14 +519,52 @@ class Handler(http.server.BaseHTTPRequestHandler):
             if fmt in ("Vinyl", "CD", "All"):
                 _config.save_token("FORMAT_FILTER", fmt)
 
-        # Google OAuth settings (no validation — just save; empty string disables)
-        if "google_client_id" in data:
-            _config.save_token("GOOGLE_CLIENT_ID", data["google_client_id"].strip())
+        # Clear Google OAuth
+        if data.get("clear_google_auth"):
+            _config.save_token("GOOGLE_CLIENT_ID", "")
+            _config.save_token("GOOGLE_CLIENT_SECRET", "")
+            _config.save_token("ALLOWED_EMAILS", "")
+            from server.auth import clear_all_sessions
 
-        if "google_client_secret" in data:
-            _config.save_token(
-                "GOOGLE_CLIENT_SECRET", data["google_client_secret"].strip()
-            )
+            clear_all_sessions()
+            self._api_get_settings()
+            return
+
+        # Google OAuth settings — validate before saving
+        google_id = data.get("google_client_id", "").strip()
+        google_secret = data.get("google_client_secret", "").strip()
+
+        # Validate Client ID format immediately
+        if google_id:
+            if not google_id.endswith(".apps.googleusercontent.com"):
+                self.send_json(
+                    {
+                        "success": False,
+                        "error": "Invalid Client ID — must end with .apps.googleusercontent.com",
+                    },
+                    400,
+                )
+                return
+            _config.save_token("GOOGLE_CLIENT_ID", google_id)
+
+        if google_secret:
+            _config.save_token("GOOGLE_CLIENT_SECRET", google_secret)
+
+        # If both are now set, validate the full credentials against Google
+        if (
+            (google_id or google_secret)
+            and _config.GOOGLE_CLIENT_ID
+            and _config.GOOGLE_CLIENT_SECRET
+        ):
+            validation = self._validate_google_oauth()
+            if not validation["valid"]:
+                # Roll back — clear the credential that was just saved
+                if google_id:
+                    _config.save_token("GOOGLE_CLIENT_ID", "")
+                if google_secret:
+                    _config.save_token("GOOGLE_CLIENT_SECRET", "")
+                self.send_json({"success": False, "error": validation["error"]}, 400)
+                return
 
         if "allowed_emails" in data:
             _config.save_token("ALLOWED_EMAILS", data["allowed_emails"].strip())
@@ -536,6 +574,75 @@ class Handler(http.server.BaseHTTPRequestHandler):
             clear_all_sessions()
 
         self._api_get_settings()
+
+    def _validate_google_oauth(self):
+        """Validate Google OAuth credentials by making a test token request.
+
+        Returns {"valid": True} or {"valid": False, "error": "..."}.
+        A valid client_id/secret will return 'invalid_grant' (no real code).
+        An invalid client will return 'invalid_client'.
+        """
+        import urllib.request
+        import urllib.parse
+        import urllib.error
+
+        # Build redirect URI from the current request's host
+        host = (
+            self.headers.get("X-Forwarded-Host")
+            or self.headers.get("Host")
+            or "localhost"
+        )
+        proto = self.headers.get("X-Forwarded-Proto", "http")
+        redirect_uri = f"{proto}://{host}/auth/callback"
+
+        params = urllib.parse.urlencode(
+            {
+                "code": "test_validation_code",
+                "client_id": _config.GOOGLE_CLIENT_ID,
+                "client_secret": _config.GOOGLE_CLIENT_SECRET,
+                "redirect_uri": redirect_uri,
+                "grant_type": "authorization_code",
+            }
+        ).encode()
+
+        try:
+            req = urllib.request.Request(
+                "https://oauth2.googleapis.com/token",
+                data=params,
+                headers={"Content-Type": "application/x-www-form-urlencoded"},
+            )
+            urllib.request.urlopen(req, timeout=10)
+            # Shouldn't succeed with a fake code, but if it does, credentials are valid
+            return {"valid": True}
+        except urllib.error.HTTPError as e:
+            try:
+                body = json.loads(e.read())
+            except Exception:
+                return {"valid": False, "error": f"Google returned {e.code}"}
+
+            error_code = body.get("error", "")
+            error_desc = body.get("error_description", "")
+
+            if error_code == "invalid_grant":
+                # Client ID and secret are valid — the fake code was rejected
+                return {"valid": True}
+            elif error_code == "invalid_client":
+                return {
+                    "valid": False,
+                    "error": "Invalid Google Client ID or Secret",
+                }
+            elif error_code == "redirect_uri_mismatch":
+                return {
+                    "valid": False,
+                    "error": f"Redirect URI mismatch. Register {redirect_uri} in Google Cloud Console.",
+                }
+            else:
+                return {
+                    "valid": False,
+                    "error": error_desc or f"Google error: {error_code}",
+                }
+        except Exception as e:
+            return {"valid": False, "error": f"Could not reach Google: {e}"}
 
     def _api_export(self):
         """Export the collection as a downloadable JSON file."""

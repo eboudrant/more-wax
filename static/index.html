@@ -418,57 +418,44 @@
         <!-- Authentication -->
         <div class="space-y-4">
           <h3 class="font-label text-xs uppercase tracking-widest text-outline">Authentication</h3>
-          <div class="flex items-center justify-between">
-            <p class="text-xs text-on-surface-v">Optional. Enable Google Sign-In to protect your app when exposed to the internet.</p>
-            <button id="settings-auth-disable" onclick="settingsDisableAuth()"
-              class="shrink-0 ml-4 text-xs text-red-400 hover:text-red-300 transition-colors" style="display:none">
-              Disable
+          <p class="text-xs text-on-surface-v">Optional. Enable Google Sign-In to protect your app when exposed to the internet.</p>
+
+          <!-- Auth enabled state (shown when auth is active) -->
+          <div id="settings-auth-active" class="hidden space-y-4">
+            <div class="flex items-center gap-2 text-sm text-green-400">
+              <i class="bi bi-shield-check"></i>
+              <span>Google Sign-In is active</span>
+            </div>
+            <div class="space-y-2">
+              <label class="text-sm text-on-surface-v">Allowed Emails</label>
+              <input id="settings-allowed-emails" type="text" placeholder="email@example.com (auto-set on first login)"
+                class="w-full bg-surface-high border border-on-surface/20 rounded-lg px-3 py-2.5 text-on-surface text-sm focus:border-primary focus:outline-none"
+                onchange="settingsSaveAllowedEmails(this.value)">
+              <p class="text-xs text-on-surface-v/60">Comma-separated. Leave blank for first-login-locks (first user to sign in becomes the owner).</p>
+            </div>
+            <button onclick="settingsDisableAuth()"
+              class="text-xs text-red-400 hover:text-red-300 transition-colors">
+              <i class="bi bi-shield-slash"></i> Disable authentication
             </button>
           </div>
 
-          <!-- Google Client ID -->
-          <div class="space-y-2">
-            <div class="flex items-center justify-between">
+          <!-- Auth setup form (shown when auth is not active) -->
+          <div id="settings-auth-setup" class="space-y-3">
+            <div class="space-y-2">
               <label class="text-sm text-on-surface-v">Google Client ID</label>
-              <span id="settings-google-id-mask" class="text-xs text-outline font-mono"></span>
+              <input id="settings-google-client-id" type="text" placeholder="xxxx.apps.googleusercontent.com"
+                class="w-full bg-surface-high border border-on-surface/20 rounded-lg px-3 py-2.5 text-on-surface text-sm focus:border-primary focus:outline-none">
             </div>
-            <div id="settings-google-id-input-wrap" class="hidden">
-              <div class="relative">
-                <input id="settings-google-client-id" type="text" placeholder="Paste Google Client ID"
-                  class="w-full bg-surface-high border border-on-surface/20 rounded-lg px-3 py-2.5 pr-10 text-on-surface text-sm focus:border-primary focus:outline-none">
-                <span id="settings-google-id-status" class="absolute right-3 top-1/2 -translate-y-1/2 text-base"></span>
-              </div>
-              <p id="settings-google-id-error" class="text-xs text-danger mt-1 hidden"></p>
-            </div>
-            <button id="settings-google-id-change" onclick="settingsToggleToken('google-id')"
-              class="text-xs text-primary hover:text-primary-dim transition-colors">Change</button>
-          </div>
-
-          <!-- Google Client Secret -->
-          <div class="space-y-2">
-            <div class="flex items-center justify-between">
+            <div class="space-y-2">
               <label class="text-sm text-on-surface-v">Google Client Secret</label>
-              <span id="settings-google-secret-mask" class="text-xs text-outline font-mono"></span>
+              <input id="settings-google-client-secret" type="text" placeholder="GOCSPX-xxxx"
+                class="w-full bg-surface-high border border-on-surface/20 rounded-lg px-3 py-2.5 text-on-surface text-sm focus:border-primary focus:outline-none">
             </div>
-            <div id="settings-google-secret-input-wrap" class="hidden">
-              <div class="relative">
-                <input id="settings-google-client-secret" type="text" placeholder="Paste Google Client Secret"
-                  class="w-full bg-surface-high border border-on-surface/20 rounded-lg px-3 py-2.5 pr-10 text-on-surface text-sm focus:border-primary focus:outline-none">
-                <span id="settings-google-secret-status" class="absolute right-3 top-1/2 -translate-y-1/2 text-base"></span>
-              </div>
-              <p id="settings-google-secret-error" class="text-xs text-danger mt-1 hidden"></p>
-            </div>
-            <button id="settings-google-secret-change" onclick="settingsToggleToken('google-secret')"
-              class="text-xs text-primary hover:text-primary-dim transition-colors">Change</button>
-          </div>
-
-          <!-- Allowed Emails -->
-          <div class="space-y-2">
-            <label class="text-sm text-on-surface-v">Allowed Emails</label>
-            <input id="settings-allowed-emails" type="text" placeholder="email@example.com (auto-set on first login)"
-              class="w-full bg-surface-high border border-on-surface/20 rounded-lg px-3 py-2.5 text-on-surface text-sm focus:border-primary focus:outline-none"
-              onchange="settingsSaveAllowedEmails(this.value)">
-            <p class="text-xs text-on-surface-v">Comma-separated. Leave blank for first-login-locks (first user to sign in becomes the owner).</p>
+            <p id="settings-auth-error" class="text-xs text-red-400 hidden"></p>
+            <button id="settings-auth-enable-btn" onclick="settingsEnableAuth()" disabled
+              class="w-full px-4 py-2.5 bg-primary text-bg rounded-lg font-label text-sm uppercase tracking-wider hover:brightness-110 transition disabled:opacity-40 disabled:cursor-not-allowed">
+              <i class="bi bi-shield-lock"></i> Enable Authentication
+            </button>
           </div>
         </div>
 
@@ -481,6 +468,17 @@
           </button>
         </div>
 
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Auth confirmation dialog -->
+<div id="auth-confirm-modal" class="app-modal app-modal-scrollable" role="dialog" aria-modal="true">
+  <div class="app-modal-dialog" style="max-width:400px">
+    <div class="app-modal-content bg-surface rounded-2xl overflow-hidden">
+      <div id="auth-confirm-body" class="p-8 text-center space-y-4">
+        <!-- Filled dynamically by _showAuthConfirm() -->
       </div>
     </div>
   </div>
