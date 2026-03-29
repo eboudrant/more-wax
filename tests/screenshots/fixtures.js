@@ -483,6 +483,54 @@ async function mockSyncApi(page, { diff = MOCK_SYNC_DIFF, importResult = null } 
 }
 
 /**
+ * Mock sync API with failed records for screenshot tests.
+ */
+async function mockSyncWithFailed(page) {
+  const diff = MOCK_SYNC_DIFF;
+  const failed = [
+    { title: 'Broken Record', artist: 'Missing Data', year: '2024', format: 'LP' },
+    { title: 'Bad Import', artist: 'No Discogs ID', year: '2023', format: 'CD' },
+  ];
+
+  await page.route('**/api/sync/fetch', (route) => {
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        status: 'ok',
+        diff,
+        total_in_discogs: MOCK_COLLECTION.length + diff.length,
+        already_in_morewax: MOCK_COLLECTION.length,
+      }),
+    });
+  });
+
+  await page.route('**/api/sync/import', (route) => {
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ status: 'importing', total: diff.length }),
+    });
+  });
+
+  await page.route('**/api/sync/status', (route) => {
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        status: 'done',
+        imported: diff.length - failed.length,
+        skipped: 0,
+        replaced: 0,
+        total: diff.length,
+        progress: diff.length,
+        failed,
+      }),
+    });
+  });
+}
+
+/**
  * Mock auth endpoint. By default auth is not required (local access).
  * Call with authRequired=true to simulate remote access with auth enabled.
  */
@@ -550,4 +598,4 @@ async function mockSettingsWithAuth(page) {
   });
 }
 
-module.exports = { mockApi, mockEmptyApi, mockStatus, mockAuth, mockSettingsWithAuth, mockSyncApi, MOCK_COLLECTION, MOCK_SEARCH_RESULTS, MOCK_SYNC_DIFF };
+module.exports = { mockApi, mockEmptyApi, mockStatus, mockAuth, mockSettingsWithAuth, mockSyncApi, mockSyncWithFailed, MOCK_COLLECTION, MOCK_SEARCH_RESULTS, MOCK_SYNC_DIFF };

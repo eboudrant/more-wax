@@ -150,7 +150,7 @@ def get_session(cookie_header: str) -> dict | None:
     with _session_cache_lock:
         cached = _session_cache.get(token_hash)
     if cached:
-        if cached["expires_at"] < time.time():
+        if cached.get("expires_at", 0) < time.time():
             delete_session_by_hash(token_hash)
             return None
         return cached
@@ -308,7 +308,9 @@ def handle_login(handler):
         # Clean old states
         now = time.time()
         expired = [
-            k for k, v in _pending_states.items() if v["created_at"] + _STATE_TTL < now
+            k
+            for k, v in _pending_states.items()
+            if v.get("created_at", 0) + _STATE_TTL < now
         ]
         for k in expired:
             del _pending_states[k]
@@ -378,7 +380,7 @@ def handle_callback(handler):
             ),
         )
         return
-    if pending["created_at"] + _STATE_TTL < time.time():
+    if pending.get("created_at", 0) + _STATE_TTL < time.time():
         handler._send_html(
             400, _error_page("Expired", "Login attempt timed out. Please try again.")
         )
@@ -386,6 +388,18 @@ def handle_callback(handler):
 
     # Use the redirect_uri from the original login request (defense-in-depth)
     redirect_uri = pending.get("redirect_uri") or _get_redirect_uri(handler)
+
+    # Extract PKCE code_verifier — must be present for security
+    code_verifier = pending.get("code_verifier")
+    if not code_verifier:
+        handler._send_html(
+            500,
+            _error_page(
+                "Missing code verifier",
+                "OAuth PKCE state is corrupt. Please try logging in again.",
+            ),
+        )
+        return
 
     # Exchange code for access token
     token_data = urllib.parse.urlencode(
@@ -395,7 +409,7 @@ def handle_callback(handler):
             "client_secret": config.GOOGLE_CLIENT_SECRET,
             "redirect_uri": redirect_uri,
             "grant_type": "authorization_code",
-            "code_verifier": pending["code_verifier"],
+            "code_verifier": code_verifier,
         }
     ).encode()
 

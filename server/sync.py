@@ -68,9 +68,9 @@ def backfill_master_ids():
     try:
         discogs_records = discogs_fetch_collection()
         discogs_master_map = {
-            r["discogs_id"]: r.get("master_id", "")
+            str(r["discogs_id"]): r.get("master_id", "")
             for r in discogs_records
-            if r.get("master_id")
+            if r.get("discogs_id") and r.get("master_id")
         }
     except Exception as e:
         print(f"  ⚠️ [sync] Collection fetch failed: {e}")
@@ -79,11 +79,16 @@ def backfill_master_ids():
     backfilled = 0
     still_missing = []
     for r in needs_backfill:
-        did = str(r.get("discogs_id", "")).strip()
+        did = r.get("discogs_id")
+        rid = r.get("id")
+        if not did or not rid:
+            print(f"  ⚠️ [sync] Skipping record missing discogs_id or id: {r}")
+            continue
+        did = str(did).strip()
         mid = discogs_master_map.get(did, "")
         if mid:
             try:
-                db_update(r["id"], {"master_id": mid})
+                db_update(rid, {"master_id": mid})
                 backfilled += 1
             except Exception as e:
                 print(f"  ⚠️ [sync] Failed to update master_id for {did}: {e}")
@@ -97,16 +102,21 @@ def backfill_master_ids():
             " records via release API..."
         )
         for r in still_missing:
-            did = str(r["discogs_id"]).strip()
+            did = r.get("discogs_id")
+            rid = r.get("id")
+            if not did or not rid:
+                print(f"  ⚠️ [sync] Skipping record missing discogs_id or id: {r}")
+                continue
+            did = str(did).strip()
             try:
                 release = _discogs_request("GET", f"/releases/{did}")
                 mid = str(release.get("master_id", "") or "")
                 if mid:
-                    db_update(r["id"], {"master_id": mid})
+                    db_update(rid, {"master_id": mid})
                     backfilled += 1
                 else:
                     # No master release — mark so we don't retry
-                    db_update(r["id"], {"master_id": "0"})
+                    db_update(rid, {"master_id": "0"})
                 time.sleep(1)
             except Exception as e:
                 print(f"  ⚠️ [sync] Failed for {did}: {e}")
@@ -159,25 +169,28 @@ def sync_start_fetch() -> dict:
 
         # Build lookup structures from local collection
         local = db_list()
-        local_ids = {str(r.get("discogs_id", "")).strip() for r in local}
-        local_ids.discard("")
+        local_ids = {str(r["discogs_id"]).strip() for r in local if r.get("discogs_id")}
 
         # Ensure master_ids are backfilled (no-op if already done at startup)
         with _sync_lock:
             needs_backfill = not _master_ids_backfilled
         if needs_backfill:
             discogs_master_map = {
-                r["discogs_id"]: r.get("master_id", "")
+                str(r["discogs_id"]): r.get("master_id", "")
                 for r in discogs_records
-                if r.get("master_id")
+                if r.get("discogs_id") and r.get("master_id")
             }
             backfilled = 0
             for r in local:
                 if not r.get("master_id"):
-                    did = str(r.get("discogs_id", "")).strip()
+                    did = r.get("discogs_id")
+                    rid = r.get("id")
+                    if not did or not rid:
+                        continue
+                    did = str(did).strip()
                     mid = discogs_master_map.get(did, "")
                     if mid:
-                        db_update(r["id"], {"master_id": mid})
+                        db_update(rid, {"master_id": mid})
                         r["master_id"] = mid
                         backfilled += 1
             if backfilled:
@@ -193,12 +206,16 @@ def sync_start_fetch() -> dict:
                     " records not in Discogs collection..."
                 )
                 for r in still_missing:
-                    did = str(r["discogs_id"]).strip()
+                    did = r.get("discogs_id")
+                    rid = r.get("id")
+                    if not did or not rid:
+                        continue
+                    did = str(did).strip()
                     try:
                         release = _discogs_request("GET", f"/releases/{did}")
                         mid = str(release.get("master_id", "") or "")
                         if mid:
-                            db_update(r["id"], {"master_id": mid})
+                            db_update(rid, {"master_id": mid})
                             r["master_id"] = mid
                         time.sleep(1)
                     except Exception as e:
@@ -221,7 +238,7 @@ def sync_start_fetch() -> dict:
         # Diff: records in Discogs but not in More'Wax
         diff = []
         for r in discogs_records:
-            if r["discogs_id"] in local_ids:
+            if r.get("discogs_id", "") in local_ids:
                 continue  # exact discogs_id match — already imported
 
             # Check for duplicate pressing: master_id match first, then fuzzy
@@ -297,7 +314,9 @@ def sync_start_import(selected_ids: list, replace_ids: list = None) -> dict:
             return {"error": "Import already in progress"}
 
         # Deep copy selected records from diff so we're safe outside the lock
-        diff_by_id = {r["discogs_id"]: r for r in _sync_state["diff"]}
+        diff_by_id = {
+            str(r["discogs_id"]): r for r in _sync_state["diff"] if r.get("discogs_id")
+        }
         to_import = [
             copy.deepcopy(diff_by_id[did]) for did in selected_ids if did in diff_by_id
         ]
@@ -318,11 +337,20 @@ def sync_start_import(selected_ids: list, replace_ids: list = None) -> dict:
     imported = 0
     skipped = 0
     replaced = 0
+    failed = []
 
     try:
         for i, rec in enumerate(to_import):
+            did = rec.get("discogs_id")
+            if not did:
+                failed.append(rec)
+                print(
+                    f"  ⚠️ [sync] Record missing discogs_id, skipping: {rec.get('title', '?')}"
+                )
+                continue
+
             record = {
-                "discogs_id": rec["discogs_id"],
+                "discogs_id": did,
                 "master_id": rec.get("master_id", ""),
                 "title": rec.get("title", ""),
                 "artist": rec.get("artist", ""),
@@ -337,7 +365,7 @@ def sync_start_import(selected_ids: list, replace_ids: list = None) -> dict:
             }
 
             # Handle replace: delete old record first
-            if rec["discogs_id"] in replace_set and rec.get("_local_match"):
+            if rec.get("discogs_id", "") in replace_set and rec.get("_local_match"):
                 old_id = rec["_local_match"].get("id")
                 if old_id:
                     db_delete(old_id)
@@ -365,10 +393,17 @@ def sync_start_import(selected_ids: list, replace_ids: list = None) -> dict:
                 status="done",
                 phase="",
                 diff=[],  # Clear diff to free memory
+                failed=failed,
             )
 
     print(
         f"  📦 [sync] Import complete: {imported} imported,"
         f" {replaced} replaced, {skipped} skipped (duplicates)"
+        + (f", {len(failed)} failed" if failed else "")
     )
-    return {"imported": imported, "replaced": replaced, "skipped": skipped}
+    return {
+        "imported": imported,
+        "replaced": replaced,
+        "skipped": skipped,
+        "failed": failed,
+    }

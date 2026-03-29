@@ -6,6 +6,18 @@ let _syncReplace = new Set();    // discogs_ids where user chose "replace"
 let _syncDiff = [];
 let _syncExpanded = null;        // discogs_id of expanded duplicate
 let _syncDidImport = false;      // true if any records were imported
+let _syncFailed = [];            // records that failed to import
+
+function _downloadFailedRecords() {
+  if (!_syncFailed.length) return;
+  const blob = new Blob([JSON.stringify(_syncFailed, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `morewax-failed-import-${new Date().toISOString().slice(0, 10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
 
 // Uses global esc() from helpers.js
 
@@ -48,7 +60,7 @@ function _showSyncMessage(icon, title, subtitle) {
     <div class="flex flex-col items-center justify-center h-full gap-3 text-center">
       <i class="bi ${esc(icon)} text-4xl text-primary"></i>
       <h3 class="text-lg font-bold text-on-surface">${esc(title)}</h3>
-      ${subtitle ? `<p class="text-sm text-on-surface-v">${esc(subtitle)}</p>` : ''}
+      ${subtitle ? `<p class="text-sm text-on-surface-v">${subtitle}</p>` : ''}
     </div>`;
   const f = _syncFooter();
   if (f) f.innerHTML = `
@@ -297,6 +309,8 @@ async function _startSyncImport() {
     imported = s.imported || 0;
     replaced = s.replaced || 0;
     skipped = s.skipped || 0;
+    const failed = s.failed || [];
+    _syncFailed = failed;
     if (imported > 0 || replaced > 0) {
       _syncDidImport = true;
       window._syncJustImported = true;  // suppress background price refresh
@@ -306,6 +320,17 @@ async function _startSyncImport() {
     if (skipped > 0) parts.push(`${skipped} skipped`);
     let subtitle = 'Prices and ratings will update in the background.';
     if (parts.length > 0) subtitle = parts.join(', ') + '. ' + subtitle;
+
+    if (failed.length > 0) {
+      subtitle += `<br><br><span class="text-danger">${failed.length} record${failed.length === 1 ? '' : 's'} could not be imported:</span>`;
+      subtitle += '<ul class="text-left text-sm mt-2 space-y-1">';
+      for (const f of failed) {
+        subtitle += `<li class="text-outline">• ${esc(f.artist || '?')} — ${esc(f.title || '?')}</li>`;
+      }
+      subtitle += '</ul>';
+      subtitle += `<button onclick="_downloadFailedRecords()" class="mt-3 text-sm text-primary hover:text-primary-dim transition-colors"><i class="bi bi-download mr-1"></i>Download as JSON</button>`;
+    }
+
     _showSyncMessage('bi-check-circle', `Imported ${imported} record${imported === 1 ? '' : 's'}`, subtitle);
   } catch (e) {
     _showSyncMessage('bi-exclamation-triangle', 'Import failed', esc(e.message));

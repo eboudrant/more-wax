@@ -333,7 +333,10 @@ def discogs_release_details(release_id: str) -> dict:
         track_artists = t.get("extraartists") or []
         if track_artists:
             entry["extraartists"] = [
-                {"name": _clean_name(a["name"]), "role": a.get("role", "")}
+                {
+                    "name": _clean_name(a.get("name", "Unknown")),
+                    "role": a.get("role", ""),
+                }
                 for a in track_artists
             ]
         tracklist.append(entry)
@@ -351,7 +354,7 @@ def discogs_release_details(release_id: str) -> dict:
 
     # Release-level credits
     extraartists = [
-        {"name": _clean_name(a["name"]), "role": a.get("role", "")}
+        {"name": _clean_name(a.get("name", "Unknown")), "role": a.get("role", "")}
         for a in (release.get("extraartists") or [])
     ]
 
