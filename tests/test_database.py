@@ -231,7 +231,7 @@ class TestDatabase(unittest.TestCase):
 
     def test_missing_next_id_recovered_on_load(self):
         """DB file missing next_id should be auto-recovered."""
-        from server.database import db_add, db_list
+        from server.database import db_add
 
         # Write a DB file without next_id
         data = {
