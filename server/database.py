@@ -40,6 +40,11 @@ def _load() -> dict:
                 # Migration: add schema_version if missing
                 if "schema_version" not in data:
                     data["schema_version"] = "1.0"
+                # Ensure next_id exists
+                if "next_id" not in data:
+                    existing_ids = [r.get("id", 0) for r in data["records"]]
+                    data["next_id"] = max(existing_ids, default=0) + 1
+                    _save(data)
                 # Run any pending migrations
                 if data["schema_version"] != CURRENT_SCHEMA:
                     data = _migrate(data)
@@ -108,6 +113,10 @@ def db_add(record: dict) -> int:
 def _db_add_unlocked(record: dict) -> int:
     """Add a record — caller MUST already hold _lock."""
     data = _load()
+    # Safety: ensure next_id exists (may be missing if file was edited externally)
+    if "next_id" not in data:
+        existing_ids = [r.get("id", 0) for r in data.get("records", [])]
+        data["next_id"] = max(existing_ids, default=0) + 1
     record["id"] = data["next_id"]
     record["added_at"] = datetime.now(timezone.utc).isoformat()
     data["next_id"] += 1
