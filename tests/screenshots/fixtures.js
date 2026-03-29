@@ -252,6 +252,9 @@ async function mockApi(page) {
         anthropic_key_valid: true,
         vision_model: 'claude-sonnet-4-6',
         format_filter: 'Vinyl',
+        version: 'latest',
+        build_date: '2026-03-29T08:00:00Z',
+        git_revision: 'a1b2c3d4e5f6789',
       }),
     });
   });
@@ -311,6 +314,9 @@ async function mockStatus(page, overrides) {
     anthropic_key_valid: true,
     vision_model: 'claude-sonnet-4-6',
     vinyl_only: true,
+    version: 'dev',
+    build_date: '',
+    git_revision: '',
     ...overrides,
   };
   await page.unroute('**/api/status');

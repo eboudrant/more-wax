@@ -71,6 +71,9 @@ function _renderStatus() {
         <span class="ml-auto text-outline text-xs">${status.anthropic_key_set && status.vision_model ? status.vision_model : ''}</span>
         <span class="ml-2 ${status.anthropic_key_set ? 'font-headline text-on-surface' : 'text-outline'}">${status.anthropic_key_set ? 'connected' : 'Not configured'}</span>
       </div>
+      ${status.version ? `<div class="text-xs pt-2 border-t border-outline-v/10 mt-3 text-outline text-end">
+        More'Wax <code class="text-on-surface/60">${esc(status.version)}</code>${status.build_date ? ', built on ' + new Date(status.build_date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }) : ''}${status.git_revision ? ', <code class="text-on-surface/60">' + esc(status.git_revision.slice(0, 7)) + '</code>' : ''}
+      </div>` : ''}
     </div>
     <div class="bg-surface-low rounded-xl p-6 space-y-3">
       <h4 class="font-label text-xs uppercase tracking-widest text-outline mb-3">Collection Stats</h4>
