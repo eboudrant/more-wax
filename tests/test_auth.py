@@ -15,7 +15,7 @@ class TestEmailMasking(unittest.TestCase):
     def test_normal_email(self):
         from server.auth import _mask_email
 
-        self.assertEqual(_mask_email("emmanuel@gmail.com"), "em...@gmail.com")
+        self.assertEqual(_mask_email("user@example.com"), "us...@example.com")
 
     def test_short_local_3_chars(self):
         from server.auth import _mask_email
