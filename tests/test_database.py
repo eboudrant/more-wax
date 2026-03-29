@@ -229,5 +229,54 @@ class TestDatabase(unittest.TestCase):
         self.assertEqual(rec.get("custom_field", ""), "value")
 
 
+    def test_missing_next_id_recovered_on_load(self):
+        """DB file missing next_id should be auto-recovered."""
+        from server.database import db_add, db_list
+
+        # Write a DB file without next_id
+        data = {
+            "schema_version": "1.1",
+            "records": [
+                {"id": 5, "title": "A", "artist": "X", "discogs_id": "1"},
+                {"id": 10, "title": "B", "artist": "Y", "discogs_id": "2"},
+            ],
+        }
+        with open(_db_file, "w") as f:
+            json.dump(data, f)
+
+        # Should still be able to add a record
+        new_id = db_add({"title": "C", "artist": "Z", "discogs_id": "3"})
+        self.assertEqual(new_id, 11)  # max(5, 10) + 1
+
+    def test_missing_next_id_empty_records(self):
+        """DB file with empty records and no next_id starts at 1."""
+        from server.database import db_add
+
+        data = {"schema_version": "1.1", "records": []}
+        with open(_db_file, "w") as f:
+            json.dump(data, f)
+
+        new_id = db_add({"title": "First", "artist": "A", "discogs_id": "1"})
+        self.assertEqual(new_id, 1)
+
+    def test_next_id_persisted_after_recovery(self):
+        """After recovering next_id, it should be saved to the file."""
+        from server.database import db_list
+
+        data = {
+            "schema_version": "1.1",
+            "records": [{"id": 7, "title": "A", "artist": "X", "discogs_id": "1"}],
+        }
+        with open(_db_file, "w") as f:
+            json.dump(data, f)
+
+        # Trigger load which should recover and save next_id
+        db_list()
+
+        with open(_db_file) as f:
+            saved = json.load(f)
+        self.assertEqual(saved["next_id"], 8)
+
+
 if __name__ == "__main__":
     unittest.main()
