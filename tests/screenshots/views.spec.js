@@ -38,6 +38,7 @@ test.describe('Dashboard', () => {
 
     // Wait for status cards to fully render (avoids race with /api/status fetch)
     await expect(page.locator('#dash-status')).toContainText(/testuser/);
+    await expect(page.locator('#dash-status')).toContainText(/More'Wax/);
 
     await expect(page).toHaveScreenshot('dashboard.png');
   });
@@ -56,6 +57,7 @@ test.describe('Dashboard', () => {
     await expect(page.locator('#dash-status')).toBeVisible();
     // Status cards re-render after _checkStatus resolves
     await expect(page.locator('#dash-status')).toContainText(/testuser/);
+    await expect(page.locator('#dash-status')).toContainText(/More'Wax/);
 
     await expect(page).toHaveScreenshot('dashboard-empty.png');
   });
@@ -68,6 +70,16 @@ test.describe('Dashboard', () => {
     await expect(page.locator('#dash-picks')).toBeVisible();
     await expect(page.locator('#dash-recent')).toBeVisible();
     await expect(page.locator('#nav-badge')).toHaveText(/\d+/);
+  });
+
+  test('status card shows version and connections', async ({ page }) => {
+    await mockApi(page);
+    await page.goto('/');
+    await waitForCollection(page);
+    await expect(page.locator('#dash-status')).toContainText(/More'Wax/);
+    await expect(page.locator('#dash-status')).toContainText(/testuser/);
+
+    await expect(page.locator('#dash-status')).toHaveScreenshot('status-card.png');
   });
 });
 

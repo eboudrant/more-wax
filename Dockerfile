@@ -8,9 +8,20 @@ RUN groupadd -r morewax && useradd -r -g morewax -d /app morewax
 
 WORKDIR /app
 
+ARG BUILD_VERSION=dev
+ARG BUILD_DATE=""
+ARG GIT_REVISION=""
+
 COPY server/ server/
 COPY static/ static/
 COPY server.py .
+
+# Stamp version into the Python module
+RUN sed -i \
+    -e "s|^VERSION = .*|VERSION = \"${BUILD_VERSION}\"|" \
+    -e "s|^BUILD_DATE = .*|BUILD_DATE = \"${BUILD_DATE}\"|" \
+    -e "s|^GIT_REVISION = .*|GIT_REVISION = \"${GIT_REVISION}\"|" \
+    server/version.py
 
 RUN mkdir -p data && chown -R morewax:morewax /app
 

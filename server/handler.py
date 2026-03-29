@@ -204,6 +204,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
             else:
                 self._404()
         elif p == "/api/status":
+            from server.version import VERSION, BUILD_DATE, GIT_REVISION
+
             self.send_json(
                 {
                     "discogs_connected": _discogs_mod._discogs_username is not None,
@@ -213,6 +215,9 @@ class Handler(http.server.BaseHTTPRequestHandler):
                     "anthropic_key_valid": _anthropic_key_valid,
                     "vision_model": _config.VISION_MODEL,
                     "format_filter": _config.FORMAT_FILTER,
+                    "version": VERSION,
+                    "build_date": BUILD_DATE,
+                    "git_revision": GIT_REVISION,
                 }
             )
         elif p == "/api/collection":
