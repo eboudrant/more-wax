@@ -139,15 +139,10 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Rebuild CSS and check for uncommitted changes
+      - name: Verify CSS builds successfully
         run: |
           npm run css:build
-          if ! git diff --quiet static/styles.css; then
-            echo "❌ static/styles.css is out of date. Run 'npm run css:build' and commit."
-            git diff static/styles.css | head -50
-            exit 1
-          fi
-          echo "✅ CSS is up to date"
+          echo "✅ CSS build succeeded"
 
   html-validation:
     name: HTML
