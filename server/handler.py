@@ -863,11 +863,14 @@ class Handler(http.server.BaseHTTPRequestHandler):
         def _do_refresh():
             updated = 0
             for r in stale:
+                did = r.get("discogs_id")
+                rid = r.get("id")
+                if not did or not rid:
+                    print(f"  ⚠️ [prices] Skipping record missing discogs_id or id: {r}")
+                    continue
                 try:
                     needs_rating = not r.get("rating_average")
-                    prices = discogs_refresh_prices(
-                        r["discogs_id"], fetch_rating=needs_rating
-                    )
+                    prices = discogs_refresh_prices(did, fetch_rating=needs_rating)
                     if any(
                         prices.get(k)
                         for k in (
@@ -877,7 +880,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
                             "rating_average",
                         )
                     ):
-                        db_update(r["id"], prices)
+                        db_update(rid, prices)
                         updated += 1
                 except Exception as e:
                     if "429" in str(e):

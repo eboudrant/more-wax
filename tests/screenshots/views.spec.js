@@ -1,6 +1,6 @@
 // @ts-check
 const { test, expect } = require('@playwright/test');
-const { mockApi, mockEmptyApi, mockStatus, mockAuth, mockSettingsWithAuth, mockSyncApi } = require('./fixtures');
+const { mockApi, mockEmptyApi, mockStatus, mockAuth, mockSettingsWithAuth, mockSyncApi, mockSyncWithFailed } = require('./fixtures');
 
 // ── Helper: wait for the collection to load ────────────────────
 async function waitForCollection(page) {
@@ -430,6 +430,31 @@ test.describe('Discogs Sync', () => {
     await expect(page.locator('#sync-content')).toContainText(/Already in sync/);
 
     await expect(page).toHaveScreenshot('sync-in-sync.png');
+  });
+
+  test('shows failed records after import', async ({ page }) => {
+    await mockApi(page);
+    await mockSyncWithFailed(page);
+    await page.goto('/');
+    await waitForCollection(page);
+    await page.waitForTimeout(TRANSITION);
+
+    page.evaluate(() => startDiscogsSync()).catch(() => {});
+    await page.waitForFunction(() => {
+      const el = document.getElementById('sync-overlay');
+      return el && el.style.display === 'flex';
+    }, { timeout: 8_000 });
+
+    // Wait for diff to load, then import all
+    await expect(page.locator('#sync-content')).toContainText(/new/i, { timeout: 5_000 });
+    await page.locator('#sync-footer button:has-text("Import")').click();
+
+    // Wait for completion with failed records
+    await expect(page.locator('#sync-content')).toContainText(/could not be imported/i, { timeout: 8_000 });
+    await expect(page.locator('#sync-content')).toContainText(/Broken Record/);
+    await expect(page.locator('#sync-content')).toContainText(/Download as JSON/);
+
+    await expect(page).toHaveScreenshot('sync-failed.png');
   });
 });
 
