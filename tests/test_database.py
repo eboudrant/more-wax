@@ -228,7 +228,6 @@ class TestDatabase(unittest.TestCase):
         # custom fields should be preserved
         self.assertEqual(rec.get("custom_field", ""), "value")
 
-
     def test_missing_next_id_recovered_on_load(self):
         """DB file missing next_id should be auto-recovered."""
         from server.database import db_add
