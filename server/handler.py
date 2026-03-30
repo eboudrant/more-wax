@@ -97,39 +97,41 @@ class Handler(http.server.BaseHTTPRequestHandler):
     def _safe_resolve(base: Path, untrusted: str) -> Path | None:
         """Resolve *untrusted* relative to *base* and ensure it stays inside.
 
-        Returns the resolved Path, or None if the result escapes the base
-        directory (path traversal attempt).
+        Walks the directory tree segment-by-segment using only trusted Path
+        operations (iterdir/match), never constructing a Path from user input.
+        Returns the resolved Path, or None if the path is invalid.
         """
-        # 0. Sanitize and resolve base once — must be absolute directory
-        try:
-            base_real = base.resolve()
-        except OSError:
-            return None
-        if not base_real.is_absolute():
-            return None
-        # 1. Reject path traversal at the string level before any Path ops
+        # Reject obvious traversal/absolute paths at the string level
         normalized = os.path.normpath(untrusted)
-        if (
-            normalized.startswith(("../", "..\\"))
-            or normalized == ".."
-            or os.path.isabs(normalized)
-        ):
+        if ".." in normalized or os.path.isabs(normalized):
             return None
-        # 2. Split into segments and reject any ".." that normpath didn't collapse
-        for segment in normalized.replace("\\", "/").split("/"):
-            if segment == "..":
+        segments = [s for s in normalized.replace("\\", "/").split("/") if s]
+        if not segments:
+            return None
+        # Walk the tree segment-by-segment using directory listings
+        # so no user-provided string is ever passed to Path constructors.
+        current = base.resolve()
+        for seg in segments:
+            if not current.is_dir():
                 return None
-        # 3. Construct the result from the validated, normalized string
-        result = base_real / normalized
-        if not result.exists():
-            return None
-        # 4. Final containment check using Path.relative_to (not string ops)
+            # Find the matching entry in the actual directory listing
+            match = None
+            try:
+                for entry in current.iterdir():
+                    if entry.name == seg:
+                        match = entry
+                        break
+            except OSError:
+                return None
+            if match is None:
+                return None
+            current = match.resolve()
+        # Final containment check
         try:
-            candidate = result.resolve()
-            candidate.relative_to(base_real)
-        except (ValueError, OSError):
+            current.relative_to(base.resolve())
+        except ValueError:
             return None
-        return candidate
+        return current
 
     # ── low-level helpers ────────────────────────────────────────
 
