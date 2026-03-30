@@ -56,6 +56,10 @@ def upload_cover(img_data: str, record_id: str) -> dict:
 
     filename = f"cover_{safe_id}.jpg"
     dest_path = COVERS_DIR / filename
+    # Ensure the filename has no path separators (belt-and-suspenders with the
+    # alphanumeric sanitisation above) to satisfy CodeQL path-injection checks.
+    if "/" in filename or "\\" in filename:  # noqa: S105
+        return {"success": False, "error": "Invalid filename"}
     dest_path.write_bytes(raw)
 
     local_url = f"/covers/covers/{filename}"
