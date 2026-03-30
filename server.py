@@ -49,6 +49,7 @@ def _start_https(port):
     try:
         cert, key = _generate_cert()
         ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        ctx.minimum_version = ssl.TLSVersion.TLSv1_2
         ctx.load_cert_chain(cert, key)
         srv = http.server.ThreadingHTTPServer(("0.0.0.0", port), Handler)
         srv.socket = ctx.wrap_socket(srv.socket, server_side=True)
