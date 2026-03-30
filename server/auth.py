@@ -256,6 +256,11 @@ def _get_client_ip(handler) -> str:
     )
 
 
+def _sanitize_header(value: str) -> str:
+    """Strip CR/LF to prevent HTTP response splitting."""
+    return value.replace("\r", "").replace("\n", "")
+
+
 def _get_redirect_uri(handler) -> str:
     """Build the OAuth redirect URI from the request."""
     # Respect X-Forwarded-Proto/Host from reverse proxy (Cloudflare, Caddy, nginx)
@@ -269,7 +274,10 @@ def _get_redirect_uri(handler) -> str:
     host = handler.headers.get("X-Forwarded-Host") or handler.headers.get(
         "Host", "localhost"
     )
-    if not proto:
+    # Sanitize to prevent response splitting via malicious Host header
+    proto = _sanitize_header(proto).lower()
+    host = _sanitize_header(host)
+    if proto not in ("http", "https"):
         proto = "https" if hasattr(handler.server, "ssl_context") else "http"
     # Strip port from host if it's a standard port
     if (proto == "https" and host.endswith(":443")) or (
@@ -334,7 +342,7 @@ def handle_login(handler):
             "prompt": "select_account",
         }
     )
-    url = f"{GOOGLE_AUTH_URL}?{params}"
+    url = _sanitize_header(f"{GOOGLE_AUTH_URL}?{params}")
     handler.send_response(302)
     handler.send_header("Location", url)
     handler.end_headers()
