@@ -255,6 +255,75 @@ class TestSafeResolve(unittest.TestCase):
         result = Handler._safe_resolve("nonexistent", "test.txt")
         self.assertIsNone(result)
 
+    def test_empty_path(self):
+        result = self._resolve("")
+        self.assertIsNone(result)
+
+    def test_dot_only(self):
+        result = self._resolve(".")
+        self.assertIsNone(result)
+
+    def test_backslash_traversal(self):
+        result = self._resolve("..\\..\\etc\\passwd")
+        self.assertIsNone(result)
+
+
+class TestPrivateIp(unittest.TestCase):
+    """Test _is_private_ip for IPv4 and IPv6 ranges."""
+
+    def _check(self, ip):
+        from server.handler import Handler
+
+        return Handler._is_private_ip(ip)
+
+    def test_ipv4_localhost(self):
+        self.assertTrue(self._check("127.0.0.1"))
+
+    def test_ipv6_localhost(self):
+        self.assertTrue(self._check("::1"))
+
+    def test_ipv4_private_192(self):
+        self.assertTrue(self._check("192.168.1.100"))
+
+    def test_ipv4_private_10(self):
+        self.assertTrue(self._check("10.0.0.1"))
+
+    def test_ipv4_private_172(self):
+        self.assertTrue(self._check("172.16.0.1"))
+        self.assertTrue(self._check("172.31.255.255"))
+        self.assertFalse(self._check("172.15.0.1"))
+        self.assertFalse(self._check("172.32.0.1"))
+
+    def test_ipv4_public(self):
+        self.assertFalse(self._check("8.8.8.8"))
+        self.assertFalse(self._check("203.0.113.1"))
+
+    def test_ipv6_unique_local(self):
+        self.assertTrue(self._check("fc00::1"))
+        self.assertTrue(self._check("fd12:3456:789a::1"))
+
+    def test_ipv6_link_local(self):
+        self.assertTrue(self._check("fe80::1"))
+        self.assertTrue(self._check("fe80::abcd:1234"))
+
+    def test_ipv6_public(self):
+        self.assertFalse(self._check("2001:db8::1"))
+        self.assertFalse(self._check("2607:f8b0:4004::1"))
+
+    def test_ipv4_mapped_ipv6_private(self):
+        self.assertTrue(self._check("::ffff:192.168.1.1"))
+        self.assertTrue(self._check("::ffff:10.0.0.1"))
+
+    def test_ipv4_mapped_ipv6_public(self):
+        self.assertFalse(self._check("::ffff:8.8.8.8"))
+
+    def test_empty_ip(self):
+        self.assertTrue(self._check(""))
+
+    def test_bracketed_ipv6(self):
+        self.assertTrue(self._check("[::1]"))
+        self.assertTrue(self._check("[fe80::1]"))
+
 
 class TestMaxBody(unittest.TestCase):
     """Test that MAX_BODY_BYTES is defined and reasonable."""

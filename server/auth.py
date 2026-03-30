@@ -259,11 +259,13 @@ def _get_client_ip(handler) -> str:
 def _get_redirect_uri(handler) -> str:
     """Build the OAuth redirect URI from the request."""
     # Respect X-Forwarded-Proto/Host from reverse proxy (Cloudflare, Caddy, nginx)
-    proto = (
-        handler.headers.get("X-Forwarded-Proto")
-        or handler.headers.get("Cf-Visitor", "").split('"scheme":"')[-1].rstrip('"}')
-        or ""
-    )
+    proto = handler.headers.get("X-Forwarded-Proto") or ""
+    if not proto:
+        try:
+            cf = json.loads(handler.headers.get("Cf-Visitor", "{}"))
+            proto = cf.get("scheme", "") if isinstance(cf, dict) else ""
+        except (json.JSONDecodeError, ValueError):
+            proto = ""
     host = handler.headers.get("X-Forwarded-Host") or handler.headers.get(
         "Host", "localhost"
     )

@@ -85,13 +85,26 @@ def save_token(key: str, value: str):
             lines.append(line)
     if not found:
         lines.append(f"{key}={value}")
-    # Self-hosted single-user app — tokens are stored in a local .env file
-    # with restricted permissions. Encryption would require a key stored on the
-    # same machine, providing no real security benefit.
-    env_path.write_text(
-        "\n".join(lines) + "\n"
-    )  # CodeQL: py/clear-text-storage — accepted risk
-    os.chmod(str(env_path), 0o600)  # Owner-only read/write
+    # Atomic write: create temp file with restricted permissions, then rename.
+    # Prevents a window where the file is world-readable between write and chmod.
+    # CodeQL: py/clear-text-storage — accepted risk for self-hosted single-user app.
+    import tempfile
+
+    content = ("\n".join(lines) + "\n").encode()
+    fd = -1
+    tmp_path = None
+    try:
+        fd, tmp_path = tempfile.mkstemp(dir=str(DATA_DIR), prefix=".env.tmp.")
+        os.fchmod(fd, 0o600)
+        os.write(fd, content)
+        os.close(fd)
+        fd = -1
+        os.replace(tmp_path, str(env_path))
+    finally:
+        if fd >= 0:
+            os.close(fd)
+        if tmp_path and os.path.exists(tmp_path):
+            os.unlink(tmp_path)
     # Update os.environ so reload picks it up
     os.environ[key] = value
     _load_config()
