@@ -97,42 +97,38 @@ class TestUploadCoverPaths(unittest.TestCase):
     """Test upload_cover path handling."""
 
     @mock.patch("server.images.db_update")
-    @mock.patch("server.images.COVERS_DIR")
-    def test_data_url_prefix_stripped(self, mock_covers_dir, mock_db_update):
+    def test_data_url_prefix_stripped(self, mock_db_update):
         """data:image/jpeg;base64, prefix should be stripped before decode."""
         import tempfile
         from pathlib import Path
 
         tmp_dir = Path(tempfile.mkdtemp())
-        mock_covers_dir.__truediv__ = lambda self, x: tmp_dir / x
+        with mock.patch("server.images.COVERS_DIR", tmp_dir):
+            raw_b64 = base64.b64encode(b"fake-image-data").decode()
+            img_data = f"data:image/jpeg;base64,{raw_b64}"
 
-        # Minimal valid base64 for a tiny file
-        raw_b64 = base64.b64encode(b"fake-image-data").decode()
-        img_data = f"data:image/jpeg;base64,{raw_b64}"
+            from server.images import upload_cover
 
-        from server.images import upload_cover
-
-        result = upload_cover(img_data, "42")
+            result = upload_cover(img_data, "42")
 
         self.assertTrue(result["success"])
         self.assertIn("cover_42.jpg", result["path"])
         mock_db_update.assert_called_once_with(42, {"local_cover": result["path"]})
 
     @mock.patch("server.images.db_update")
-    @mock.patch("server.images.COVERS_DIR")
-    def test_tmp_record_skips_db_update(self, mock_covers_dir, mock_db_update):
+    def test_tmp_record_skips_db_update(self, mock_db_update):
         import tempfile
         from pathlib import Path
 
         tmp_dir = Path(tempfile.mkdtemp())
-        mock_covers_dir.__truediv__ = lambda self, x: tmp_dir / x
+        with mock.patch("server.images.COVERS_DIR", tmp_dir):
+            raw_b64 = base64.b64encode(b"fake-image-data").decode()
+            from server.images import upload_cover
 
-        raw_b64 = base64.b64encode(b"fake-image-data").decode()
-        from server.images import upload_cover
-
-        result = upload_cover(raw_b64, "tmp")
+            result = upload_cover(raw_b64, "not-a-number")
 
         self.assertTrue(result["success"])
+        # Non-numeric ID defaults to 0, db_update is NOT called for id=0
         mock_db_update.assert_not_called()
 
 
@@ -154,19 +150,17 @@ class TestUploadCoverValidation(unittest.TestCase):
         self.assertIn("Invalid base64", result["error"])
 
     @mock.patch("server.images.db_update")
-    @mock.patch("server.images.COVERS_DIR")
-    def test_record_id_sanitised(self, mock_covers_dir, mock_db_update):
+    def test_record_id_sanitised(self, mock_db_update):
         """Path traversal in record_id must be stripped."""
         import tempfile
         from pathlib import Path
 
         tmp_dir = Path(tempfile.mkdtemp())
-        mock_covers_dir.__truediv__ = lambda self, x: tmp_dir / x
+        with mock.patch("server.images.COVERS_DIR", tmp_dir):
+            raw_b64 = base64.b64encode(b"fake-image-data").decode()
+            from server.images import upload_cover
 
-        raw_b64 = base64.b64encode(b"fake-image-data").decode()
-        from server.images import upload_cover
-
-        result = upload_cover(raw_b64, "../../../etc/passwd")
+            result = upload_cover(raw_b64, "../../../etc/passwd")
         self.assertTrue(result["success"])
         # The filename should NOT contain path separators
         self.assertNotIn("..", result["path"])

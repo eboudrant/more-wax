@@ -6,6 +6,7 @@ Routes all HTTP requests to the appropriate backend logic.
 import http.server
 import json
 import mimetypes
+import os
 import threading
 import time
 import urllib.error
@@ -92,24 +93,55 @@ class Handler(http.server.BaseHTTPRequestHandler):
 
     # ── path safety ───────────────────────────────────────────
 
-    @staticmethod
-    def _safe_resolve(base: Path, untrusted: str) -> Path | None:
-        """Resolve *untrusted* relative to *base* and ensure it stays inside.
+    # Trusted base directories — only these are allowed for file serving.
+    _ALLOWED_BASES: dict[str, Path] = {
+        "static": STATIC_DIR.resolve(),
+        "data": DATA_DIR.resolve(),
+    }
 
-        Returns the resolved Path, or None if the result escapes the base
-        directory (path traversal attempt).
+    @staticmethod
+    def _safe_resolve(base_key: str, untrusted: str) -> Path | None:
+        """Resolve *untrusted* within a trusted base directory.
+
+        *base_key* must be a key in _ALLOWED_BASES (e.g. "static", "data").
+        Walks the directory tree segment-by-segment using only trusted Path
+        operations (iterdir), never constructing a Path from user input.
+        Returns the resolved Path, or None if the path is invalid.
         """
-        base_resolved = base.resolve()
-        resolved = (base / untrusted).resolve()
-        resolved_str = str(resolved)
-        base_str = str(base_resolved)
-        # Explicit startswith check that CodeQL can trace as a sanitizer
-        if not resolved_str.startswith(base_str + "/") and resolved_str != base_str:
+        base_real = Handler._ALLOWED_BASES.get(base_key)
+        if base_real is None:
             return None
-        # Reconstruct from the validated relative portion so CodeQL
-        # sees a fresh (non-tainted) Path derived from known-safe base.
-        relative = resolved_str[len(base_str) :]
-        return base_resolved / relative.lstrip("/")
+        # Reject obvious traversal/absolute paths at the string level
+        normalized = os.path.normpath(untrusted)
+        if ".." in normalized or os.path.isabs(normalized):
+            return None
+        segments = [s for s in normalized.replace("\\", "/").split("/") if s]
+        if not segments:
+            return None
+        # Walk the tree segment-by-segment using directory listings
+        # so no user-provided string is ever passed to Path constructors.
+        current = base_real
+        for seg in segments:
+            if not current.is_dir():
+                return None
+            # Find the matching entry in the actual directory listing
+            match = None
+            try:
+                for entry in current.iterdir():
+                    if entry.name == seg:
+                        match = entry
+                        break
+            except OSError:
+                return None
+            if match is None:
+                return None
+            current = match.resolve()
+        # Final containment check against the trusted base
+        try:
+            current.relative_to(base_real)
+        except ValueError:
+            return None
+        return current
 
     # ── low-level helpers ────────────────────────────────────────
 
@@ -197,14 +229,14 @@ class Handler(http.server.BaseHTTPRequestHandler):
         if p in ("/", "/index.html"):
             self.send_file(STATIC_DIR / "index.html")
         elif p.startswith("/static/"):
-            f = self._safe_resolve(STATIC_DIR, p[8:])
-            if f and f.exists():
+            f = self._safe_resolve("static", p[8:])
+            if f:
                 self.send_file(f)
             else:
                 self._404()
         elif p.startswith("/covers/"):
-            f = self._safe_resolve(DATA_DIR, p[1:])
-            if f and f.exists():
+            f = self._safe_resolve("data", p[1:])
+            if f:
                 self.send_file(f)
             else:
                 self._404()

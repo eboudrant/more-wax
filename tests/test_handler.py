@@ -215,31 +215,44 @@ class TestHandlerRouting(unittest.TestCase):
 class TestSafeResolve(unittest.TestCase):
     """Unit tests for the _safe_resolve static method."""
 
-    def _resolve(self, base, untrusted):
+    def setUp(self):
         from server.handler import Handler
 
-        return Handler._safe_resolve(base, untrusted)
+        self._original_bases = Handler._ALLOWED_BASES.copy()
+        Handler._ALLOWED_BASES["test_static"] = Path(_static_dir).resolve()
+
+    def tearDown(self):
+        from server.handler import Handler
+
+        Handler._ALLOWED_BASES = self._original_bases
+
+    def _resolve(self, untrusted):
+        from server.handler import Handler
+
+        return Handler._safe_resolve("test_static", untrusted)
 
     def test_normal_path(self):
-        base = Path(_static_dir)
-        result = self._resolve(base, "test.txt")
+        result = self._resolve("test.txt")
         self.assertIsNotNone(result)
-        self.assertTrue(str(result).startswith(str(base.resolve())))
+        self.assertTrue(str(result).startswith(str(Path(_static_dir).resolve())))
 
     def test_traversal_blocked(self):
-        base = Path(_static_dir)
-        result = self._resolve(base, "../../etc/passwd")
+        result = self._resolve("../../etc/passwd")
         self.assertIsNone(result)
 
     def test_double_dot_in_middle(self):
-        base = Path(_static_dir)
-        result = self._resolve(base, "js/../test.txt")
-        # This resolves to base/test.txt which is still inside base
+        # normpath collapses "js/../test.txt" to "test.txt" which is safe
+        result = self._resolve("js/../test.txt")
         self.assertIsNotNone(result)
 
     def test_absolute_path_blocked(self):
-        base = Path(_static_dir)
-        result = self._resolve(base, "/etc/passwd")
+        result = self._resolve("/etc/passwd")
+        self.assertIsNone(result)
+
+    def test_invalid_base_key(self):
+        from server.handler import Handler
+
+        result = Handler._safe_resolve("nonexistent", "test.txt")
         self.assertIsNone(result)
 
 
