@@ -105,6 +105,17 @@ test.describe('Collection', () => {
     await expect(page.locator('#filter-input')).toBeVisible();
   });
 
+  test('filter with text shows clear button', async ({ page }) => {
+    await mockApi(page);
+    await page.goto('/#collection');
+    await waitForCollection(page);
+
+    await page.fill('#filter-input', 'Daft Punk');
+    await page.waitForTimeout(TRANSITION);
+    await expect(page.locator('#filter-clear')).toBeVisible();
+    await expect(page).toHaveScreenshot('collection-filtered.png');
+  });
+
   test('wall view renders on desktop', async ({ page }) => {
     test.skip(!isDesktop(page), 'wall view only on desktop');
     await mockApi(page);

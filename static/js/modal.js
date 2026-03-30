@@ -49,6 +49,14 @@ const AppModal = (() => {
     };
     document.addEventListener('keydown', inst._escHandler);
 
+    // Click on scrim (modal overlay outside the dialog) to close
+    inst._scrimHandler = (e) => {
+      if (!inst.options.staticBackdrop && e.target === inst.el) {
+        hide(id);
+      }
+    };
+    inst.el.addEventListener('click', inst._scrimHandler);
+
     // data-dismiss="modal" click delegation
     inst._dismissHandler = (e) => {
       const btn = e.target.closest('[data-dismiss="modal"]');
@@ -85,6 +93,10 @@ const AppModal = (() => {
       if (inst._escHandler) {
         document.removeEventListener('keydown', inst._escHandler);
         inst._escHandler = null;
+      }
+      if (inst._scrimHandler) {
+        inst.el.removeEventListener('click', inst._scrimHandler);
+        inst._scrimHandler = null;
       }
       if (inst._dismissHandler) {
         inst.el.removeEventListener('click', inst._dismissHandler);
