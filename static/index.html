@@ -61,7 +61,7 @@
 
 <!-- ── HEADER ───────────────────────────────────────────────── -->
 <header class="sticky top-0 z-50 w-full flex justify-between items-center px-6 py-3 bg-bg/80 backdrop-blur-xl border-b border-outline-v/10">
-  <div class="flex items-center gap-3">
+  <div class="flex items-center gap-3 cursor-pointer" onclick="_titleTap()">
     <img src="/static/logo.svg" alt="More'Wax" class="h-8 w-8 rounded-full">
     <h1 class="font-headline italic font-bold text-on-surface tracking-tighter text-xl">More'Wax</h1>
   </div>
@@ -102,8 +102,8 @@
         <input id="dash-search" type="text"
                class="bg-transparent border-none focus:ring-0 focus:outline-none font-body py-2 px-0 w-64 placeholder:text-outline text-on-surface"
                placeholder="Search your vault…"
-               onkeydown="if(event.key==='Enter'){navigateTo('collection');document.getElementById('filter-input').value=this.value;filterCollection()}">
-        <button onclick="navigateTo('collection');document.getElementById('filter-input').value=document.getElementById('dash-search').value;filterCollection()"
+               onkeydown="if(event.key==='Enter'){navigateTo('collection');document.getElementById('filter-input').value=this.value;this.value='';filterCollection();var c=document.getElementById('filter-clear');if(c)c.style.display=document.getElementById('filter-input').value?'block':'none'}">
+        <button onclick="var s=document.getElementById('dash-search');navigateTo('collection');document.getElementById('filter-input').value=s.value;s.value='';filterCollection();var c=document.getElementById('filter-clear');if(c)c.style.display=document.getElementById('filter-input').value?'block':'none'"
                 class="text-outline hover:text-primary transition-colors shrink-0" title="Search">
           <i class="bi bi-search text-sm"></i>
         </button>
@@ -151,9 +151,14 @@
         <div class="relative group flex-1 min-w-0">
           <span class="absolute left-0 bottom-0 w-full h-px bg-outline-v/40 group-focus-within:bg-primary transition-colors"></span>
           <input id="filter-input" type="text"
-                 class="w-full bg-transparent border-none focus:ring-0 font-body py-2 px-0 placeholder:text-outline text-on-surface"
+                 class="w-full bg-transparent border-none focus:ring-0 font-body py-2 px-0 pr-6 placeholder:text-outline text-on-surface"
                  placeholder="Filter…"
-                 oninput="filterCollection()">
+                 oninput="filterCollection();document.getElementById('filter-clear').style.display=this.value?'block':'none'">
+          <button id="filter-clear" onclick="document.getElementById('filter-input').value='';this.style.display='none';filterCollection()"
+                  class="absolute right-0 top-1/2 -translate-y-1/2 text-outline hover:text-on-surface transition-colors"
+                  style="display:none" title="Clear filter">
+            <i class="bi bi-x text-lg"></i>
+          </button>
         </div>
         <div id="sort-controls" class="flex items-center gap-1.5 shrink-0">
           <i class="bi bi-sort-down text-primary text-sm"></i>

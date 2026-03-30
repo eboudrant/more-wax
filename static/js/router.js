@@ -46,3 +46,12 @@ function _getViewFromHash() {
 window.addEventListener('hashchange', () => {
   navigateTo(_getViewFromHash());
 });
+
+/** Title tap: scroll to top if scrolled, navigate home if already at top. */
+function _titleTap() {
+  if (window.scrollY > 50) {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  } else {
+    navigateTo('dashboard');
+  }
+}
