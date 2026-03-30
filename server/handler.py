@@ -100,6 +100,13 @@ class Handler(http.server.BaseHTTPRequestHandler):
         Returns the resolved Path, or None if the result escapes the base
         directory (path traversal attempt).
         """
+        # 0. Sanitize and resolve base once — must be absolute directory
+        try:
+            base_real = base.resolve()
+        except OSError:
+            return None
+        if not base_real.is_absolute():
+            return None
         # 1. Reject path traversal at the string level before any Path ops
         normalized = os.path.normpath(untrusted)
         if (
@@ -113,15 +120,16 @@ class Handler(http.server.BaseHTTPRequestHandler):
             if segment == "..":
                 return None
         # 3. Construct the result from the validated, normalized string
-        result = base.resolve() / normalized
+        result = base_real / normalized
         if not result.exists():
             return None
-        # 4. Final containment check on the resolved real path
-        real = result.resolve()
-        base_real = str(base.resolve())
-        if not str(real).startswith(base_real + "/"):
+        # 4. Final containment check using Path.relative_to (not string ops)
+        try:
+            candidate = result.resolve()
+            candidate.relative_to(base_real)
+        except (ValueError, OSError):
             return None
-        return real
+        return candidate
 
     # ── low-level helpers ────────────────────────────────────────
 
