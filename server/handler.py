@@ -93,14 +93,24 @@ class Handler(http.server.BaseHTTPRequestHandler):
 
     # ── path safety ───────────────────────────────────────────
 
-    @staticmethod
-    def _safe_resolve(base: Path, untrusted: str) -> Path | None:
-        """Resolve *untrusted* relative to *base* and ensure it stays inside.
+    # Trusted base directories — only these are allowed for file serving.
+    _ALLOWED_BASES: dict[str, Path] = {
+        "static": STATIC_DIR.resolve(),
+        "data": DATA_DIR.resolve(),
+    }
 
+    @staticmethod
+    def _safe_resolve(base_key: str, untrusted: str) -> Path | None:
+        """Resolve *untrusted* within a trusted base directory.
+
+        *base_key* must be a key in _ALLOWED_BASES (e.g. "static", "data").
         Walks the directory tree segment-by-segment using only trusted Path
-        operations (iterdir/match), never constructing a Path from user input.
+        operations (iterdir), never constructing a Path from user input.
         Returns the resolved Path, or None if the path is invalid.
         """
+        base_real = Handler._ALLOWED_BASES.get(base_key)
+        if base_real is None:
+            return None
         # Reject obvious traversal/absolute paths at the string level
         normalized = os.path.normpath(untrusted)
         if ".." in normalized or os.path.isabs(normalized):
@@ -110,7 +120,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
             return None
         # Walk the tree segment-by-segment using directory listings
         # so no user-provided string is ever passed to Path constructors.
-        current = base.resolve()
+        current = base_real
         for seg in segments:
             if not current.is_dir():
                 return None
@@ -126,9 +136,9 @@ class Handler(http.server.BaseHTTPRequestHandler):
             if match is None:
                 return None
             current = match.resolve()
-        # Final containment check
+        # Final containment check against the trusted base
         try:
-            current.relative_to(base.resolve())
+            current.relative_to(base_real)
         except ValueError:
             return None
         return current
@@ -219,13 +229,13 @@ class Handler(http.server.BaseHTTPRequestHandler):
         if p in ("/", "/index.html"):
             self.send_file(STATIC_DIR / "index.html")
         elif p.startswith("/static/"):
-            f = self._safe_resolve(STATIC_DIR, p[8:])
+            f = self._safe_resolve("static", p[8:])
             if f:
                 self.send_file(f)
             else:
                 self._404()
         elif p.startswith("/covers/"):
-            f = self._safe_resolve(DATA_DIR, p[1:])
+            f = self._safe_resolve("data", p[1:])
             if f:
                 self.send_file(f)
             else:

@@ -49,16 +49,17 @@ def upload_cover(img_data: str, record_id: str) -> dict:
     if err:
         return {"success": False, "error": err}
 
-    # Sanitise record_id to prevent path traversal in filename
-    safe_id = "".join(c for c in str(record_id) if c.isalnum() or c in ("_", "-"))
+    # Sanitise record_id: only allow digits to prevent any path injection.
+    safe_id = "".join(c for c in str(record_id) if c.isdigit())
     if not safe_id:
-        safe_id = "tmp"
+        safe_id = "0"
 
-    filename = f"cover_{safe_id}.jpg"
-    dest_path = COVERS_DIR / filename
-    # Ensure the filename has no path separators (belt-and-suspenders with the
-    # alphanumeric sanitisation above) to satisfy CodeQL path-injection checks.
-    if "/" in filename or "\\" in filename:  # noqa: S105
+    # Build filename from a fixed template with only digits — no user string
+    # is ever passed to a Path constructor.
+    filename = "cover_" + safe_id + ".jpg"
+    dest_path = COVERS_DIR.resolve() / filename
+    # Final containment: resolved path must be inside COVERS_DIR
+    if not str(dest_path.resolve()).startswith(str(COVERS_DIR.resolve())):
         return {"success": False, "error": "Invalid filename"}
     dest_path.write_bytes(raw)
 
