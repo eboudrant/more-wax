@@ -6,6 +6,7 @@ Routes all HTTP requests to the appropriate backend logic.
 import http.server
 import json
 import mimetypes
+import os
 import threading
 import time
 import urllib.error
@@ -99,17 +100,28 @@ class Handler(http.server.BaseHTTPRequestHandler):
         Returns the resolved Path, or None if the result escapes the base
         directory (path traversal attempt).
         """
-        base_resolved = base.resolve()
-        resolved = (base / untrusted).resolve()
-        resolved_str = str(resolved)
-        base_str = str(base_resolved)
-        # Explicit startswith check that CodeQL can trace as a sanitizer
-        if not resolved_str.startswith(base_str + "/") and resolved_str != base_str:
+        # 1. Reject path traversal at the string level before any Path ops
+        normalized = os.path.normpath(untrusted)
+        if (
+            normalized.startswith(("../", "..\\"))
+            or normalized == ".."
+            or os.path.isabs(normalized)
+        ):
             return None
-        # Reconstruct from the validated relative portion so CodeQL
-        # sees a fresh (non-tainted) Path derived from known-safe base.
-        relative = resolved_str[len(base_str) :]
-        return base_resolved / relative.lstrip("/")
+        # 2. Split into segments and reject any ".." that normpath didn't collapse
+        for segment in normalized.replace("\\", "/").split("/"):
+            if segment == "..":
+                return None
+        # 3. Construct the result from the validated, normalized string
+        result = base.resolve() / normalized
+        if not result.exists():
+            return None
+        # 4. Final containment check on the resolved real path
+        real = result.resolve()
+        base_real = str(base.resolve())
+        if not str(real).startswith(base_real + "/"):
+            return None
+        return real
 
     # ── low-level helpers ────────────────────────────────────────
 
@@ -198,13 +210,13 @@ class Handler(http.server.BaseHTTPRequestHandler):
             self.send_file(STATIC_DIR / "index.html")
         elif p.startswith("/static/"):
             f = self._safe_resolve(STATIC_DIR, p[8:])
-            if f and f.exists():
+            if f:
                 self.send_file(f)
             else:
                 self._404()
         elif p.startswith("/covers/"):
             f = self._safe_resolve(DATA_DIR, p[1:])
-            if f and f.exists():
+            if f:
                 self.send_file(f)
             else:
                 self._404()
