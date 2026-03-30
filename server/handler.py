@@ -160,9 +160,12 @@ class Handler(http.server.BaseHTTPRequestHandler):
         self.wfile.write(body)
 
     def send_file(self, path: Path):
+        if not path.is_file():
+            self._404()
+            return
         try:
             data = path.read_bytes()
-        except (FileNotFoundError, PermissionError):
+        except (FileNotFoundError, PermissionError, OSError):
             self._404()
             return
         mime, _ = mimetypes.guess_type(str(path))
@@ -382,9 +385,11 @@ class Handler(http.server.BaseHTTPRequestHandler):
 
     @staticmethod
     def _is_private_ip(ip: str) -> bool:
-        """True if the IP is localhost or a private network address."""
+        """True if the IP is localhost or a private/link-local address (IPv4 + IPv6)."""
         if not ip:
             return True
+        ip = ip.strip("[]")  # Strip IPv6 brackets (e.g. [::1])
+        # IPv4 loopback and private ranges
         if ip in ("127.0.0.1", "::1", "localhost"):
             return True
         if ip.startswith("192.168.") or ip.startswith("10."):
@@ -396,6 +401,16 @@ class Handler(http.server.BaseHTTPRequestHandler):
                     return True
             except ValueError:
                 pass
+        # IPv6 private ranges
+        ip_lower = ip.lower().strip("[]")
+        if ip_lower.startswith("fc") or ip_lower.startswith(
+            "fd"
+        ):  # Unique Local (fc00::/7)
+            return True
+        if ip_lower.startswith("fe80"):  # Link-Local (fe80::/10)
+            return True
+        if ip_lower.startswith("::ffff:"):  # IPv4-mapped IPv6
+            return Handler._is_private_ip(ip_lower[7:])
         return False
 
     def _check_auth(self) -> bool:

@@ -106,11 +106,9 @@ class TestUploadCoverPaths(unittest.TestCase):
         with mock.patch("server.images.COVERS_DIR", tmp_dir):
             raw_b64 = base64.b64encode(b"fake-image-data").decode()
             img_data = f"data:image/jpeg;base64,{raw_b64}"
-
             from server.images import upload_cover
 
             result = upload_cover(img_data, "42")
-
         self.assertTrue(result["success"])
         self.assertIn("cover_42.jpg", result["path"])
         mock_db_update.assert_called_once_with(42, {"local_cover": result["path"]})
@@ -126,7 +124,6 @@ class TestUploadCoverPaths(unittest.TestCase):
             from server.images import upload_cover
 
             result = upload_cover(raw_b64, "not-a-number")
-
         self.assertTrue(result["success"])
         # Non-numeric ID defaults to 0, db_update is NOT called for id=0
         mock_db_update.assert_not_called()
