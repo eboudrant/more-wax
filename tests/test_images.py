@@ -128,8 +128,8 @@ class TestUploadCoverPaths(unittest.TestCase):
             result = upload_cover(raw_b64, "not-a-number")
 
         self.assertTrue(result["success"])
-        # Non-numeric ID is sanitised to "0" (digits only), db_update is called with id=0
-        mock_db_update.assert_called_once_with(0, {"local_cover": result["path"]})
+        # Non-numeric ID defaults to 0, db_update is NOT called for id=0
+        mock_db_update.assert_not_called()
 
 
 class TestUploadCoverValidation(unittest.TestCase):

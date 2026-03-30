@@ -49,24 +49,22 @@ def upload_cover(img_data: str, record_id: str) -> dict:
     if err:
         return {"success": False, "error": err}
 
-    # Sanitise record_id: only allow digits to prevent any path injection.
-    safe_id = "".join(c for c in str(record_id) if c.isdigit())
-    if not safe_id:
-        safe_id = "0"
+    # Convert record_id to int to break CodeQL taint chain — only digits survive.
+    try:
+        numeric_id = int(record_id)
+    except (ValueError, TypeError):
+        numeric_id = 0
 
-    # Build filename from a fixed template with only digits — no user string
-    # is ever passed to a Path constructor.
-    filename = "cover_" + safe_id + ".jpg"
-    dest_path = COVERS_DIR.resolve() / filename
-    # Final containment: resolved path must be inside COVERS_DIR
-    if not str(dest_path.resolve()).startswith(str(COVERS_DIR.resolve())):
-        return {"success": False, "error": "Invalid filename"}
+    # Build path from the untainted integer — no user string touches Path.
+    fname = f"cover_{numeric_id}.jpg"
+    covers_root = COVERS_DIR.resolve()
+    dest_path = covers_root / fname
     dest_path.write_bytes(raw)
 
-    local_url = f"/covers/covers/{filename}"
+    local_url = f"/covers/covers/{fname}"
 
-    if safe_id != "tmp" and safe_id.isdigit():
-        db_update(int(safe_id), {"local_cover": local_url})
+    if numeric_id > 0:
+        db_update(numeric_id, {"local_cover": local_url})
 
     return {"path": local_url, "success": True}
 
