@@ -1,6 +1,7 @@
 """Tests for the Discogs sync module."""
 
 import json
+import os
 import tempfile
 import unittest
 from pathlib import Path
@@ -17,7 +18,9 @@ class TestSync(unittest.TestCase):
         import server.database as db_mod
         import server.sync as sync_mod
 
-        self.db_file = Path(tempfile.mktemp(suffix=".json"))
+        fd, path = tempfile.mkstemp(suffix=".json")
+        os.close(fd)
+        self.db_file = Path(path)
         # Patch DB_FILE in both config and database modules
         _config.DB_FILE = self.db_file
         db_mod.DB_FILE = self.db_file
@@ -501,7 +504,9 @@ class TestBackfillMasterIds(unittest.TestCase):
         import server.database as db_mod
         import server.sync as sync_mod
 
-        self.db_file = Path(tempfile.mktemp(suffix=".json"))
+        fd, path = tempfile.mkstemp(suffix=".json")
+        os.close(fd)
+        self.db_file = Path(path)
         _config.DB_FILE = self.db_file
         db_mod.DB_FILE = self.db_file
 
@@ -761,7 +766,9 @@ class TestSchemaMigration(unittest.TestCase):
     def setUp(self):
         import server.database as db_mod
 
-        self.db_file = Path(tempfile.mktemp(suffix=".json"))
+        fd, path = tempfile.mkstemp(suffix=".json")
+        os.close(fd)
+        self.db_file = Path(path)
         _config.DB_FILE = self.db_file
         db_mod.DB_FILE = self.db_file
 
