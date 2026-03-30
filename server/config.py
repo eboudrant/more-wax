@@ -85,7 +85,13 @@ def save_token(key: str, value: str):
             lines.append(line)
     if not found:
         lines.append(f"{key}={value}")
-    env_path.write_text("\n".join(lines) + "\n")
+    # Self-hosted single-user app — tokens are stored in a local .env file
+    # with restricted permissions. Encryption would require a key stored on the
+    # same machine, providing no real security benefit.
+    env_path.write_text(
+        "\n".join(lines) + "\n"
+    )  # CodeQL: py/clear-text-storage — accepted risk
+    os.chmod(str(env_path), 0o600)  # Owner-only read/write
     # Update os.environ so reload picks it up
     os.environ[key] = value
     _load_config()
