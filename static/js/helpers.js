@@ -216,16 +216,16 @@ function _drawShareCard(canvas, r, coverImg, qrImg) {
   // Artist
   textH += 44;
 
-  // Details line
+  // Details line (computed once, reused in render pass)
   const details = [];
   if (r.year) details.push(r.year);
   if (r.label) details.push(r.label.split(', ')[0]);
   if (r.format) details.push(r.format);
   if (r.country) details.push(r.country);
   if (r.catalog_number) details.push(r.catalog_number);
-  if (details.length) {
-    ctx.font = '22px system-ui, -apple-system, sans-serif';
-    const detailLines = _wrapText(ctx, details.join(' \u00b7 '), textW);
+  ctx.font = '22px system-ui, -apple-system, sans-serif';
+  const detailLines = details.length ? _wrapText(ctx, details.join(' \u00b7 '), textW) : [];
+  if (detailLines.length) {
     textH += Math.min(detailLines.length, 2) * 28 + 8;
   }
 
@@ -291,10 +291,9 @@ function _drawShareCard(canvas, r, coverImg, qrImg) {
   y += 44;
 
   // Release details
-  if (details.length) {
+  if (detailLines.length) {
     ctx.fillStyle = '#9a8f83';
     ctx.font = '22px system-ui, -apple-system, sans-serif';
-    const detailLines = _wrapText(ctx, details.join(' \u00b7 '), textW);
     for (const line of detailLines.slice(0, 2)) {
       ctx.fillText(line, pad, y);
       y += 28;
@@ -329,20 +328,6 @@ function _drawShareCard(canvas, r, coverImg, qrImg) {
     ctx.fillText("More'Wax", W - pad, H - pad + 10);
     ctx.textAlign = 'left';
   }
-}
-
-function _roundRect(ctx, x, y, w, h, r) {
-  ctx.beginPath();
-  ctx.moveTo(x + r, y);
-  ctx.lineTo(x + w - r, y);
-  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
-  ctx.lineTo(x + w, y + h - r);
-  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-  ctx.lineTo(x + r, y + h);
-  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
-  ctx.lineTo(x, y + r);
-  ctx.quadraticCurveTo(x, y, x + r, y);
-  ctx.closePath();
 }
 
 function _wrapText(ctx, text, maxWidth) {

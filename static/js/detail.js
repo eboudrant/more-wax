@@ -698,8 +698,10 @@ async function _shareRecord(btn, id) {
 
   try {
     const canvas = document.createElement('canvas');
-    const coverImg = await _loadShareCover(r);
-    const qrImg = await _loadQrCode('https://github.com/eboudrant/more-wax');
+    const [coverImg, qrImg] = await Promise.all([
+      _loadShareCover(r),
+      _loadQrCode(),
+    ]);
     _drawShareCard(canvas, r, coverImg, qrImg);
 
     const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
@@ -730,14 +732,15 @@ async function _shareRecord(btn, id) {
   icon.className = 'bi bi-share text-xs';
 }
 
-function _loadQrCode(url) {
+let _cachedQrImg = undefined; // undefined = not fetched, null = failed, Image = loaded
+function _loadQrCode() {
+  if (_cachedQrImg !== undefined) return Promise.resolve(_cachedQrImg);
   return new Promise(resolve => {
     const img = new Image();
     img.crossOrigin = 'anonymous';
-    img.onload = () => resolve(img);
-    img.onerror = () => resolve(null);
-    // Use QR Server API (free, no auth, returns PNG)
-    img.src = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(url)}&bgcolor=131313&color=9a8f83`;
+    img.onload = () => { _cachedQrImg = img; resolve(img); };
+    img.onerror = () => { _cachedQrImg = null; resolve(null); };
+    img.src = 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https%3A%2F%2Fgithub.com%2Feboudrant%2Fmore-wax&bgcolor=131313&color=9a8f83';
   });
 }
 
@@ -750,6 +753,7 @@ function _loadShareCover(r) {
       src = `/api/cover-proxy?url=${encodeURIComponent(src)}`;
     }
     const img = new Image();
+    img.crossOrigin = 'anonymous';
     img.onload = () => resolve(img);
     img.onerror = () => resolve(null);
     img.src = src;

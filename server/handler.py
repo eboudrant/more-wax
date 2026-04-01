@@ -967,8 +967,11 @@ class Handler(http.server.BaseHTTPRequestHandler):
             req = urllib.request.Request(url)
             req.add_header("User-Agent", "MoreWax/1.0")
             with urllib.request.urlopen(req, timeout=10) as resp:  # nosec B310
-                data = resp.read(5 * 1024 * 1024)  # 5MB max
                 content_type = resp.headers.get("Content-Type", "image/jpeg")
+                if not content_type.startswith("image/"):
+                    self._404()
+                    return
+                data = resp.read(5 * 1024 * 1024)  # 5MB max
             self.send_response(200)
             self.send_header("Content-Type", content_type)
             self.send_header("Content-Length", str(len(data)))
