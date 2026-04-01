@@ -116,6 +116,18 @@ test.describe('Collection', () => {
     await expect(page).toHaveScreenshot('collection-filtered.png');
   });
 
+  test('smart filter dropdown shows when typing is:', async ({ page }) => {
+    await mockApi(page);
+    await page.goto('/#collection');
+    await waitForCollection(page);
+
+    await page.click('#filter-input');
+    await page.type('#filter-input', 'is:');
+    await page.waitForTimeout(TRANSITION);
+    await expect(page.locator('#smart-filter-dropdown')).toBeVisible();
+    await expect(page).toHaveScreenshot('collection-smart-filter.png');
+  });
+
   test('wall view renders on desktop', async ({ page }) => {
     test.skip(!isDesktop(page), 'wall view only on desktop');
     await mockApi(page);
