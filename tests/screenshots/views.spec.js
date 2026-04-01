@@ -278,6 +278,60 @@ test.describe('Detail Modal', () => {
 });
 
 // ─────────────────────────────────────────────────────────────────
+//  SHARE CARD
+// ─────────────────────────────────────────────────────────────────
+
+test.describe('Share Card', () => {
+  test('generates share card image', async ({ page }) => {
+    test.skip(!isDesktop(page), 'canvas output is identical on mobile and desktop');
+    await mockApi(page);
+    await page.goto('/#collection');
+    await waitForCollection(page);
+
+    // Generate a share card via the canvas API directly
+    const dataUrl = await page.evaluate(async () => {
+      const r = collection[0];
+      // Mock discogs_extra with tracklist
+      r.discogs_extra = {
+        tracklist: [
+          { position: 'A1', title: 'Track One', duration: '3:42', type_: 'track' },
+          { position: 'A2', title: 'Track Two', duration: '4:15', type_: 'track' },
+          { position: 'B1', title: 'Track Three', duration: '5:01', type_: 'track' },
+        ]
+      };
+      // Create a mock QR code image (simple dark square with pattern)
+      const qrCanvas = document.createElement('canvas');
+      qrCanvas.width = 150; qrCanvas.height = 150;
+      const qCtx = qrCanvas.getContext('2d');
+      qCtx.fillStyle = '#131313';
+      qCtx.fillRect(0, 0, 150, 150);
+      qCtx.fillStyle = '#9a8f83';
+      for (let i = 0; i < 15; i++) for (let j = 0; j < 15; j++) {
+        if ((i + j) % 3 === 0) qCtx.fillRect(i * 10, j * 10, 8, 8);
+      }
+      // Wait for the image to load
+      const qrImg = await new Promise(resolve => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.src = qrCanvas.toDataURL();
+      });
+
+      const canvas = document.createElement('canvas');
+      _drawShareCard(canvas, r, null, qrImg);
+      return canvas.toDataURL('image/png');
+    });
+
+    // Render the card in the page for screenshot
+    await page.evaluate((src) => {
+      document.body.innerHTML = `<img src="${src}" style="display:block">`;
+    }, dataUrl);
+    await page.waitForTimeout(200);
+
+    await expect(page.locator('img')).toHaveScreenshot('share-card.png');
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────
 //  NAVIGATION (mobile only — bottom nav is md:hidden)
 // ─────────────────────────────────────────────────────────────────
 

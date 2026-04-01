@@ -45,6 +45,9 @@ function _renderPanelHtml(r, peek = false) {
           ${r.id ? `<button class="w-8 h-8 rounded-full bg-surface-high/50 flex items-center justify-center text-outline hover:text-primary transition-colors" onclick="_copyDetailInfo(this, ${r.id})" title="Copy artist and title">
             <i class="bi bi-clipboard text-xs"></i>
           </button>` : ''}
+          ${r.id ? `<button id="share-btn" class="w-8 h-8 rounded-full bg-surface-high/50 flex items-center justify-center text-outline hover:text-primary transition-colors" onclick="_shareRecord(this, ${r.id})" title="Share">
+            <i class="bi bi-share text-xs"></i>
+          </button>` : ''}
           ${r.discogs_id ? `<a href="https://www.discogs.com/release/${r.discogs_id}" target="_blank" class="w-8 h-8 rounded-full bg-surface-high/50 flex items-center justify-center text-outline hover:text-primary transition-colors" title="View on Discogs"><i class="bi bi-box-arrow-up-right text-xs"></i></a>` : ''}
           ${r.discogs_id && !peek ? _renderDiscogsToggleBtn(r.discogs_id) : ''}
         </div>
@@ -684,4 +687,75 @@ async function confirmDelete(id) {
   AppModal.hide('detail-modal');
   await loadCollection();
   toast('Record removed from collection', 'success');
+}
+
+// ── Share record card ────────────────────────────────────────
+async function _shareRecord(btn, id) {
+  const r = collection.find(x => x.id === id);
+  if (!r) return;
+  const icon = btn.querySelector('i');
+  icon.className = 'bi bi-arrow-repeat animate-spin text-xs';
+
+  try {
+    const canvas = document.createElement('canvas');
+    const [coverImg, qrImg] = await Promise.all([
+      _loadShareCover(r),
+      _loadQrCode(),
+    ]);
+    _drawShareCard(canvas, r, coverImg, qrImg);
+
+    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+    const filename = `${r.artist || 'Record'} - ${r.title || 'Untitled'}.png`;
+
+    // Try Web Share API (mobile)
+    if (navigator.share && navigator.canShare) {
+      const file = new File([blob], filename, { type: 'image/png' });
+      const shareData = { files: [file] };
+      if (navigator.canShare(shareData)) {
+        await navigator.share(shareData);
+        icon.className = 'bi bi-share text-xs';
+        return;
+      }
+    }
+
+    // Fallback: download
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast('Card saved', 'success');
+  } catch (e) {
+    if (e.name !== 'AbortError') toast('Could not generate share card', 'error');
+  }
+  icon.className = 'bi bi-share text-xs';
+}
+
+let _cachedQrImg = undefined; // undefined = not fetched, null = failed, Image = loaded
+function _loadQrCode() {
+  if (_cachedQrImg !== undefined) return Promise.resolve(_cachedQrImg);
+  return new Promise(resolve => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => { _cachedQrImg = img; resolve(img); };
+    img.onerror = () => { _cachedQrImg = null; resolve(null); };
+    img.src = 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https%3A%2F%2Fgithub.com%2Feboudrant%2Fmore-wax&bgcolor=131313&color=9a8f83';
+  });
+}
+
+function _loadShareCover(r) {
+  return new Promise(resolve => {
+    let src = r.local_cover ? `/covers/${r.local_cover}` : r.cover_image_url;
+    if (!src) { resolve(null); return; }
+    // Proxy Discogs images through our server to avoid CORS
+    if (src.startsWith('https://i.discogs.com/')) {
+      src = `/api/cover-proxy?url=${encodeURIComponent(src)}`;
+    }
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => resolve(img);
+    img.onerror = () => resolve(null);
+    img.src = src;
+  });
 }

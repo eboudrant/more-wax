@@ -243,6 +243,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 self.send_file(f)
             else:
                 self._404()
+        elif p.startswith("/api/cover-proxy"):
+            self._api_cover_proxy()
         elif p == "/api/status":
             from server.version import VERSION, BUILD_DATE, GIT_REVISION
 
@@ -950,6 +952,40 @@ class Handler(http.server.BaseHTTPRequestHandler):
         t = threading.Thread(target=_do_refresh, daemon=True)
         t.start()
         self.send_json({"updated": "pending", "total_stale": len(stale)})
+
+    # ── cover proxy (for share card CORS) ──────────────────────
+
+    def _api_cover_proxy(self):
+        """Proxy a Discogs cover image to avoid CORS issues for canvas rendering."""
+        qs = urllib.parse.urlparse(self.path).query
+        params = urllib.parse.parse_qs(qs)
+        raw_url = params.get("url", [""])[0]
+        # Parse and reconstruct URL to prevent SSRF — only allow i.discogs.com
+        parsed = urllib.parse.urlparse(raw_url)
+        if parsed.scheme != "https" or parsed.hostname != "i.discogs.com":
+            self._404()
+            return
+        # Reconstruct a clean URL from validated components (breaks taint chain)
+        safe_url = urllib.parse.urlunparse(
+            ("https", "i.discogs.com", parsed.path, "", parsed.query, "")
+        )
+        try:
+            req = urllib.request.Request(safe_url)  # nosec B310
+            req.add_header("User-Agent", "MoreWax/1.0")
+            with urllib.request.urlopen(req, timeout=10) as resp:  # nosec B310
+                content_type = resp.headers.get("Content-Type", "image/jpeg")
+                if not content_type.startswith("image/"):
+                    self._404()
+                    return
+                data = resp.read(5 * 1024 * 1024)  # 5MB max
+            self.send_response(200)
+            self.send_header("Content-Type", content_type)
+            self.send_header("Content-Length", str(len(data)))
+            self.send_header("Cache-Control", "public, max-age=86400")
+            self.end_headers()
+            self.wfile.write(data)
+        except Exception:
+            self._404()
 
     # ── media endpoints ──────────────────────────────────────────
 
