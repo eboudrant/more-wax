@@ -959,12 +959,18 @@ class Handler(http.server.BaseHTTPRequestHandler):
         """Proxy a Discogs cover image to avoid CORS issues for canvas rendering."""
         qs = urllib.parse.urlparse(self.path).query
         params = urllib.parse.parse_qs(qs)
-        url = params.get("url", [""])[0]
-        if not url or not url.startswith("https://i.discogs.com/"):
+        raw_url = params.get("url", [""])[0]
+        # Parse and reconstruct URL to prevent SSRF — only allow i.discogs.com
+        parsed = urllib.parse.urlparse(raw_url)
+        if parsed.scheme != "https" or parsed.hostname != "i.discogs.com":
             self._404()
             return
+        # Reconstruct a clean URL from validated components (breaks taint chain)
+        safe_url = urllib.parse.urlunparse(
+            ("https", "i.discogs.com", parsed.path, "", parsed.query, "")
+        )
         try:
-            req = urllib.request.Request(url)
+            req = urllib.request.Request(safe_url)  # nosec B310
             req.add_header("User-Agent", "MoreWax/1.0")
             with urllib.request.urlopen(req, timeout=10) as resp:  # nosec B310
                 content_type = resp.headers.get("Content-Type", "image/jpeg")
