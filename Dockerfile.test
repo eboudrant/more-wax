@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/playwright:v1.58.2-noble@sha256:6446946a1d9fd62d9ae501312a2d76a43ee688542b21622056a372959b65d63d
+FROM mcr.microsoft.com/playwright:v1.59.0-noble@sha256:11707c5282fec52f0705aad3a23f46b3409b3de4aed378b3dbe118d8b8c87b67
 
 # Add Python for the backend server
 RUN apt-get update \
