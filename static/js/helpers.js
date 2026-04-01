@@ -189,3 +189,175 @@ function toast(msg, type = '') {
   document.getElementById('toast-container').appendChild(el);
   setTimeout(() => { el.style.opacity = '0'; setTimeout(() => el.remove(), 300); }, 3200);
 }
+
+// ── Share card canvas renderer ───────────────────────────────
+function _drawShareCard(canvas, r, coverImg, qrImg) {
+  const W = 1080;
+  const pad = 60;
+  const coverSize = W; // full-width square cover
+  const qrSize = qrImg ? 120 : 0;
+  const qrGap = qrImg ? 24 : 0;
+  const textW = W - pad * 2 - qrSize - qrGap; // leave room for QR on right
+  const ctx = canvas.getContext('2d');
+
+  // Pre-calculate text height to size the canvas
+  ctx.canvas.width = W;
+  ctx.canvas.height = 2000; // temp height for measuring
+
+  let textH = 0;
+  textH += 80; // gap after cover
+
+  // Title height
+  ctx.font = 'bold 44px system-ui, -apple-system, sans-serif';
+  const title = r.title || 'Untitled';
+  const titleLines = _wrapText(ctx, title, textW);
+  textH += Math.min(titleLines.length, 2) * 52;
+
+  // Artist
+  textH += 44;
+
+  // Details line
+  const details = [];
+  if (r.year) details.push(r.year);
+  if (r.label) details.push(r.label.split(', ')[0]);
+  if (r.format) details.push(r.format);
+  if (r.country) details.push(r.country);
+  if (r.catalog_number) details.push(r.catalog_number);
+  if (details.length) {
+    ctx.font = '22px system-ui, -apple-system, sans-serif';
+    const detailLines = _wrapText(ctx, details.join(' \u00b7 '), textW);
+    textH += Math.min(detailLines.length, 2) * 28 + 8;
+  }
+
+  // Track count
+  const tracks = r.discogs_extra?.tracklist?.filter(t => t.type_ === 'track') || [];
+  if (tracks.length > 0) textH += 28;
+
+  // Footer space — enough for QR if present, otherwise just watermark
+  if (qrImg) {
+    const infoH = textH - 80; // content height without gap
+    if (infoH < qrSize + 30) textH += (qrSize + 30 - infoH);
+    textH += 16;
+  } else {
+    textH += 30;
+  }
+
+  // Set final canvas height (bottom padding smaller to avoid wasted space)
+  const H = coverSize + textH + 30;
+  canvas.width = W;
+  canvas.height = H;
+
+  // Background
+  ctx.fillStyle = '#131313';
+  ctx.fillRect(0, 0, W, H);
+
+  // Cover — full width, no padding
+  let y = 0;
+  if (coverImg) {
+    const aspect = coverImg.width / coverImg.height;
+    let sx = 0, sy = 0, sw = coverImg.width, sh = coverImg.height;
+    if (aspect > 1) {
+      sw = coverImg.height;
+      sx = (coverImg.width - sw) / 2;
+    } else if (aspect < 1) {
+      sh = coverImg.width;
+      sy = (coverImg.height - sh) / 2;
+    }
+    ctx.drawImage(coverImg, sx, sy, sw, sh, 0, 0, W, coverSize);
+  } else {
+    ctx.fillStyle = '#2a2a2a';
+    ctx.fillRect(0, 0, W, coverSize);
+    ctx.fillStyle = '#4e453c';
+    ctx.font = '120px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('\u25CE', W / 2, coverSize / 2 + 40);
+    ctx.textAlign = 'left';
+  }
+  y = coverSize + 80;
+
+  // Title
+  const infoStartY = y;
+  ctx.fillStyle = '#f5f0eb';
+  ctx.font = 'bold 44px system-ui, -apple-system, sans-serif';
+  for (const line of titleLines.slice(0, 2)) {
+    ctx.fillText(line, pad, y);
+    y += 52;
+  }
+
+  // Artist
+  ctx.fillStyle = '#fddcb1';
+  ctx.font = 'italic 34px system-ui, -apple-system, sans-serif';
+  ctx.fillText(r.artist || 'Unknown Artist', pad, y);
+  y += 44;
+
+  // Release details
+  if (details.length) {
+    ctx.fillStyle = '#9a8f83';
+    ctx.font = '22px system-ui, -apple-system, sans-serif';
+    const detailLines = _wrapText(ctx, details.join(' \u00b7 '), textW);
+    for (const line of detailLines.slice(0, 2)) {
+      ctx.fillText(line, pad, y);
+      y += 28;
+    }
+    y += 8;
+  }
+
+  // Track count
+  if (tracks.length > 0) {
+    ctx.fillStyle = '#6b6159';
+    ctx.font = '22px system-ui, -apple-system, sans-serif';
+    ctx.fillText(`${tracks.length} track${tracks.length !== 1 ? 's' : ''}`, pad, y);
+    y += 28;
+  }
+
+  // QR code + branding — right-aligned, top-aligned with info block
+  if (qrImg) {
+    const qrX = W - pad - qrSize;
+    // "More'Wax" label above QR
+    ctx.fillStyle = '#4e453c';
+    ctx.font = 'italic bold 16px system-ui, -apple-system, sans-serif';
+    ctx.textAlign = 'right';
+    ctx.fillText("More'Wax", W - pad, infoStartY);
+    ctx.textAlign = 'left';
+    // QR below label
+    ctx.drawImage(qrImg, qrX, infoStartY + 8, qrSize, qrSize);
+  } else {
+    // No QR — just watermark at bottom
+    ctx.fillStyle = '#4e453c';
+    ctx.font = 'italic bold 18px system-ui, -apple-system, sans-serif';
+    ctx.textAlign = 'right';
+    ctx.fillText("More'Wax", W - pad, H - pad + 10);
+    ctx.textAlign = 'left';
+  }
+}
+
+function _roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
+function _wrapText(ctx, text, maxWidth) {
+  const words = text.split(' ');
+  const lines = [];
+  let current = '';
+  for (const word of words) {
+    const test = current ? current + ' ' + word : word;
+    if (ctx.measureText(test).width > maxWidth && current) {
+      lines.push(current);
+      current = word;
+    } else {
+      current = test;
+    }
+  }
+  if (current) lines.push(current);
+  return lines;
+}
