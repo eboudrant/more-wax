@@ -153,7 +153,10 @@
           <input id="filter-input" type="text"
                  class="w-full bg-transparent border-none focus:ring-0 font-body py-2 px-0 pr-6 placeholder:text-outline text-on-surface"
                  placeholder="Filter…"
-                 oninput="filterCollection();document.getElementById('filter-clear').style.display=this.value?'block':'none'">
+                 autocomplete="off"
+                 oninput="filterCollection();document.getElementById('filter-clear').style.display=this.value?'block':'none';_updateSmartHint(this)"
+                 onkeydown="_smartFilterTab(event,this)"
+                 onblur="setTimeout(()=>{document.getElementById('smart-filter-hint')&&(document.getElementById('smart-filter-hint').textContent='');_hideSmartDropdown()},150)">
           <button id="filter-clear" onclick="document.getElementById('filter-input').value='';this.style.display='none';filterCollection()"
                   class="absolute right-0 top-1/2 -translate-y-1/2 text-outline hover:text-on-surface transition-colors"
                   style="display:none" title="Clear filter">

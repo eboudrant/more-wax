@@ -411,3 +411,7 @@ body { overscroll-behavior: none; }
   height: 100% !important;
   opacity: 0.35;
 }
+
+/* Smart filter dropdown items */
+.smart-filter-item { color: #4e453c; }
+.smart-filter-item:hover { color: #fddcb1; }
