@@ -38,14 +38,25 @@ Allow users to like/unlike individual tracks in the tracklist. Liked tracks are 
   - Initially absent, update, toggle, clear, list response, persistence
 
 ### `tests/screenshots/fixtures.js`
-- First test record has `liked_tracks: ['A1', 'B1']` for screenshot baselines
+- First test record has `liked_tracks: ['A1', 'B1']`
+- Tracklist mock updated to use vinyl-style positions (A1, A2, B1, B2) matching liked_tracks
+
+### Screenshot tests
+- `detail-liked-tracks.png` — new baseline showing filled hearts for liked tracks (A1, B1) and outline hearts for unliked (A2, B2)
+- Updated `detail-modal.png` and `scanner-confirm.png` baselines (tracklist now has 4 tracks)
+
+### Unit tests (`tests/test_database.py`)
+- 11 liked tracks tests: initial state, update, toggle, clear, list response, persistence, order preservation, duplicates, special characters, field isolation, per-record independence
 
 ## Files modified
 
 | File | Change |
 |------|--------|
-| `static/js/detail.js` | Heart icons in tracklist, toggle logic, animation |
+| `static/js/detail.js` | Heart icons in tracklist, toggle logic, pop animation |
 | `server/handler.py` | `liked_tracks` in allowed update fields |
 | `static/js/smart-filter.js` | `is:liked` filter |
-| `tests/test_database.py` | 6 liked tracks unit tests |
-| `tests/screenshots/fixtures.js` | Liked tracks in test data |
+| `tests/test_database.py` | 11 liked tracks unit tests |
+| `tests/screenshots/fixtures.js` | Liked tracks + updated tracklist mock |
+| `tests/screenshots/views.spec.js` | Liked tracks screenshot test |
+| `tests/screenshots/*/detail-*.png` | Updated baselines |
+| `tests/screenshots/*/scanner-confirm.png` | Updated baselines |

@@ -275,6 +275,29 @@ test.describe('Detail Modal', () => {
 
     await expect(page).toHaveScreenshot('detail-modal.png');
   });
+
+  test('shows liked tracks with filled hearts', async ({ page }) => {
+    await mockApi(page);
+    await page.goto('/#collection');
+    await waitForCollection(page);
+
+    // collection[0] has liked_tracks: ['A1', 'B1'] from fixtures
+    page.evaluate(() => showDetail(collection[0].id)).catch(() => {});
+    await page.waitForSelector('#detail-modal', { state: 'visible', timeout: 10_000 });
+    // Wait for tracklist to load
+    await page.waitForSelector('.bi-heart-fill', { timeout: 10_000 });
+    await page.waitForTimeout(TRANSITION);
+
+    // Verify liked hearts exist
+    const filledHearts = await page.locator('.bi-heart-fill').count();
+    expect(filledHearts).toBeGreaterThanOrEqual(2); // A1 and B1
+
+    // Verify unliked hearts exist too
+    const outlineHearts = await page.locator('.bi-heart').count();
+    expect(outlineHearts).toBeGreaterThan(0);
+
+    await expect(page).toHaveScreenshot('detail-liked-tracks.png');
+  });
 });
 
 // ─────────────────────────────────────────────────────────────────
