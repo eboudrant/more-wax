@@ -588,7 +588,7 @@ function _renderTracklist(tracklist, r) {
     const trackId = t.position || t.title;
     const isLiked = liked.includes(trackId);
     const pos = t.position ? `<span class="text-outline font-label text-xs shrink-0 whitespace-nowrap">${esc(t.position)}</span>` : '';
-    const safeTrackId = trackId.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+    const safeTrackId = trackId.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;');
     const heart = rid ? `<button class="shrink-0 text-sm transition-all duration-200"
       style="color:${isLiked ? '#f87171' : '#4e453c'}"
       onclick="_toggleTrackLike(this, ${rid}, '${safeTrackId}')" title="${isLiked ? 'Unlike' : 'Like'}">
