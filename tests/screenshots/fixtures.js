@@ -24,6 +24,7 @@ const MOCK_COLLECTION = [
     median_price: '$35.00',
     low_price: '$20.00',
     high_price: '$60.00',
+    liked_tracks: ['A1', 'B1'],
   },
   {
     id: 2,
@@ -138,8 +139,10 @@ async function mockApi(page) {
       contentType: 'application/json',
       body: JSON.stringify({
         tracklist: [
-          { position: '1', title: 'One More Time', duration: '5:20', type_: 'track' },
-          { position: '2', title: 'Aerodynamic', duration: '3:32', type_: 'track' },
+          { position: 'A1', title: 'One More Time', duration: '5:20', type_: 'track' },
+          { position: 'A2', title: 'Aerodynamic', duration: '3:32', type_: 'track' },
+          { position: 'B1', title: 'Digital Love', duration: '4:58', type_: 'track' },
+          { position: 'B2', title: 'Harder Better Faster Stronger', duration: '3:45', type_: 'track' },
         ],
       }),
     });

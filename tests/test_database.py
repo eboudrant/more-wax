@@ -258,6 +258,110 @@ class TestDatabase(unittest.TestCase):
         new_id = db_add({"title": "First", "artist": "A", "discogs_id": "1"})
         self.assertEqual(new_id, 1)
 
+
+@mock.patch("server.config.DB_FILE", _db_file)
+@mock.patch("server.config.DATA_DIR", Path(_tmp))
+@mock.patch("server.config.COVERS_DIR", Path(_tmp) / "covers")
+class TestLikedTracks(unittest.TestCase):
+    def setUp(self):
+        import server.database as db_mod
+        from server.database import db_add
+
+        db_mod.DB_FILE = _db_file
+        if _db_file.exists():
+            _db_file.unlink()
+        self.rid = db_add(
+            {"title": "Test Album", "artist": "Test Artist", "discogs_id": "123"}
+        )
+
+    def test_liked_tracks_initially_absent(self):
+        from server.database import db_get
+
+        r = db_get(self.rid)
+        self.assertNotIn("liked_tracks", r)
+
+    def test_update_liked_tracks(self):
+        from server.database import db_get, db_update
+
+        db_update(self.rid, {"liked_tracks": ["A1", "B2"]})
+        r = db_get(self.rid)
+        self.assertEqual(r["liked_tracks"], ["A1", "B2"])
+
+    def test_toggle_liked_track(self):
+        from server.database import db_get, db_update
+
+        db_update(self.rid, {"liked_tracks": ["A1", "B2"]})
+        r = db_get(self.rid)
+        liked = r["liked_tracks"]
+        liked.remove("A1")
+        db_update(self.rid, {"liked_tracks": liked})
+        r = db_get(self.rid)
+        self.assertEqual(r["liked_tracks"], ["B2"])
+
+    def test_liked_tracks_empty_after_clearing(self):
+        from server.database import db_get, db_update
+
+        db_update(self.rid, {"liked_tracks": ["A1"]})
+        db_update(self.rid, {"liked_tracks": []})
+        r = db_get(self.rid)
+        self.assertEqual(r["liked_tracks"], [])
+
+    def test_liked_tracks_in_list_response(self):
+        from server.database import db_list, db_update
+
+        db_update(self.rid, {"liked_tracks": ["A1", "A2"]})
+        records = db_list()
+        r = next(x for x in records if x["id"] == self.rid)
+        self.assertEqual(r["liked_tracks"], ["A1", "A2"])
+
+    def test_liked_tracks_persists_across_loads(self):
+        from server.database import db_get, db_update
+
+        db_update(self.rid, {"liked_tracks": ["C1"]})
+        r = db_get(self.rid)
+        self.assertEqual(r["liked_tracks"], ["C1"])
+
+    def test_liked_tracks_preserves_order(self):
+        from server.database import db_get, db_update
+
+        db_update(self.rid, {"liked_tracks": ["B2", "A1", "C3"]})
+        r = db_get(self.rid)
+        self.assertEqual(r["liked_tracks"], ["B2", "A1", "C3"])
+
+    def test_liked_tracks_allows_duplicates(self):
+        """Server stores whatever the client sends — dedup is client-side."""
+        from server.database import db_get, db_update
+
+        db_update(self.rid, {"liked_tracks": ["A1", "A1"]})
+        r = db_get(self.rid)
+        self.assertEqual(r["liked_tracks"], ["A1", "A1"])
+
+    def test_liked_tracks_with_special_characters(self):
+        from server.database import db_get, db_update
+
+        db_update(self.rid, {"liked_tracks": ["A1", "Don't Stop", 'He Said "Hello"']})
+        r = db_get(self.rid)
+        self.assertEqual(r["liked_tracks"], ["A1", "Don't Stop", 'He Said "Hello"'])
+
+    def test_liked_tracks_does_not_affect_other_fields(self):
+        from server.database import db_get, db_update
+
+        db_update(self.rid, {"liked_tracks": ["A1"]})
+        r = db_get(self.rid)
+        self.assertEqual(r["title"], "Test Album")
+        self.assertEqual(r["artist"], "Test Artist")
+
+    def test_liked_tracks_independent_per_record(self):
+        from server.database import db_add, db_get, db_update
+
+        rid2 = db_add({"title": "Album 2", "artist": "Artist 2", "discogs_id": "456"})
+        db_update(self.rid, {"liked_tracks": ["A1"]})
+        db_update(rid2, {"liked_tracks": ["B1", "B2"]})
+        r1 = db_get(self.rid)
+        r2 = db_get(rid2)
+        self.assertEqual(r1["liked_tracks"], ["A1"])
+        self.assertEqual(r2["liked_tracks"], ["B1", "B2"])
+
     def test_next_id_persisted_after_recovery(self):
         """After recovering next_id, it should be saved to the file."""
         from server.database import db_list

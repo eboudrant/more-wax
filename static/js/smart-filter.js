@@ -10,6 +10,7 @@ const SMART_FILTERS = [
     if (!r.master_id || r.master_id === '0') return false;
     return collection.filter(o => o.master_id === r.master_id).length > 1;
   }},
+  { key: 'is:liked', label: 'Has liked tracks', fn: r => r.liked_tracks && r.liked_tracks.length > 0 },
 ];
 
 /** Update smart filter font styling on the input. */
