@@ -3,6 +3,8 @@ More'Wax — HTTP Request Handler
 Routes all HTTP requests to the appropriate backend logic.
 """
 
+from __future__ import annotations
+
 import http.server
 import json
 import mimetypes

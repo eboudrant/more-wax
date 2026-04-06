@@ -3,6 +3,8 @@ More'Wax — Image Processing
 Cover upload, HEIC conversion, and Claude Vision identification.
 """
 
+from __future__ import annotations
+
 import base64
 import json
 import os
