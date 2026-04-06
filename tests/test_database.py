@@ -341,9 +341,7 @@ class TestLikedTracks(unittest.TestCase):
 
         db_update(self.rid, {"liked_tracks": ["A1", "Don't Stop", 'He Said "Hello"']})
         r = db_get(self.rid)
-        self.assertEqual(
-            r["liked_tracks"], ["A1", "Don't Stop", 'He Said "Hello"']
-        )
+        self.assertEqual(r["liked_tracks"], ["A1", "Don't Stop", 'He Said "Hello"'])
 
     def test_liked_tracks_does_not_affect_other_fields(self):
         from server.database import db_get, db_update
@@ -356,9 +354,7 @@ class TestLikedTracks(unittest.TestCase):
     def test_liked_tracks_independent_per_record(self):
         from server.database import db_add, db_get, db_update
 
-        rid2 = db_add(
-            {"title": "Album 2", "artist": "Artist 2", "discogs_id": "456"}
-        )
+        rid2 = db_add({"title": "Album 2", "artist": "Artist 2", "discogs_id": "456"})
         db_update(self.rid, {"liked_tracks": ["A1"]})
         db_update(rid2, {"liked_tracks": ["B1", "B2"]})
         r1 = db_get(self.rid)
