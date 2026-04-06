@@ -518,6 +518,12 @@ python3 server.py</code></pre>
     entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
   }, { threshold: 0.1 });
   document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+  document.addEventListener('click', (e) => {
+    const menu = document.querySelector('.nav-links');
+    if (menu && menu.classList.contains('open') && !e.target.closest('.nav-links') && !e.target.closest('.hamburger')) {
+      menu.classList.remove('open');
+    }
+  });
 </script>
 
 <!-- GoatCounter analytics — privacy-friendly, no cookies -->
