@@ -275,13 +275,38 @@
     }
     .fade-in.visible { opacity: 1; transform: none; }
 
+    /* ── HAMBURGER ── */
+    .hamburger {
+      display: none; background: none; border: none;
+      color: var(--muted); cursor: pointer; padding: 8px;
+      font-size: 1.4rem; line-height: 1;
+      order: 1;
+    }
+
     /* ── RESPONSIVE ── */
     @media (max-width: 640px) {
       section { padding: 60px 0; }
       .hero { padding: 80px 0 60px; }
       .screenshots img { width: 120px; }
-      .nav-links { gap: 16px; }
-      .nav-links a { font-size: 0.8rem; }
+      .nav-inner { position: relative; }
+      .hamburger { display: block; }
+      .nav-links {
+        position: absolute; top: 56px; right: -24px;
+        background: rgba(19,19,19,0.95); backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        flex-direction: column; padding: 20px 32px; gap: 16px;
+        border-bottom: 1px solid rgba(78,69,60,0.2);
+        border-left: 1px solid rgba(78,69,60,0.2);
+        border-radius: 0 0 0 12px;
+        max-height: 0; overflow: hidden;
+        transition: max-height 0.3s ease, padding 0.3s ease, opacity 0.3s ease;
+        opacity: 0; padding-top: 0; padding-bottom: 0;
+      }
+      .nav-links.open {
+        max-height: 300px; opacity: 1;
+        padding-top: 20px; padding-bottom: 20px;
+      }
+      .nav-links a { font-size: 1rem; text-align: right; }
     }
   </style>
 </head>
@@ -294,11 +319,12 @@
       <img src="https://raw.githubusercontent.com/eboudrant/more-wax/main/static/logo.svg" alt="More'Wax">
       <span>More'Wax</span>
     </a>
+    <button class="hamburger" onclick="this.nextElementSibling.classList.toggle('open')" aria-label="Menu">&#9776;</button>
     <div class="nav-links">
-      <a href="#features">Features</a>
-      <a href="#screenshots">Screenshots</a>
-      <a href="#install">Install</a>
-      <a href="#publish">Publish</a>
+      <a href="#features" onclick="this.parentElement.classList.remove('open')">Features</a>
+      <a href="#screenshots" onclick="this.parentElement.classList.remove('open')">Screenshots</a>
+      <a href="#install" onclick="this.parentElement.classList.remove('open')">Install</a>
+      <a href="#publish" onclick="this.parentElement.classList.remove('open')">Publish</a>
       <a href="https://github.com/eboudrant/more-wax" target="_blank">GitHub</a>
     </div>
   </div>
