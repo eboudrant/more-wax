@@ -3,6 +3,7 @@ More'Wax — Google OAuth Authentication
 Single-user gate using Authorization Code flow with PKCE.
 Auth is enabled when GOOGLE_CLIENT_ID is configured.
 """
+
 from __future__ import annotations
 
 import hashlib
