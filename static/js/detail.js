@@ -74,7 +74,7 @@ function _renderPanelHtml(r, peek = false) {
 
       <!-- Discogs Extra (lazy loaded) + Delete -->
       <div ${peek ? '' : `id="detail-extra-${r.id}"`} class="space-y-4">
-        ${r.discogs_extra ? _renderDiscogsExtra(r.discogs_extra) + (r.id ? _deleteButton(r.id) : '') : (r.discogs_id ? '' : (r.id ? _deleteButton(r.id) : ''))}
+        ${r.discogs_extra ? _renderDiscogsExtra(r.discogs_extra, r) + (r.id ? _deleteButton(r.id) : '') : (r.discogs_id ? '' : (r.id ? _deleteButton(r.id) : ''))}
       </div>
     </div>
   </div>`;
@@ -550,7 +550,7 @@ async function _loadDiscogsExtra(r) {
     if (extra.error) throw new Error(extra.error);
     r.discogs_extra = extra;
     const el = document.getElementById(`detail-extra-${r.id}`);
-    if (el) el.innerHTML = _renderDiscogsExtra(extra) + _deleteButton(r.id);
+    if (el) el.innerHTML = _renderDiscogsExtra(extra, r) + _deleteButton(r.id);
   } catch (e) {
     clearTimeout(spinTimer);
     console.warn('Could not load release details:', e.message);
@@ -562,9 +562,9 @@ async function _loadDiscogsExtra(r) {
   }
 }
 
-function _renderDiscogsExtra(extra) {
+function _renderDiscogsExtra(extra, r) {
   return [
-    _renderTracklist(extra.tracklist),
+    _renderTracklist(extra.tracklist, r),
     _renderFormats(extra.formats),
     _renderCredits(extra.extraartists),
     _renderReleaseNotes(extra.notes),
@@ -573,8 +573,10 @@ function _renderDiscogsExtra(extra) {
   ].filter(Boolean).join('');
 }
 
-function _renderTracklist(tracklist) {
+function _renderTracklist(tracklist, r) {
   if (!tracklist || !tracklist.length) return '';
+  const liked = r && r.liked_tracks ? r.liked_tracks : [];
+  const rid = r ? r.id : 0;
   let html = '<div class="bg-surface-low rounded-xl p-5">';
   html += '<h4 class="font-label text-xs uppercase tracking-widest text-outline mb-4">Tracklist</h4>';
   html += '<div class="space-y-0">';
@@ -583,12 +585,20 @@ function _renderTracklist(tracklist) {
       html += `<div class="font-label text-xs uppercase tracking-widest text-primary-dim pt-3 pb-1">${esc(t.title)}</div>`;
       continue;
     }
+    const trackId = t.position || t.title;
+    const isLiked = liked.includes(trackId);
     const pos = t.position ? `<span class="text-outline font-label text-xs shrink-0 whitespace-nowrap">${esc(t.position)}</span>` : '';
-    const dur = t.duration ? `<span class="text-outline text-xs ml-auto shrink-0">${esc(t.duration)}</span>` : '';
-    html += `<div class="flex items-baseline gap-2 py-1.5 border-b border-outline-v/10">
+    const safeTrackId = trackId.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+    const heart = rid ? `<button class="shrink-0 text-sm transition-all duration-200"
+      style="color:${isLiked ? '#f87171' : '#4e453c'}"
+      onclick="_toggleTrackLike(this, ${rid}, '${safeTrackId}')" title="${isLiked ? 'Unlike' : 'Like'}">
+      <i class="bi ${isLiked ? 'bi-heart-fill' : 'bi-heart'}" style="transition:transform 0.2s"></i>
+    </button>` : '';
+    html += `<div class="flex items-center gap-2 py-1.5 border-b border-outline-v/10">
       ${pos}
-      <span class="font-body text-sm text-on-surface truncate">${esc(t.title)}</span>
-      ${dur}
+      <span class="font-body text-sm text-on-surface truncate flex-1">${esc(t.title)}</span>
+      ${heart}
+      <span class="text-outline text-xs shrink-0 w-10 text-right tabular-nums">${t.duration ? esc(t.duration) : ''}</span>
     </div>`;
   }
   html += '</div></div>';
@@ -679,6 +689,33 @@ function _renderCompanies(companies, series) {
   }
   html += '</div></div>';
   return html;
+}
+
+// ── Track likes ──────────────────────────────────────────────
+async function _toggleTrackLike(btn, rid, trackId) {
+  const r = collection.find(x => x.id === rid);
+  if (!r) return;
+  const prev = r.liked_tracks ? [...r.liked_tracks] : [];
+  const wasLiked = prev.includes(trackId);
+  const next = wasLiked ? prev.filter(t => t !== trackId) : [...prev, trackId];
+  r.liked_tracks = next;
+  // Optimistic UI
+  const icon = btn.querySelector('i');
+  icon.style.transform = 'scale(1.4)';
+  icon.style.transition = 'transform 0.2s';
+  setTimeout(() => { icon.style.transform = ''; }, 200);
+  icon.className = wasLiked ? 'bi bi-heart' : 'bi bi-heart-fill';
+  btn.style.color = wasLiked ? '#4e453c' : '#f87171';
+  btn.title = wasLiked ? 'Like' : 'Unlike';
+  try {
+    await apiPut(`/api/collection/${rid}`, { liked_tracks: next });
+  } catch (e) {
+    r.liked_tracks = prev;
+    icon.className = wasLiked ? 'bi bi-heart-fill' : 'bi bi-heart';
+    btn.style.color = wasLiked ? '#f87171' : '#4e453c';
+    btn.title = wasLiked ? 'Unlike' : 'Like';
+    toast('Could not save track like', 'error');
+  }
 }
 
 async function confirmDelete(id) {

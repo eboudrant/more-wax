@@ -24,6 +24,7 @@ const MOCK_COLLECTION = [
     median_price: '$35.00',
     low_price: '$20.00',
     high_price: '$60.00',
+    liked_tracks: ['A1', 'B1'],
   },
   {
     id: 2,

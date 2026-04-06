@@ -818,6 +818,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
             "num_for_sale",
             "rating_average",
             "rating_count",
+            "liked_tracks",
         )
         fields = {k: data[k] for k in allowed if k in data}
         ok = db_update(rid, fields)
