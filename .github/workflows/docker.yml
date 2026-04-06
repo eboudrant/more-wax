@@ -1,9 +1,10 @@
 name: Docker
 
 on:
-  push:
-    branches: [main]
-    tags: ["v*"]
+  schedule:
+    # Every hour — only builds if main has new commits since last build
+    - cron: '17 * * * *'
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -23,38 +24,59 @@ jobs:
 
     steps:
       - uses: actions/checkout@v6
+        with:
+          fetch-depth: 2
+
+      - name: Check for changes since last Docker push
+        id: changes
+        run: |
+          # Compare HEAD with the commit tagged as 'main' on Docker Hub
+          # If this is a manual dispatch, always build
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          # Check if there are new commits in the last hour
+          RECENT=$(git log --since="1 hour ago" --oneline | wc -l | tr -d ' ')
+          if [ "$RECENT" -gt 0 ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "No new commits in the last hour, skipping build"
+          fi
 
       - name: Set up QEMU (multi-arch)
+        if: steps.changes.outputs.changed == 'true'
         uses: docker/setup-qemu-action@v4
 
       - name: Set up Docker Buildx
+        if: steps.changes.outputs.changed == 'true'
         uses: docker/setup-buildx-action@v4
 
       - name: Log in to Docker Hub
-        if: github.event_name != 'pull_request'
+        if: steps.changes.outputs.changed == 'true'
         uses: docker/login-action@v4
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Extract metadata (tags, labels)
+        if: steps.changes.outputs.changed == 'true'
         id: meta
         uses: docker/metadata-action@v6
         with:
           images: ${{ env.IMAGE_NAME }}
           tags: |
             type=ref,event=branch
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
             type=sha,prefix=
-            type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Build and push
+        if: steps.changes.outputs.changed == 'true'
         uses: docker/build-push-action@v7
         with:
           context: .
           platforms: linux/amd64,linux/arm64
-          push: ${{ github.event_name != 'pull_request' }}
+          push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
