@@ -4,12 +4,40 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>More'Wax — Vinyl Collection Manager</title>
-  <meta name="description" content="Self-hosted vinyl collection manager with AI cover recognition, barcode scanning, and Discogs sync.">
+  <meta name="description" content="Self-hosted vinyl collection manager with AI cover recognition, barcode scanning, and Discogs sync. No cloud, no account, runs on your machine.">
+  <meta name="keywords" content="vinyl, record collection, discogs, barcode scanner, self-hosted, docker, music, vinyl collection manager">
+  <link rel="canonical" href="https://eboudrant.github.io/more-wax/">
+  <!-- Open Graph -->
   <meta property="og:title" content="More'Wax — Vinyl Collection Manager">
-  <meta property="og:description" content="Your vinyl. Your server. Your rules.">
+  <meta property="og:description" content="Your vinyl. Your server. Your rules. Self-hosted collection manager with AI cover recognition, barcode scanning, and Discogs sync.">
   <meta property="og:image" content="https://eboudrant.github.io/more-wax/social-preview.png">
+  <meta property="og:url" content="https://eboudrant.github.io/more-wax/">
   <meta property="og:type" content="website">
+  <meta property="og:site_name" content="More'Wax">
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="More'Wax — Vinyl Collection Manager">
+  <meta name="twitter:description" content="Your vinyl. Your server. Your rules.">
+  <meta name="twitter:image" content="https://eboudrant.github.io/more-wax/social-preview.png">
+  <!-- Favicon -->
   <link rel="icon" type="image/svg+xml" href="https://raw.githubusercontent.com/eboudrant/more-wax/main/static/logo.svg">
+  <!-- Structured Data -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "More'Wax",
+    "description": "Self-hosted vinyl collection manager with AI cover recognition, barcode scanning, and Discogs sync.",
+    "applicationCategory": "MultimediaApplication",
+    "operatingSystem": "Any",
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+    "license": "https://opensource.org/licenses/MIT",
+    "url": "https://eboudrant.github.io/more-wax/",
+    "downloadUrl": "https://hub.docker.com/r/eboudrant/more-wax",
+    "screenshot": "https://eboudrant.github.io/more-wax/social-preview.png",
+    "author": { "@type": "Person", "name": "Emmanuel Boudrant", "url": "https://github.com/eboudrant" }
+  }
+  </script>
   <style>
     :root {
       --bg: #131313;
@@ -465,6 +493,9 @@ python3 server.py</code></pre>
   }, { threshold: 0.1 });
   document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
 </script>
+
+<!-- GoatCounter analytics — privacy-friendly, no cookies -->
+<script data-goatcounter="https://morewax.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
 
 </body>
 </html>
