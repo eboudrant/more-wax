@@ -699,14 +699,17 @@ async function _toggleTrackLike(btn, rid, trackId) {
   const wasLiked = prev.includes(trackId);
   const next = wasLiked ? prev.filter(t => t !== trackId) : [...prev, trackId];
   r.liked_tracks = next;
-  // Optimistic UI
   const icon = btn.querySelector('i');
-  icon.style.transform = 'scale(1.4)';
-  icon.style.transition = 'transform 0.2s';
-  setTimeout(() => { icon.style.transform = ''; }, 200);
   icon.className = wasLiked ? 'bi bi-heart' : 'bi bi-heart-fill';
   btn.style.color = wasLiked ? '#4e453c' : '#f87171';
   btn.title = wasLiked ? 'Like' : 'Unlike';
+  // Bounce: big → small → normal
+  btn.style.transition = 'none';
+  btn.style.transform = 'scale(1.8)';
+  requestAnimationFrame(() => {
+    btn.style.transition = 'transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)';
+    btn.style.transform = '';
+  });
   try {
     await apiPut(`/api/collection/${rid}`, { liked_tracks: next });
   } catch (e) {
