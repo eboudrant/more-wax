@@ -282,7 +282,7 @@
     .fade-in.visible { opacity: 1; transform: none; }
 
     /* ── LANG DROPDOWN ── */
-    {.lang-dropdown {
+    .lang-dropdown {
       position: relative; margin-left: 8px;
       display: flex; align-items: center;
       border-left: 1px solid var(--border); padding-left: 16px;
@@ -290,7 +290,6 @@
     .lang-btn {
       background: none; border: none; cursor: pointer;
       font-size: 1.2rem; padding: 4px 8px; border-radius: 6px;
-      line-height: 1; display: flex; align-items: center;
       line-height: 1; display: flex; align-items: center;
       transition: background 0.2s;
     }
@@ -343,6 +342,12 @@
         padding-top: 20px; padding-bottom: 20px;
       }
       .nav-links a { font-size: 1rem; text-align: right; }
+      /* On mobile: flatten lang dropdown into the menu */
+      .lang-dropdown { border-left: none; padding-left: 0; margin-left: 0; border-top: 1px solid var(--border); padding-top: 12px; }
+      .lang-btn { display: none !important; }
+      .lang-menu { display: flex !important; position: static; background: none; border: none; box-shadow: none; padding: 0; margin: 0; min-width: auto; gap: 16px; justify-content: flex-end; flex-wrap: wrap; }
+      .lang-menu a { padding: 0; font-size: 1.4rem; }
+      .lang-menu a span { display: none; }
     }
   </style>
 </head>
@@ -365,10 +370,10 @@
       <div class="lang-dropdown">
         <button class="lang-btn" onclick="this.nextElementSibling.classList.toggle('open')" aria-label="Language">&#x1F1EF;&#x1F1F5;</button>
         <div class="lang-menu">
-          <a href="../">&#x1F1EC;&#x1F1E7; English</a>
-          <a href="./" class="active">&#x1F1EF;&#x1F1F5; 日本語</a>
-          <a href="../fr/">&#x1F1EB;&#x1F1F7; Français</a>
-          <a href="../de/">&#x1F1E9;&#x1F1EA; Deutsch</a>
+          <a href="../">&#x1F1EC;&#x1F1E7;<span> English</span></a>
+          <a href="./" class="active">&#x1F1EF;&#x1F1F5;<span> 日本語</span></a>
+          <a href="../fr/">&#x1F1EB;&#x1F1F7;<span> Français</span></a>
+          <a href="../de/">&#x1F1E9;&#x1F1EA;<span> Deutsch</span></a>
         </div>
       </div>
     </div>
