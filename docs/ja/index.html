@@ -86,7 +86,7 @@
     }
     .nav-logo img { width: 32px; height: 32px; border-radius: 50%; }
     .nav-logo span { font-weight: 700; font-style: italic; font-size: 1.1rem; }
-    .nav-links { display: flex; gap: 24px; }
+    .nav-links { display: flex; gap: 24px; align-items: center; }
     .nav-links a {
       color: var(--muted); text-decoration: none; font-size: 0.85rem;
       font-weight: 500; transition: color 0.2s;
@@ -282,13 +282,15 @@
     .fade-in.visible { opacity: 1; transform: none; }
 
     /* ── LANG DROPDOWN ── */
-    .lang-dropdown {
+    {.lang-dropdown {
       position: relative; margin-left: 8px;
+      display: flex; align-items: center;
       border-left: 1px solid var(--border); padding-left: 16px;
     }
     .lang-btn {
       background: none; border: none; cursor: pointer;
       font-size: 1.2rem; padding: 4px 8px; border-radius: 6px;
+      line-height: 1; display: flex; align-items: center;
       transition: background 0.2s;
     }
     .lang-btn:hover { background: var(--surface2); }
