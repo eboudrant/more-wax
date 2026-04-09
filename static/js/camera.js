@@ -37,8 +37,8 @@ async function startScannerCamera() {
     if (errEl) {
       errEl.classList.remove('hidden');
       const hint = _httpsHint();
-      if (hint) errEl.innerHTML = `<p class="text-on-surface-v text-sm mb-3">Camera unavailable: ${esc(err.message)}${hint}</p>
-        <button onclick="document.getElementById('scanner-file-input').click()" class="btn-primary-new"><i class="bi bi-upload mr-1"></i>Upload a photo instead</button>`;
+      if (hint) errEl.innerHTML = `<p class="text-on-surface-v text-sm mb-3">${t('scanner.camera.unavailableWithError', { error: esc(err.message) })}${hint}</p>
+        <button onclick="document.getElementById('scanner-file-input').click()" class="btn-primary-new"><i class="bi bi-upload mr-1"></i>${t('scanner.camera.uploadInstead')}</button>`;
     }
     const sl = document.getElementById('scanner-scan-line');
     if (sl) sl.style.display = 'none';
@@ -118,7 +118,7 @@ function startQuaggaPolling() {
     if (_quaggaLastCount >= 3) {
       isScanning = false;
       stopQuaggaPolling();
-      toast(`Barcode detected: ${code}`);
+      toast(t('scanner.barcode.detected', { code }));
       scannerFetchAndShowResults(code, true);
     }
   });

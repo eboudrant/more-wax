@@ -37,7 +37,7 @@ function _showLoginOverlay() {
     <div class="text-center space-y-6 px-6 max-w-sm">
       <img src="/static/logo.svg" alt="More'Wax" class="h-16 w-16 mx-auto rounded-full">
       <h1 class="font-headline italic font-bold text-on-surface text-2xl tracking-tighter">More'Wax</h1>
-      <p class="text-on-surface-v text-sm">Sign in to access your vinyl collection.</p>
+      <p class="text-on-surface-v text-sm">${t('auth.signIn')}</p>
       <a href="/auth/login"
          class="inline-flex items-center gap-3 px-6 py-3 bg-white text-gray-700 rounded-full
                 font-medium text-sm shadow-lg hover:shadow-xl transition-shadow">
@@ -47,7 +47,7 @@ function _showLoginOverlay() {
           <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
           <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
         </svg>
-        Sign in with Google
+        ${t('auth.signInWithGoogle')}
       </a>
     </div>
   `;
@@ -89,7 +89,7 @@ function _showUserAvatar() {
   const signOut = document.createElement('a');
   signOut.href = '/auth/logout';
   signOut.className = 'block px-3 py-2 text-sm text-on-surface-v hover:text-on-surface hover:bg-surface-high transition-colors';
-  signOut.textContent = 'Sign out';
+  signOut.textContent = t('auth.signOut');
 
   menu.appendChild(info);
   menu.appendChild(signOut);

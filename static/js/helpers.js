@@ -24,13 +24,13 @@ function priceRow(r, compact = false) {
   if (compact) {
     // One-liner for the confirm step
     const parts = [];
-    if (has(r.price_low))    parts.push(`<span title="Lowest listed">↓ ${fmt(r.price_low)}</span>`);
-    if (has(r.price_median)) parts.push(`<span title="VG+ suggested" style="color:var(--accent);font-weight:600">${fmt(r.price_median)}</span>`);
-    if (has(r.price_high))   parts.push(`<span title="Near Mint suggested">↑ ${fmt(r.price_high)}</span>`);
-    const forSale = r.num_for_sale ? `<span style="color:var(--muted);font-size:.78rem"> · ${r.num_for_sale} for sale</span>` : '';
+    if (has(r.price_low))    parts.push(`<span title="${t('detail.price.lowTitleCompact')}">↓ ${fmt(r.price_low)}</span>`);
+    if (has(r.price_median)) parts.push(`<span title="${t('detail.price.medianTitleCompact')}" style="color:var(--accent);font-weight:600">${fmt(r.price_median)}</span>`);
+    if (has(r.price_high))   parts.push(`<span title="${t('detail.price.highTitleCompact')}">↑ ${fmt(r.price_high)}</span>`);
+    const forSale = r.num_for_sale ? `<span style="color:var(--muted);font-size:.78rem"> · ${t('detail.price.forSaleCompact', { count: r.num_for_sale })}</span>` : '';
     return `
       <div class="meta-row">
-        <span class="label">Market</span>
+        <span class="label">${t('detail.price.labelCompact')}</span>
         <span class="value" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;font-size:.82rem">
           ${parts.join('<span style="color:var(--border)"> / </span>')}${forSale}
         </span>
@@ -39,18 +39,18 @@ function priceRow(r, compact = false) {
 
   // Full 3-column display for detail modal
   const cells = [
-    { label: 'Low',    value: r.price_low,    title: 'Lowest currently listed' },
-    { label: 'Median', value: r.price_median,  title: 'VG+ suggested price', accent: true },
-    { label: 'High',   value: r.price_high,   title: 'Near Mint suggested price' },
+    { label: t('detail.price.Low'),    value: r.price_low,    title: t('detail.price.lowTitle') },
+    { label: t('detail.price.Median'), value: r.price_median,  title: t('detail.price.medianTitle'), accent: true },
+    { label: t('detail.price.High'),   value: r.price_high,   title: t('detail.price.highTitle') },
   ].filter(c => has(c.value));
 
   if (cells.length === 0) return '';
 
-  const forSale = r.num_for_sale ? `<div style="text-align:center;color:var(--muted);font-size:.75rem;margin-top:6px">${r.num_for_sale} copies for sale on Discogs</div>` : '';
+  const forSale = r.num_for_sale ? `<div style="text-align:center;color:var(--muted);font-size:.75rem;margin-top:6px">${t('detail.price.forSale', { count: r.num_for_sale })}</div>` : '';
 
   return `
     <div class="meta-row" style="flex-direction:column;gap:4px">
-      <span class="label">Market price</span>
+      <span class="label">${t('detail.price.label')}</span>
       <div style="display:flex;gap:8px;margin-top:4px">
         ${cells.map(c => `
           <div style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:8px;
@@ -77,16 +77,16 @@ function ratingStars(avg, count, compact = false) {
   }
 
   if (compact) {
-    return `<span style="font-size:.72rem;display:inline-flex;align-items:center;gap:3px" title="${n.toFixed(2)}/5 from ${c} ratings">${stars}<span style="color:var(--muted);font-size:.68rem">${n.toFixed(1)}</span></span>`;
+    return `<span style="font-size:.72rem;display:inline-flex;align-items:center;gap:3px" title="${t('detail.rating.title', { rating: n.toFixed(2), count: c })}">${stars}<span style="color:var(--muted);font-size:.68rem">${n.toFixed(1)}</span></span>`;
   }
 
   return `
     <div class="meta-row">
-      <span class="label">Rating</span>
+      <span class="label">${t('detail.rating.label')}</span>
       <span class="value" style="display:flex;align-items:center;gap:6px;font-size:.85rem">
         ${stars}
         <span style="font-weight:600">${n.toFixed(2)}</span>
-        <span style="color:var(--muted);font-size:.75rem">(${c} votes)</span>
+        <span style="color:var(--muted);font-size:.75rem">${t('detail.rating.votes', { count: c })}</span>
       </span>
     </div>`;
 }
@@ -120,13 +120,13 @@ function parseList(val) {
 function _httpsHint() {
   if (location.protocol === 'https:' || location.hostname === 'localhost') return '';
   const httpsUrl = `https://${location.hostname}:8766`;
-  return ` — Camera requires HTTPS. <a href="${httpsUrl}" style="color:var(--accent)">Open ${httpsUrl}</a> and accept the certificate once.`;
+  return ` — ${t('scanner.camera.httpsHint', { url: `<a href="${httpsUrl}" style="color:var(--accent)">${httpsUrl}</a>` })}`;
 }
 
 /** Plain-text version for use in toast messages. */
 function _httpsHintPlain() {
   if (location.protocol === 'https:' || location.hostname === 'localhost') return '';
-  return ` — Try HTTPS: https://${location.hostname}:8766`;
+  return ` — ${t('scanner.camera.httpsHintPlain', { url: `https://${location.hostname}:8766` })}`;
 }
 
 // ── Shared record card template (for collection grid + dashboard) ──
@@ -139,7 +139,7 @@ function recordCardHtml(r) {
   const cur = r.price_currency || 'USD';
   const sym = currSym(cur);
   const priceBadge = r.price_median && !isNaN(parseFloat(r.price_median))
-    ? `<span class="record-price-badge">${sym}${parseFloat(r.price_median).toFixed(0)} <span class="text-[0.7em] opacity-70 font-normal">med</span></span>`
+    ? `<span class="record-price-badge">${sym}${parseFloat(r.price_median).toFixed(0)} <span class="text-[0.7em] opacity-70 font-normal">${t('card.med')}</span></span>`
     : '';
 
   return `
