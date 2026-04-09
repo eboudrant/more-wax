@@ -13,7 +13,7 @@ function processSearchPhotoForScanner(dataUrl, fileName) {
 
   header.innerHTML = `
     <div>
-      <h2 class="font-headline text-xl font-bold text-on-surface">Analyzing Photo</h2>
+      <h2 class="font-headline text-xl font-bold text-on-surface">${t('scanner.photo.analyzing')}</h2>
     </div>
     <button onclick="closeSheet()" class="p-3 bg-surface-high rounded-full text-on-surface-v hover:text-on-surface transition-colors">
       <i class="bi bi-x-lg"></i>
@@ -25,7 +25,7 @@ function processSearchPhotoForScanner(dataUrl, fileName) {
     </div>
     <div class="flex flex-col items-center py-3">
       <div class="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
-      <p class="mt-3 text-sm text-on-surface-v">Looking for a barcode…</p>
+      <p class="mt-3 text-sm text-on-surface-v">${t('scanner.photo.lookingForBarcode')}</p>
     </div>`;
 
   Quagga.decodeSingle({
@@ -43,7 +43,7 @@ function processSearchPhotoForScanner(dataUrl, fileName) {
         </div>
         <div class="bg-green/10 border border-green/30 rounded-lg px-3.5 py-2.5 text-sm mb-3">
           <i class="bi bi-check-circle mr-2 text-green"></i>
-          Barcode detected: <strong>${esc(barcode)}</strong>
+          ${t('scanner.photo.barcodeDetected', { barcode: `<strong>${esc(barcode)}</strong>` })}
         </div>`;
       window._detectedBarcode = barcode;
       _scannerFetchResults(barcode, true, body);
@@ -66,12 +66,12 @@ async function _scannerFetchResults(query, isBarcode, bodyEl) {
       showResultsInSheet(results, isBarcode);
     } else {
       bodyEl.innerHTML += `
-        <div class="text-center py-4 text-on-surface-v"><p>No results found.</p></div>`;
+        <div class="text-center py-4 text-on-surface-v"><p>${t('scanner.photo.noResultsFound')}</p></div>`;
       document.getElementById('scanner-sheet-footer').innerHTML = `
-        <button class="btn-ghost-new w-full" onclick="closeSheet(); switchScannerMode('search')">Try a manual search</button>`;
+        <button class="btn-ghost-new w-full" onclick="closeSheet(); switchScannerMode('search')">${t('scanner.search.tryManual')}</button>`;
     }
   } catch (e) {
-    bodyEl.innerHTML += `<div class="text-center py-4 text-danger"><p>Discogs error: ${esc(e.message)}</p></div>`;
+    bodyEl.innerHTML += `<div class="text-center py-4 text-danger"><p>${t('scanner.search.discogsError', { error: esc(e.message) })}</p></div>`;
   }
 }
 
@@ -84,7 +84,7 @@ async function _identifyWithClaudeForScanner(dataUrl, bodyEl) {
     <div class="flex flex-col items-center py-2.5">
       <div class="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
       <p class="mt-3 text-xs text-on-surface-v">
-        <i class="bi bi-stars mr-1"></i>No barcode — asking Claude to identify the cover…
+        <i class="bi bi-stars mr-1"></i>${t('scanner.photo.noBarcode')}
       </p>
     </div>`;
 
@@ -100,7 +100,7 @@ async function _identifyWithClaudeForScanner(dataUrl, bodyEl) {
     // API key invalid or missing — open wizard to fix it
     if (res.status === 501 || (json.error && /401|invalid|not configured/i.test(json.error))) {
       showSetupWizard();
-      _renderStep2('Your Anthropic API key is invalid or missing. Please enter a valid key.');
+      _renderStep2(t('setup.claude.keyInvalid'));
       return;
     }
 
@@ -114,7 +114,7 @@ async function _identifyWithClaudeForScanner(dataUrl, bodyEl) {
         </div>
         <div class="bg-primary/10 border border-primary/30 rounded-lg px-3.5 py-2.5 text-sm mb-2.5">
           <i class="bi bi-stars mr-1 text-primary"></i>
-          Claude identified: <strong>${esc(json.artist)}${json.artist && json.title ? ' — ' : ''}${esc(json.title)}</strong>
+          ${t('scanner.photo.claudeIdentified', { identification: `<strong>${esc(json.artist)}${json.artist && json.title ? ' — ' : ''}${esc(json.title)}</strong>` })}
           ${details ? `<div class="text-xs text-on-surface-v mt-1">${esc(details)}</div>` : ''}
         </div>`;
 
@@ -176,14 +176,14 @@ function _showManualSearchInSheet(prefill) {
   body.innerHTML += `
     <div class="mt-4">
       <div class="text-xs text-on-surface-v mb-2.5">
-        ${prefill ? 'No Discogs match found — try refining:' : 'Could not identify — search manually:'}
+        ${prefill ? t('scanner.photo.noDiscogsMatch') : t('scanner.photo.couldNotIdentify')}
       </div>
       <div class="flex gap-2">
         <input id="scanner-search-input-sheet"
                class="flex-1 bg-transparent border-b border-outline-v/40 py-2 text-sm text-on-surface
                       focus:border-primary focus:outline-none transition-colors"
                value="${esc(prefill)}"
-               placeholder="Artist, album, label…"
+               placeholder="${t('scanner.search.placeholder')}"
                onkeydown="if(event.key==='Enter') _sheetDoSearch()">
         <button class="btn-primary-new px-4 py-2 text-sm" onclick="_sheetDoSearch()">
           <i class="bi bi-search"></i>
@@ -208,7 +208,7 @@ async function _sheetDoSearch() {
     if (results.length > 0) {
       showResultsInSheet(results, false);
     } else {
-      target.innerHTML = `<div class="text-center py-4 text-on-surface-v">No results found.</div>`;
+      target.innerHTML = `<div class="text-center py-4 text-on-surface-v">${t('scanner.photo.noResultsFound')}</div>`;
     }
   } catch (e) {
     target.innerHTML = `<div class="text-center py-4 text-danger">${esc(e.message)}</div>`;

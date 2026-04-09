@@ -17,11 +17,15 @@ function _renderSettings() {
   const d = _settingsData;
   if (!d) return;
 
+  // Language selector
+  const langSelect = document.getElementById('settings-language');
+  if (langSelect) langSelect.value = getLocale();
+
   // Masked tokens
   const dm = document.getElementById('settings-discogs-mask');
   const am = document.getElementById('settings-anthropic-mask');
-  if (dm) dm.textContent = d.discogs_token_set ? d.discogs_token_masked : 'Not set';
-  if (am) am.textContent = d.anthropic_key_set ? d.anthropic_key_masked : 'Not set';
+  if (dm) dm.textContent = d.discogs_token_set ? d.discogs_token_masked : t('settings.discogs.tokenNotSet');
+  if (am) am.textContent = d.anthropic_key_set ? d.anthropic_key_masked : t('settings.claude.apiKeyNotSet');
 
   // Reset input visibility
   document.getElementById('settings-discogs-input-wrap')?.classList.add('hidden');
@@ -30,8 +34,8 @@ function _renderSettings() {
   // Change button text
   const dc = document.getElementById('settings-discogs-change');
   const ac = document.getElementById('settings-anthropic-change');
-  if (dc) dc.textContent = d.discogs_token_set ? 'Change token' : 'Add token';
-  if (ac) ac.textContent = d.anthropic_key_set ? 'Change key' : 'Add key';
+  if (dc) dc.textContent = d.discogs_token_set ? t('settings.discogs.changeToken') : t('settings.discogs.addToken');
+  if (ac) ac.textContent = d.anthropic_key_set ? t('settings.claude.changeKey') : t('settings.claude.addKey');
 
   // Vision model dropdown
   const select = document.getElementById('settings-vision-model');
@@ -78,7 +82,7 @@ function _renderSettings() {
   if (syncStatus && d.discogs_token_set) {
     const missing = d.sync_missing_master_ids || 0;
     if (missing > 0) {
-      syncStatus.textContent = `${missing} record${missing === 1 ? '' : 's'} missing release metadata — first sync will index them automatically.`;
+      syncStatus.textContent = t('settings.discogs.missingMeta', { count: missing });
     } else {
       syncStatus.textContent = '';
     }
@@ -93,11 +97,11 @@ function settingsToggleToken(type) {
   const isHidden = wrap.classList.contains('hidden');
   wrap.classList.toggle('hidden');
   const labels = {
-    'discogs': [_settingsData?.discogs_token_set, 'Change token', 'Add token'],
-    'anthropic': [_settingsData?.anthropic_key_set, 'Change key', 'Add key'],
+    'discogs': [_settingsData?.discogs_token_set, t('settings.discogs.changeToken'), t('settings.discogs.addToken')],
+    'anthropic': [_settingsData?.anthropic_key_set, t('settings.claude.changeKey'), t('settings.claude.addKey')],
   };
-  const [isSet, changeLabel, addLabel] = labels[type] || [false, 'Change', 'Add'];
-  if (btn) btn.textContent = isHidden ? 'Cancel' : (isSet ? changeLabel : addLabel);
+  const [isSet, changeLabel, addLabel] = labels[type] || [false, t('settings.discogs.changeToken'), t('settings.discogs.addToken')];
+  if (btn) btn.textContent = isHidden ? t('settings.discogs.cancel') : (isSet ? changeLabel : addLabel);
 
   if (isHidden) {
     const input = wrap.querySelector('input');
@@ -131,7 +135,7 @@ async function _validateAndSave(type, value) {
     const res = await apiPost('/api/settings', { [key]: value });
     if (res.success === false) {
       _setStatus(type, 'invalid');
-      _setError(type, res.error || 'Invalid');
+      _setError(type, res.error || t('settings.discogs.invalid'));
       return;
     }
     _setStatus(type, 'valid');
@@ -145,7 +149,7 @@ async function _validateAndSave(type, value) {
     } catch { /* ignore */ }
   } catch (e) {
     _setStatus(type, 'invalid');
-    _setError(type, 'Validation failed');
+    _setError(type, t('settings.discogs.validationFailed'));
   }
 }
 
@@ -158,14 +162,14 @@ async function settingsEnableAuth() {
   if (!clientId || !clientSecret) return;
 
   // Show loading
-  if (btn) { btn.disabled = true; btn.innerHTML = '<i class="bi bi-arrow-repeat animate-spin"></i> Validating…'; }
+  if (btn) { btn.disabled = true; btn.innerHTML = `<i class="bi bi-arrow-repeat animate-spin"></i> ${t('settings.auth.validating')}`; }
   if (errEl) { errEl.classList.add('hidden'); errEl.textContent = ''; }
 
   try {
     const res = await apiPost('/api/settings', { google_client_id: clientId, google_client_secret: clientSecret });
     if (res.success === false) {
-      if (errEl) { errEl.textContent = res.error || 'Invalid credentials'; errEl.classList.remove('hidden'); }
-      if (btn) { btn.disabled = false; btn.innerHTML = '<i class="bi bi-shield-lock"></i> Enable Authentication'; }
+      if (errEl) { errEl.textContent = res.error || t('settings.auth.invalidCredentials'); errEl.classList.remove('hidden'); }
+      if (btn) { btn.disabled = false; btn.innerHTML = `<i class="bi bi-shield-lock"></i> ${t('settings.auth.enableBtn')}`; }
       return;
     }
     // Success — show confirmation
@@ -173,8 +177,8 @@ async function settingsEnableAuth() {
     AppModal.hide('settings-modal');
     _showAuthConfirm('enabled');
   } catch (e) {
-    if (errEl) { errEl.textContent = 'Failed to validate credentials'; errEl.classList.remove('hidden'); }
-    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="bi bi-shield-lock"></i> Enable Authentication'; }
+    if (errEl) { errEl.textContent = t('settings.auth.validationFailed'); errEl.classList.remove('hidden'); }
+    if (btn) { btn.disabled = false; btn.innerHTML = `<i class="bi bi-shield-lock"></i> ${t('settings.auth.enableBtn')}`; }
   }
 }
 
@@ -219,37 +223,34 @@ function _showAuthConfirm(mode) {
   if (mode === 'enabled') {
     body.innerHTML = `
       <div class="text-4xl">🔒</div>
-      <h3 class="font-headline font-bold text-lg text-on-surface">Authentication enabled</h3>
+      <h3 class="font-headline font-bold text-lg text-on-surface">${t('settings.auth.enabled.title')}</h3>
       <p class="text-on-surface-v text-sm leading-relaxed">
-        Google Sign-In is now active. When accessed from the internet,
-        users will need to sign in with an authorized Google account.
+        ${t('settings.auth.enabled.description')}
       </p>
       <p class="text-on-surface-v text-sm">
-        The <strong class="text-on-surface">first person to sign in</strong> will become the owner —
-        no other account will be able to access the app unless you add them in settings.
+        ${t('settings.auth.enabled.ownerNote')}
       </p>
-      <p class="text-on-surface-v text-xs">Local access (LAN) remains open without sign-in.</p>
+      <p class="text-on-surface-v text-xs">${t('settings.auth.enabled.lanNote')}</p>
       <button onclick="AppModal.hide('auth-confirm-modal'); location.reload();"
         class="w-full px-6 py-3 bg-primary text-bg rounded-full font-label text-sm uppercase tracking-wider hover:brightness-110 transition">
-        Got it
+        ${t('settings.auth.enabled.gotIt')}
       </button>
     `;
   } else if (mode === 'disable') {
     body.innerHTML = `
       <div class="text-4xl">🔓</div>
-      <h3 class="font-headline font-bold text-lg text-on-surface">Disable authentication?</h3>
+      <h3 class="font-headline font-bold text-lg text-on-surface">${t('settings.auth.disable.title')}</h3>
       <p class="text-on-surface-v text-sm leading-relaxed">
-        Anyone with access to the server will be able to use More'Wax without signing in.
-        Your Google credentials will be removed.
+        ${t('settings.auth.disable.description')}
       </p>
       <div class="flex gap-3">
         <button data-dismiss="modal"
           class="flex-1 px-4 py-2.5 border border-outline-v/30 text-on-surface-v rounded-full text-sm hover:bg-surface-high transition">
-          Cancel
+          ${t('settings.auth.disable.cancel')}
         </button>
         <button onclick="_doDisableAuth()"
           class="flex-1 px-4 py-2.5 bg-red-500/20 text-red-400 border border-red-500/30 rounded-full text-sm hover:bg-red-500/30 transition">
-          Disable
+          ${t('settings.auth.disable.confirm')}
         </button>
       </div>
     `;

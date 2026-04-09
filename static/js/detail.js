@@ -42,13 +42,13 @@ function _renderPanelHtml(r, peek = false) {
           ${tags.map(t => `<span class="border border-outline-v/30 px-2.5 py-0.5 text-xs font-label rounded-full text-outline">${esc(t)}</span>`).join('')}
         </div>
         <div class="flex items-center gap-1.5 shrink-0">
-          ${r.id ? `<button class="w-8 h-8 rounded-full bg-surface-high/50 flex items-center justify-center text-outline hover:text-primary transition-colors" onclick="_copyDetailInfo(this, ${r.id})" title="Copy artist and title">
+          ${r.id ? `<button class="w-8 h-8 rounded-full bg-surface-high/50 flex items-center justify-center text-outline hover:text-primary transition-colors" onclick="_copyDetailInfo(this, ${r.id})" title="${esc(t('detail.copy.title'))}">
             <i class="bi bi-clipboard text-xs"></i>
           </button>` : ''}
-          ${r.id ? `<button id="share-btn" class="w-8 h-8 rounded-full bg-surface-high/50 flex items-center justify-center text-outline hover:text-primary transition-colors" onclick="_shareRecord(this, ${r.id})" title="Share">
+          ${r.id ? `<button id="share-btn" class="w-8 h-8 rounded-full bg-surface-high/50 flex items-center justify-center text-outline hover:text-primary transition-colors" onclick="_shareRecord(this, ${r.id})" title="${esc(t('detail.share.title'))}">
             <i class="bi bi-share text-xs"></i>
           </button>` : ''}
-          ${r.discogs_id ? `<a href="https://www.discogs.com/release/${r.discogs_id}" target="_blank" class="w-8 h-8 rounded-full bg-surface-high/50 flex items-center justify-center text-outline hover:text-primary transition-colors" title="View on Discogs"><i class="bi bi-box-arrow-up-right text-xs"></i></a>` : ''}
+          ${r.discogs_id ? `<a href="https://www.discogs.com/release/${r.discogs_id}" target="_blank" class="w-8 h-8 rounded-full bg-surface-high/50 flex items-center justify-center text-outline hover:text-primary transition-colors" title="${esc(t('detail.viewOnDiscogs'))}"><i class="bi bi-box-arrow-up-right text-xs"></i></a>` : ''}
           ${r.discogs_id && !peek ? _renderDiscogsToggleBtn(r.discogs_id) : ''}
         </div>
       </div>
@@ -68,7 +68,7 @@ function _renderPanelHtml(r, peek = false) {
       <!-- Notes -->
       ${r.notes ? `
       <div class="bg-surface-top/30 rounded-xl p-5">
-        <h4 class="font-headline italic text-lg text-on-surface mb-2">Notes</h4>
+        <h4 class="font-headline italic text-lg text-on-surface mb-2">${esc(t('detail.notes.title'))}</h4>
         <p class="font-body text-on-surface-v text-sm leading-relaxed">${esc(r.notes)}</p>
       </div>` : ''}
 
@@ -91,12 +91,12 @@ function _editorialPriceCard(r) {
     <div class="flex items-baseline justify-between gap-3">
       <div class="flex items-baseline gap-2">
         ${!isNaN(med) ? `<span class="text-2xl font-headline font-bold text-primary">${sym}${med.toFixed(2)}</span>` : ''}
-        <span class="text-[10px] font-label text-outline uppercase tracking-wider">median</span>
+        <span class="text-[10px] font-label text-outline uppercase tracking-wider">${t('detail.price.median')}</span>
       </div>
       <div class="flex items-baseline gap-3 text-sm font-headline text-on-surface-v">
-        ${!isNaN(low) ? `<span>${sym}${low.toFixed(0)} <span class="text-[10px] font-label text-outline uppercase">low</span></span>` : ''}
-        ${!isNaN(high) ? `<span>${sym}${high.toFixed(0)} <span class="text-[10px] font-label text-outline uppercase">high</span></span>` : ''}
-        ${r.num_for_sale ? `<span>${r.num_for_sale} <span class="text-[10px] font-label text-outline uppercase">listed</span></span>` : ''}
+        ${!isNaN(low) ? `<span>${sym}${low.toFixed(0)} <span class="text-[10px] font-label text-outline uppercase">${t('detail.price.low')}</span></span>` : ''}
+        ${!isNaN(high) ? `<span>${sym}${high.toFixed(0)} <span class="text-[10px] font-label text-outline uppercase">${t('detail.price.high')}</span></span>` : ''}
+        ${r.num_for_sale ? `<span>${r.num_for_sale} <span class="text-[10px] font-label text-outline uppercase">${t('detail.price.listed')}</span></span>` : ''}
       </div>
     </div>`;
 }
@@ -117,10 +117,10 @@ function _renderDetailBody(r) {
   body.innerHTML = `
     <div class="sticky top-0 z-10 flex justify-between items-center px-3 py-2 pointer-events-none" style="margin-bottom:-48px">
       <div class="detail-nav flex items-center gap-1.5 mr-auto pointer-events-auto">
-        <button class="hidden sm:flex detail-overlay-btn" id="detail-prev" onclick="_navigateDetail(-1)" title="Previous">
+        <button class="hidden sm:flex detail-overlay-btn" id="detail-prev" onclick="_navigateDetail(-1)" title="${esc(t('detail.nav.previous'))}">
           <i class="bi bi-chevron-left text-sm"></i>
         </button>
-        <button class="hidden sm:flex detail-overlay-btn" id="detail-next" onclick="_navigateDetail(1)" title="Next">
+        <button class="hidden sm:flex detail-overlay-btn" id="detail-next" onclick="_navigateDetail(1)" title="${esc(t('detail.nav.next'))}">
           <i class="bi bi-chevron-right text-sm"></i>
         </button>
       </div>
@@ -409,8 +409,8 @@ function _renderDiscogsToggleBtn(discogsId) {
   const cached = _discogsCollectionState[discogsId];
   const icon = cached === true ? 'bi-dash-circle' : 'bi-plus-circle';
   const color = cached === true ? 'text-primary' : 'text-outline';
-  const title = cached === true ? 'In Discogs collection — click to remove'
-    : cached === false ? 'Not in Discogs — click to add' : 'Checking Discogs...';
+  const title = cached === true ? t('detail.inDiscogsRemove')
+    : cached === false ? t('detail.notInDiscogsAdd') : t('detail.checkingDiscogs');
   return `<button id="detail-discogs-toggle" data-discogs-id="${esc(discogsId)}" class="w-8 h-8 rounded-full bg-surface-high/50 flex items-center justify-center ${color} hover:text-primary transition-colors" onclick="_toggleDiscogsCollection('${esc(discogsId)}')" title="${esc(title)}">
     <i class="bi ${icon} text-xs"></i>
   </button>`;
@@ -434,12 +434,12 @@ function _updateDiscogsToggle(btn, inCollection) {
     icon.className = 'bi bi-dash-circle text-xs';
     btn.classList.remove('text-outline');
     btn.classList.add('text-primary');
-    btn.title = 'In Discogs collection — click to remove';
+    btn.title = t('detail.inDiscogsRemove');
   } else {
     icon.className = 'bi bi-plus-circle text-xs';
     btn.classList.remove('text-primary');
     btn.classList.add('text-outline');
-    btn.title = 'Not in Discogs — click to add';
+    btn.title = t('detail.notInDiscogsAdd');
   }
 }
 
@@ -457,28 +457,28 @@ async function _toggleDiscogsCollection(discogsId) {
     if (inCollection) {
       // Restore icon while waiting for confirmation
       _updateDiscogsToggle(btn, true);
-      if (!confirm('Remove this release from your Discogs collection?')) return;
+      if (!confirm(t('detail.discogs.removeConfirm'))) return;
       icon.className = 'bi bi-arrow-repeat animate-spin text-xs';
       const res = await apiDelete(`/api/discogs/collection/${did}`);
       if (res && res.success) {
         _discogsCollectionState[did] = false;
-        toast('Removed from Discogs collection');
+        toast(t('detail.discogs.removed'));
       } else {
-        toast('Could not remove from Discogs', 'error');
+        toast(t('detail.discogs.removeError'), 'error');
       }
     } else {
       const res = await apiPost(`/api/discogs/add-to-collection/${did}`, {});
       if (res && res.success) {
         _discogsCollectionState[did] = true;
-        toast('Added to Discogs collection');
+        toast(t('detail.discogs.added'));
       } else {
-        toast('Could not add to Discogs', 'error');
+        toast(t('detail.discogs.addError'), 'error');
       }
     }
     const currentBtn = document.getElementById('detail-discogs-toggle');
     if (currentBtn) _updateDiscogsToggle(currentBtn, _discogsCollectionState[did]);
   } catch (e) {
-    toast('Failed: ' + e.message, 'error');
+    toast(t('detail.discogs.failed', { error: e.message }), 'error');
     const currentBtn = document.getElementById('detail-discogs-toggle');
     if (currentBtn) _updateDiscogsToggle(currentBtn, !!inCollection);
   }
@@ -520,7 +520,7 @@ function _fallbackCopy(text, cb) {
 function _deleteButton(id) {
   return `<div class="flex justify-end pt-2 pb-2">
     <button class="text-danger/70 hover:text-danger text-sm font-medium flex items-center gap-1.5 transition-colors" onclick="confirmDelete(${id})">
-      <i class="bi bi-trash"></i> Remove
+      <i class="bi bi-trash"></i> ${esc(t('detail.delete.btn'))}
     </button>
   </div>`;
 }
@@ -541,7 +541,7 @@ async function _loadDiscogsExtra(r) {
   const spinTimer = setTimeout(() => {
     const el = document.getElementById(`detail-extra-${r.id}`);
     if (el && !el.innerHTML.trim()) {
-      el.innerHTML = '<div class="text-outline text-sm flex items-center gap-2 justify-center py-4"><i class="bi bi-arrow-repeat animate-spin"></i> Loading details…</div>';
+      el.innerHTML = `<div class="text-outline text-sm flex items-center gap-2 justify-center py-4"><i class="bi bi-arrow-repeat animate-spin"></i> ${esc(t('detail.loadingDetails'))}</div>`;
     }
   }, 3000);
   try {
@@ -578,27 +578,27 @@ function _renderTracklist(tracklist, r) {
   const liked = r && r.liked_tracks ? r.liked_tracks : [];
   const rid = r ? r.id : 0;
   let html = '<div class="bg-surface-low rounded-xl p-5">';
-  html += '<h4 class="font-label text-xs uppercase tracking-widest text-outline mb-4">Tracklist</h4>';
+  html += `<h4 class="font-label text-xs uppercase tracking-widest text-outline mb-4">${esc(t('detail.tracklist.title'))}</h4>`;
   html += '<div class="space-y-0">';
-  for (const t of tracklist) {
-    if (t.type_ === 'heading') {
-      html += `<div class="font-label text-xs uppercase tracking-widest text-primary-dim pt-3 pb-1">${esc(t.title)}</div>`;
+  for (const trk of tracklist) {
+    if (trk.type_ === 'heading') {
+      html += `<div class="font-label text-xs uppercase tracking-widest text-primary-dim pt-3 pb-1">${esc(trk.title)}</div>`;
       continue;
     }
-    const trackId = t.position || t.title;
+    const trackId = trk.position || trk.title;
     const isLiked = liked.includes(trackId);
-    const pos = t.position ? `<span class="text-outline font-label text-xs shrink-0 whitespace-nowrap">${esc(t.position)}</span>` : '';
+    const pos = trk.position ? `<span class="text-outline font-label text-xs shrink-0 whitespace-nowrap">${esc(trk.position)}</span>` : '';
     const safeTrackId = trackId.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;');
     const heart = rid ? `<button class="shrink-0 text-sm transition-all duration-200"
       style="color:${isLiked ? '#f87171' : '#4e453c'}"
-      onclick="_toggleTrackLike(this, ${rid}, '${safeTrackId}')" title="${isLiked ? 'Unlike' : 'Like'}">
+      onclick="_toggleTrackLike(this, ${rid}, '${safeTrackId}')" title="${isLiked ? t('detail.tracklist.unlike') : t('detail.tracklist.like')}">
       <i class="bi ${isLiked ? 'bi-heart-fill' : 'bi-heart'}" style="transition:transform 0.2s"></i>
     </button>` : '';
     html += `<div class="flex items-center gap-2 py-1.5 border-b border-outline-v/10">
       ${pos}
-      <span class="font-body text-sm text-on-surface truncate flex-1">${esc(t.title)}</span>
+      <span class="font-body text-sm text-on-surface truncate flex-1">${esc(trk.title)}</span>
       ${heart}
-      <span class="text-outline text-xs shrink-0 w-10 text-right tabular-nums">${t.duration ? esc(t.duration) : ''}</span>
+      <span class="text-outline text-xs shrink-0 w-10 text-right tabular-nums">${trk.duration ? esc(trk.duration) : ''}</span>
     </div>`;
   }
   html += '</div></div>';
@@ -615,7 +615,7 @@ function _renderFormats(formats) {
     return parts.join(', ');
   }).join(' + ');
   return `<div class="bg-surface-low rounded-xl p-5">
-    <h4 class="font-label text-xs uppercase tracking-widest text-outline mb-3">Format Details</h4>
+    <h4 class="font-label text-xs uppercase tracking-widest text-outline mb-3">${esc(t('detail.format.title'))}</h4>
     <p class="font-body text-sm text-on-surface-v">${esc(desc)}</p>
   </div>`;
 }
@@ -629,7 +629,7 @@ function _renderCredits(extraartists) {
     grouped[role].push(a.name);
   }
   let html = '<div class="bg-surface-low rounded-xl p-5">';
-  html += '<h4 class="font-label text-xs uppercase tracking-widest text-outline mb-4">Credits</h4>';
+  html += `<h4 class="font-label text-xs uppercase tracking-widest text-outline mb-4">${esc(t('detail.credits.title'))}</h4>`;
   html += '<div class="space-y-2">';
   for (const [role, names] of Object.entries(grouped)) {
     html += `<div class="pb-2 border-b border-outline-v/10">
@@ -644,7 +644,7 @@ function _renderCredits(extraartists) {
 function _renderReleaseNotes(notes) {
   if (!notes) return '';
   return `<div class="bg-surface-top/30 rounded-xl p-5">
-    <h4 class="font-label text-xs uppercase tracking-widest text-outline mb-3">Release Notes</h4>
+    <h4 class="font-label text-xs uppercase tracking-widest text-outline mb-3">${esc(t('detail.releaseNotes.title'))}</h4>
     <p class="font-body text-on-surface-v text-sm leading-relaxed whitespace-pre-line">${esc(notes)}</p>
   </div>`;
 }
@@ -652,7 +652,7 @@ function _renderReleaseNotes(notes) {
 function _renderIdentifiers(identifiers) {
   if (!identifiers || !identifiers.length) return '';
   let html = '<div class="bg-surface-low rounded-xl p-5">';
-  html += '<h4 class="font-label text-xs uppercase tracking-widest text-outline mb-4">Identifiers</h4>';
+  html += `<h4 class="font-label text-xs uppercase tracking-widest text-outline mb-4">${esc(t('detail.identifiers.title'))}</h4>`;
   html += '<div class="space-y-2">';
   for (const id of identifiers) {
     const desc = id.description ? ` (${esc(id.description)})` : '';
@@ -674,12 +674,12 @@ function _renderCompanies(companies, series) {
   }
   if (series && series.length) {
     for (const s of series) {
-      items.push({ label: 'Series', value: s.name + (s.catno ? ` #${s.catno}` : '') });
+      items.push({ label: t('detail.companies.series'), value: s.name + (s.catno ? ` #${s.catno}` : '') });
     }
   }
   if (!items.length) return '';
   let html = '<div class="bg-surface-low rounded-xl p-5">';
-  html += '<h4 class="font-label text-xs uppercase tracking-widest text-outline mb-4">Companies & Series</h4>';
+  html += `<h4 class="font-label text-xs uppercase tracking-widest text-outline mb-4">${esc(t('detail.companies.title'))}</h4>`;
   html += '<div class="space-y-2">';
   for (const item of items) {
     html += `<div class="pb-2 border-b border-outline-v/10">
@@ -702,7 +702,7 @@ async function _toggleTrackLike(btn, rid, trackId) {
   const icon = btn.querySelector('i');
   icon.className = wasLiked ? 'bi bi-heart' : 'bi bi-heart-fill';
   btn.style.color = wasLiked ? '#4e453c' : '#f87171';
-  btn.title = wasLiked ? 'Like' : 'Unlike';
+  btn.title = wasLiked ? t('detail.tracklist.like') : t('detail.tracklist.unlike');
   // Bounce: big → small → normal
   btn.style.transition = 'none';
   btn.style.transform = 'scale(1.8)';
@@ -716,17 +716,17 @@ async function _toggleTrackLike(btn, rid, trackId) {
     r.liked_tracks = prev;
     icon.className = wasLiked ? 'bi bi-heart-fill' : 'bi bi-heart';
     btn.style.color = wasLiked ? '#f87171' : '#4e453c';
-    btn.title = wasLiked ? 'Unlike' : 'Like';
-    toast('Could not save track like', 'error');
+    btn.title = wasLiked ? t('detail.tracklist.unlike') : t('detail.tracklist.like');
+    toast(t('detail.tracklist.likeError'), 'error');
   }
 }
 
 async function confirmDelete(id) {
-  if (!confirm('Remove this record from your collection?')) return;
+  if (!confirm(t('detail.delete.confirm'))) return;
   await apiDelete(`/api/collection/${id}`);
   AppModal.hide('detail-modal');
   await loadCollection();
-  toast('Record removed from collection', 'success');
+  toast(t('detail.delete.success'), 'success');
 }
 
 // ── Share record card ────────────────────────────────────────
@@ -765,9 +765,9 @@ async function _shareRecord(btn, id) {
     a.download = filename;
     a.click();
     URL.revokeObjectURL(url);
-    toast('Card saved', 'success');
+    toast(t('detail.share.cardSaved'), 'success');
   } catch (e) {
-    if (e.name !== 'AbortError') toast('Could not generate share card', 'error');
+    if (e.name !== 'AbortError') toast(t('detail.share.cardError'), 'error');
   }
   icon.className = 'bi bi-share text-xs';
 }

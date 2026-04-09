@@ -50,6 +50,10 @@ function _showSetupError(title, message, linkUrl) {
 }
 
 window.addEventListener('DOMContentLoaded', async () => {
+  // Load translations before rendering anything
+  await I18N.ready;
+  translateDOM();
+
   // Check auth first — if not authenticated, show login overlay and stop
   const authOk = await checkAuth();
   if (!authOk) return;
@@ -67,6 +71,12 @@ window.addEventListener('DOMContentLoaded', async () => {
 
   // Navigate to initial view from hash
   navigateTo(_getViewFromHash());
+
+  // Re-render on language change
+  window.addEventListener('locale-changed', () => {
+    renderDashboard();
+    renderCollection();
+  });
 });
 
 /** Hide Add buttons if no camera is available. */

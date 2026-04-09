@@ -16,20 +16,19 @@ function _showApiKeyDialog() {
     <div style="background:var(--surface,#1c1c1e);border:1px solid var(--outline-v,#333);
                 border-radius:16px;padding:28px 24px;max-width:360px;width:90%;text-align:center">
       <div style="font-size:2rem;margin-bottom:8px">🔑</div>
-      <h3 style="margin:0 0 8px;color:var(--on-surface,#fff);font-size:1.1rem">API Key Required</h3>
+      <h3 style="margin:0 0 8px;color:var(--on-surface,#fff);font-size:1.1rem">${t('scanner.apiKey.title')}</h3>
       <p style="margin:0 0 16px;color:var(--muted,#aaa);font-size:.88rem;line-height:1.5">
-        Photo identification uses the Anthropic Claude API.<br>
-        Add your key to <code style="background:var(--surface-top,#2a2a2c);padding:2px 6px;border-radius:4px;font-size:.82rem">
-        .env</code> and restart the server.
+        ${t('scanner.apiKey.description')}<br>
+        ${t('scanner.apiKey.instruction').replace('.env', '<code style="background:var(--surface-top,#2a2a2c);padding:2px 6px;border-radius:4px;font-size:.82rem">.env</code>')}
       </p>
       <a href="https://console.anthropic.com/" target="_blank" rel="noopener"
          style="display:inline-block;margin-bottom:12px;color:var(--accent,#d4a574);font-size:.85rem;text-decoration:underline">
-        Get an API key →
+        ${t('scanner.apiKey.getKey')}
       </a><br>
       <button onclick="document.getElementById('apikey-dialog').remove()"
               style="margin-top:4px;padding:10px 28px;border-radius:10px;border:none;
                      background:var(--accent,#d4a574);color:#000;font-weight:600;font-size:.9rem;cursor:pointer">
-        OK
+        ${t('scanner.apiKey.ok')}
       </button>
     </div>
   `;
@@ -144,7 +143,7 @@ function switchScannerMode(mode) {
     scanLine.style.display = '';
     shutter.classList.add('hidden');
     uploadBtn.classList.add('hidden');
-    guidance.textContent = 'Align barcode within frame';
+    guidance.textContent = t('scanner.guidance.barcode');
     dim.classList.add('hidden');
     searchP.classList.add('hidden');
     bottomA.classList.remove('hidden');
@@ -158,7 +157,7 @@ function switchScannerMode(mode) {
     scanLine.style.display = 'none';
     shutter.classList.remove('hidden');
     uploadBtn.classList.remove('hidden');
-    guidance.textContent = 'Center artwork within the frame';
+    guidance.textContent = t('scanner.guidance.photo');
     dim.classList.add('hidden');
     searchP.classList.add('hidden');
     bottomA.classList.remove('hidden');
@@ -180,7 +179,7 @@ function switchScannerMode(mode) {
 function scannerSnapPhoto() {
   const dataUrl = captureFromScanner();
   if (!dataUrl) {
-    toast('Camera not available', 'error');
+    toast(t('scanner.camera.notAvailable'), 'error');
     return;
   }
   processSearchPhotoForScanner(dataUrl, 'snapshot.jpg');
@@ -194,7 +193,7 @@ function handleScannerPhotoUpload(event) {
               || /\.hei[cf]$/i.test(file.name);
 
   if (!isHeic && !file.type.startsWith('image/')) {
-    toast('Please select an image file', 'error');
+    toast(t('scanner.barcode.selectImage'), 'error');
     return;
   }
 
@@ -203,7 +202,7 @@ function handleScannerPhotoUpload(event) {
   body.innerHTML = `
     <div class="flex flex-col items-center py-8">
       <div class="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
-      <p class="mt-3 text-sm text-on-surface-v">${isHeic ? 'Converting HEIC…' : 'Processing photo…'}</p>
+      <p class="mt-3 text-sm text-on-surface-v">${isHeic ? t('scanner.photo.converting') : t('scanner.photo.processing')}</p>
     </div>`;
 
   (async () => {
@@ -234,7 +233,7 @@ async function scannerFetchAndShowResults(query, isBarcode) {
   body.innerHTML = `
     <div class="text-center py-8 text-on-surface-v">
       <div class="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin inline-block"></div>
-      <p class="mt-3 text-sm">Searching Discogs…</p>
+      <p class="mt-3 text-sm">${t('scanner.search.searching')}</p>
     </div>`;
 
   try {
@@ -248,11 +247,11 @@ async function scannerFetchAndShowResults(query, isBarcode) {
       body.innerHTML = `
         <div class="text-center py-8 text-on-surface-v">
           <i class="bi bi-emoji-frown text-4xl"></i>
-          <p class="mt-3">No results${isBarcode ? ' for this barcode' : ''}.</p>
+          <p class="mt-3">${isBarcode ? t('scanner.search.noResultsBarcode') : t('scanner.search.noResults')}.</p>
         </div>`;
       document.getElementById('scanner-sheet-footer').innerHTML = `
         <button class="btn-ghost-new w-full" onclick="closeSheet(); switchScannerMode('search')">
-          Try a manual search
+          ${t('scanner.search.tryManual')}
         </button>`;
       return;
     }
@@ -262,7 +261,7 @@ async function scannerFetchAndShowResults(query, isBarcode) {
     body.innerHTML = `
       <div class="text-center py-6 text-danger">
         <i class="bi bi-exclamation-triangle text-3xl"></i>
-        <p class="mt-2">Discogs error: ${esc(e.message)}</p>
+        <p class="mt-2">${t('scanner.search.discogsError', { error: esc(e.message) })}</p>
       </div>`;
   }
 }
@@ -326,9 +325,9 @@ function showResultsInSheet(results, isBarcode) {
 
   header.innerHTML = `
     <div>
-      <h2 class="font-headline text-2xl font-bold text-on-surface">Matches Found</h2>
+      <h2 class="font-headline text-2xl font-bold text-on-surface">${t('scanner.results.title')}</h2>
       <p class="font-label text-[10px] uppercase tracking-widest text-primary font-bold">
-        ${results.length} result${results.length !== 1 ? 's' : ''} identified
+        ${t('scanner.results.count', { count: results.length })}
       </p>
     </div>
     <button onclick="closeSheet()" class="w-10 h-10 flex items-center justify-center bg-surface-high rounded-full text-on-surface-v hover:text-on-surface transition-colors shrink-0">
@@ -365,7 +364,7 @@ function showResultsInSheet(results, isBarcode) {
 
   footer.innerHTML = `
     <button class="w-full py-4 bg-outline-v/20 text-on-surface-v rounded-full font-label text-xs uppercase tracking-widest font-bold active:scale-[0.98] transition-all" onclick="closeSheet(); switchScannerMode('search')">
-      None of these match
+      ${t('scanner.results.noneMatch')}
     </button>`;
 }
 
@@ -376,7 +375,7 @@ async function scannerSelectRelease(idx) {
   body.innerHTML = `
     <div class="text-center py-8 text-on-surface-v">
       <div class="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin inline-block"></div>
-      <p class="mt-3 text-sm">Loading release details…</p>
+      <p class="mt-3 text-sm">${t('scanner.results.loadingDetails')}</p>
     </div>`;
 
   try {
@@ -393,8 +392,8 @@ async function scannerSelectRelease(idx) {
   } catch (e) {
     body.innerHTML = `
       <div class="text-center py-6 text-danger">
-        Error loading release: ${esc(e.message)}
-        <br><button class="text-primary hover:underline mt-2" onclick="closeSheet()">Go back</button>
+        ${t('scanner.results.loadError', { error: esc(e.message) })}
+        <br><button class="text-primary hover:underline mt-2" onclick="closeSheet()">${t('scanner.results.goBack')}</button>
       </div>`;
   }
 }
@@ -416,7 +415,7 @@ function showConfirmInSheet() {
 
   header.innerHTML = `
     <div>
-      <h2 class="font-headline text-xl font-bold text-on-surface">Confirm &amp; Add</h2>
+      <h2 class="font-headline text-xl font-bold text-on-surface">${t('scanner.confirm.title')}</h2>
     </div>
     <button onclick="closeSheet()" class="w-10 h-10 flex items-center justify-center bg-surface-high rounded-full text-on-surface-v hover:text-on-surface transition-colors shrink-0">
       <i class="bi bi-x-lg"></i>
@@ -427,7 +426,7 @@ function showConfirmInSheet() {
       ${r.already_in_discogs ? `
         <div class="bg-primary/10 border border-primary/30 rounded-lg px-3 py-2 text-sm text-primary mx-4">
           <i class="bi bi-exclamation-triangle mr-1"></i>
-          Already in your Discogs collection — sync will be skipped.
+          ${t('scanner.confirm.alreadyInDiscogs')}
         </div>` : ''}
 
       ${_renderPanelHtml(pseudo, true)}
@@ -436,31 +435,31 @@ function showConfirmInSheet() {
         <button onclick="_scannerCaptureCover()"
                 class="flex-1 border-2 border-dashed border-outline-v/40 rounded-lg p-3 text-center cursor-pointer transition-colors hover:border-primary">
           <i class="bi bi-camera text-xl text-primary"></i>
-          <div class="text-xs text-on-surface-v mt-1">Snap cover</div>
+          <div class="text-xs text-on-surface-v mt-1">${t('scanner.confirm.snapCover')}</div>
         </button>
         <button onclick="document.getElementById('scanner-cover-input').click()"
                 class="flex-1 border-2 border-dashed border-outline-v/40 rounded-lg p-3 text-center cursor-pointer transition-colors hover:border-primary">
           <i class="bi bi-upload text-xl text-primary"></i>
-          <div class="text-xs text-on-surface-v mt-1">Upload</div>
+          <div class="text-xs text-on-surface-v mt-1">${t('scanner.confirm.upload')}</div>
         </button>
         <input type="file" id="scanner-cover-input" accept="image/*,.heic,.heif" class="hidden" onchange="_scannerHandleCoverUpload(event)">
       </div>
 
       <div class="px-4">
-        <label class="text-xs text-on-surface-v block mb-1">Personal notes</label>
+        <label class="text-xs text-on-surface-v block mb-1">${t('scanner.confirm.notesLabel')}</label>
         <textarea id="notes-input" rows="2"
                   class="w-full bg-transparent border-b border-outline-v/40 py-2 px-0 text-sm text-on-surface focus:outline-none focus:border-primary transition-colors placeholder:text-outline resize-y"
-                  placeholder="Condition, purchase price, where you bought it…"></textarea>
+                  placeholder="${t('scanner.confirm.notesPlaceholder')}"></textarea>
       </div>
     </div>`;
 
   footer.innerHTML = `
     <div class="space-y-2">
       <button id="save-btn" class="btn-primary-new w-full py-4 text-base font-bold" onclick="saveRecord()">
-        <i class="bi bi-plus-circle mr-1"></i>Add to Collection
+        <i class="bi bi-plus-circle mr-1"></i>${t('scanner.confirm.addBtn')}
       </button>
       <button class="btn-ghost-new w-full" onclick="showResultsInSheet(window._searchResults || [], !!window._detectedBarcode)">
-        <i class="bi bi-arrow-left mr-1"></i>Back to results
+        <i class="bi bi-arrow-left mr-1"></i>${t('scanner.confirm.backToResults')}
       </button>
     </div>`;
 }
@@ -468,7 +467,7 @@ function showConfirmInSheet() {
 function _scannerCaptureCover() {
   const dataUrl = captureFromScanner();
   if (!dataUrl) {
-    toast('Camera not available — try uploading', 'error');
+    toast(t('scanner.camera.notAvailableUpload'), 'error');
     return;
   }
   capturedPhoto = dataUrl;
@@ -480,7 +479,7 @@ function _scannerCaptureCover() {
     panelImg.src = dataUrl;
   }
   document.getElementById('scanner-capture-section').style.display = 'none';
-  toast('Cover photo captured ✓', 'success');
+  toast(t('scanner.save.coverCaptured'), 'success');
 }
 
 async function _scannerHandleCoverUpload(event) {
@@ -489,7 +488,7 @@ async function _scannerHandleCoverUpload(event) {
   const isHeic = file.type === 'image/heic' || file.type === 'image/heif'
               || /\.hei[cf]$/i.test(file.name);
   if (!isHeic && !file.type.startsWith('image/')) {
-    toast('Please select an image file', 'error');
+    toast(t('scanner.barcode.selectImage'), 'error');
     return;
   }
   try {
@@ -502,7 +501,7 @@ async function _scannerHandleCoverUpload(event) {
       panelImg.src = capturedPhoto;
     }
     document.getElementById('scanner-capture-section').style.display = 'none';
-    toast('Photo uploaded ✓', 'success');
+    toast(t('scanner.save.photoUploaded'), 'success');
   } catch (err) {
     toast(err.message, 'error');
   }
@@ -523,7 +522,7 @@ function _showDuplicateWarning(existing) {
              <i class="bi bi-vinyl"></i>
            </div>`}
       <div class="text-danger font-bold mb-2">
-        <i class="bi bi-exclamation-circle mr-1"></i>Already in your collection
+        <i class="bi bi-exclamation-circle mr-1"></i>${t('scanner.duplicate.title')}
       </div>
       <div class="font-semibold text-on-surface">${esc(existing.title)}</div>
       <div class="text-sm text-on-surface-v mt-1">
@@ -533,9 +532,9 @@ function _showDuplicateWarning(existing) {
 
   footer.innerHTML = `
     <div class="flex gap-3">
-      <button class="btn-ghost-new flex-1" onclick="closeScanner()">Close</button>
+      <button class="btn-ghost-new flex-1" onclick="closeScanner()">${t('scanner.duplicate.close')}</button>
       <button class="btn-primary-new flex-1" onclick="closeSheet(); switchScannerMode('barcode')">
-        <i class="bi bi-arrow-left mr-1"></i>Start over
+        <i class="bi bi-arrow-left mr-1"></i>${t('scanner.duplicate.startOver')}
       </button>
     </div>`;
 }
@@ -547,7 +546,7 @@ async function saveRecord() {
   const saveBtn = document.getElementById('save-btn');
   if (saveBtn) {
     saveBtn.disabled = true;
-    saveBtn.innerHTML = '<div class="w-4 h-4 border-2 border-on-primary/30 border-t-on-primary rounded-full animate-spin inline-block mr-2"></div>Saving…';
+    saveBtn.innerHTML = '<div class="w-4 h-4 border-2 border-on-primary/30 border-t-on-primary rounded-full animate-spin inline-block mr-2"></div>' + t('scanner.save.saving');
   }
 
   try {
@@ -564,7 +563,7 @@ async function saveRecord() {
       const dup  = json.existing || {};
       if (saveBtn) {
         saveBtn.disabled = false;
-        saveBtn.innerHTML = '<i class="bi bi-plus-circle mr-1"></i>Add to Collection';
+        saveBtn.innerHTML = '<i class="bi bi-plus-circle mr-1"></i>' + t('scanner.confirm.addBtn');
       }
       _showDuplicateWarning(dup);
       return;
@@ -581,20 +580,20 @@ async function saveRecord() {
 
     let discogsMsg = '';
     if (selectedRelease.already_in_discogs) {
-      discogsMsg = ' (already in Discogs — skipped)';
+      discogsMsg = t('scanner.save.alreadyInDiscogs');
     } else if (selectedRelease.discogs_id) {
       const ok = await addToDiscogsCollection(selectedRelease.discogs_id);
-      discogsMsg = ok ? ' + added to Discogs!' : ' (Discogs sync failed — check console)';
+      discogsMsg = ok ? t('scanner.save.addedToDiscogs') : t('scanner.save.discogsSyncFailed');
     }
 
     await loadCollection();
     closeScanner();
-    toast(`✓ "${selectedRelease.title}" added${discogsMsg}`, 'success');
+    toast(t('scanner.save.addedTitle', { title: selectedRelease.title, discogsMsg }), 'success');
   } catch (e) {
-    toast('Error saving: ' + e.message, 'error');
+    toast(t('scanner.save.error', { error: e.message }), 'error');
     if (saveBtn) {
       saveBtn.disabled = false;
-      saveBtn.innerHTML = '<i class="bi bi-plus-circle mr-1"></i>Add to Collection';
+      saveBtn.innerHTML = '<i class="bi bi-plus-circle mr-1"></i>' + t('scanner.confirm.addBtn');
     }
   }
 }

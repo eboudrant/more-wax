@@ -68,11 +68,11 @@
   <div class="flex items-center gap-4">
     <!-- Desktop nav links -->
     <nav class="hidden md:flex items-center gap-6 font-body text-sm font-medium mr-4">
-      <a href="#dashboard" class="nav-link-top" data-view="dashboard">Home</a>
-      <a href="#collection" class="nav-link-top" data-view="collection">Collection</a>
-      <a href="#" class="nav-link-top" onclick="openScanner();return false">Add</a>
+      <a href="#dashboard" class="nav-link-top" data-view="dashboard" data-i18n="nav.home">Home</a>
+      <a href="#collection" class="nav-link-top" data-view="collection" data-i18n="nav.collection">Collection</a>
+      <a href="#" class="nav-link-top" onclick="openScanner();return false" data-i18n="nav.add">Add</a>
     </nav>
-    <span id="nav-badge" class="text-xs px-2 py-0.5 rounded-full bg-surface-high text-outline font-label">Loading…</span>
+    <span id="nav-badge" class="text-xs px-2 py-0.5 rounded-full bg-surface-high text-outline font-label" data-i18n="nav.badge.loading">Loading…</span>
     <div id="auth-avatar" class="hidden relative ml-2"></div>
   </div>
 </header>
@@ -83,14 +83,14 @@
     <!-- Empty state -->
     <div id="dash-empty" class="hidden text-center py-24 space-y-6">
       <i class="bi bi-vinyl text-7xl text-outline-v/30"></i>
-      <h3 class="font-headline font-bold text-2xl text-on-surface">Your vault is empty</h3>
-      <p class="text-outline max-w-sm mx-auto">Scan a barcode, snap a cover photo, or search Discogs to add your first record.</p>
+      <h3 class="font-headline font-bold text-2xl text-on-surface" data-i18n="dash.empty.title">Your vault is empty</h3>
+      <p class="text-outline max-w-sm mx-auto" data-i18n="dash.empty.subtitle">Scan a barcode, snap a cover photo, or search Discogs to add your first record.</p>
       <div class="flex flex-col items-center gap-3">
         <button onclick="openScanner()" class="inline-flex items-center gap-2 px-6 py-3 bg-primary text-bg rounded-full font-label text-sm uppercase tracking-wider hover:brightness-110 transition">
-          <i class="bi bi-plus-lg"></i> Add a record
+          <i class="bi bi-plus-lg"></i> <span data-i18n="dash.empty.addBtn">Add a record</span>
         </button>
         <button id="dash-empty-import" onclick="startDiscogsSync()" class="hidden inline-flex items-center gap-2 text-sm text-primary hover:text-primary-dim transition-colors">
-          <i class="bi bi-arrow-repeat"></i> Import from Discogs
+          <i class="bi bi-arrow-repeat"></i> <span data-i18n="dash.empty.importBtn">Import from Discogs</span>
         </button>
       </div>
     </div>
@@ -101,10 +101,10 @@
         <span class="absolute left-0 bottom-0 w-full h-px bg-outline-v/40 group-focus-within:bg-primary transition-colors"></span>
         <input id="dash-search" type="text"
                class="bg-transparent border-none focus:ring-0 focus:outline-none font-body py-2 px-0 w-64 placeholder:text-outline text-on-surface"
-               placeholder="Search your vault…"
+               data-i18n-placeholder="dash.search.placeholder" placeholder="Search your vault…"
                onkeydown="if(event.key==='Enter'){navigateTo('collection');document.getElementById('filter-input').value=this.value;this.value='';filterCollection();var c=document.getElementById('filter-clear');if(c)c.style.display=document.getElementById('filter-input').value?'block':'none'}">
         <button onclick="var s=document.getElementById('dash-search');navigateTo('collection');document.getElementById('filter-input').value=s.value;s.value='';filterCollection();var c=document.getElementById('filter-clear');if(c)c.style.display=document.getElementById('filter-input').value?'block':'none'"
-                class="text-outline hover:text-primary transition-colors shrink-0" title="Search">
+                class="text-outline hover:text-primary transition-colors shrink-0" data-i18n-title="dash.search.title" title="Search">
           <i class="bi bi-search text-sm"></i>
         </button>
       </div>
@@ -113,8 +113,8 @@
     <!-- Random Picks -->
     <section id="dash-picks-section" class="mb-16">
       <div class="flex items-baseline gap-3 mb-10">
-        <h3 class="font-headline font-bold text-3xl text-on-surface">Random Picks</h3>
-        <button onclick="refreshPicks()" class="text-outline hover:text-primary transition-colors" title="Refresh picks">
+        <h3 class="font-headline font-bold text-3xl text-on-surface" data-i18n="dash.picks.title">Random Picks</h3>
+        <button onclick="refreshPicks()" class="text-outline hover:text-primary transition-colors" data-i18n-title="dash.picks.refresh" title="Refresh picks">
           <i class="bi bi-arrow-repeat text-lg"></i>
         </button>
       </div>
@@ -126,7 +126,7 @@
     <!-- Recently Added -->
     <section id="dash-recent-section" class="mb-16">
       <div class="flex justify-between items-baseline mb-10">
-        <h3 class="font-headline font-bold text-3xl text-on-surface">Recently Added</h3>
+        <h3 class="font-headline font-bold text-3xl text-on-surface" data-i18n="dash.recent.title">Recently Added</h3>
       </div>
       <div id="dash-recent" class="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-10">
         <!-- Filled by dashboard.js -->
@@ -152,28 +152,28 @@
           <span class="absolute left-0 bottom-0 w-full h-px bg-outline-v/40 group-focus-within:bg-primary transition-colors"></span>
           <input id="filter-input" type="text"
                  class="w-full bg-transparent border-none focus:ring-0 font-body py-2 px-0 pr-6 placeholder:text-outline text-on-surface"
-                 placeholder="Filter…"
+                 data-i18n-placeholder="collection.filter.placeholder" placeholder="Filter…"
                  autocomplete="off"
                  oninput="filterCollection();document.getElementById('filter-clear').style.display=this.value?'block':'none';_updateSmartHint(this)"
                  onkeydown="_smartFilterTab(event,this)"
                  onblur="setTimeout(()=>{document.getElementById('smart-filter-hint')&&(document.getElementById('smart-filter-hint').textContent='');_hideSmartDropdown()},150)">
           <button id="filter-clear" onclick="document.getElementById('filter-input').value='';this.style.display='none';filterCollection()"
                   class="absolute right-0 top-1/2 -translate-y-1/2 text-outline hover:text-on-surface transition-colors"
-                  style="display:none" title="Clear filter">
+                  style="display:none" data-i18n-title="collection.filter.clear" title="Clear filter">
             <i class="bi bi-x text-lg"></i>
           </button>
         </div>
         <div id="sort-controls" class="flex items-center gap-1.5 shrink-0">
           <i class="bi bi-sort-down text-primary text-sm"></i>
           <select id="sort-select" class="bg-transparent border-none focus:ring-0 font-label text-xs font-bold uppercase tracking-wider text-on-surface-v cursor-pointer pr-4" onchange="setSort(this.value)">
-            <option value="added">Recent</option>
-            <option value="artist">Artist</option>
-            <option value="title">Title</option>
-            <option value="year">Year</option>
-            <option value="price">Price</option>
+            <option value="added" data-i18n="collection.sort.recent">Recent</option>
+            <option value="artist" data-i18n="collection.sort.artist">Artist</option>
+            <option value="title" data-i18n="collection.sort.title">Title</option>
+            <option value="year" data-i18n="collection.sort.year">Year</option>
+            <option value="price" data-i18n="collection.sort.price">Price</option>
           </select>
         </div>
-        <button id="view-toggle" class="hidden md:inline-flex items-center justify-center w-8 h-8 text-on-surface-v hover:text-primary transition-colors shrink-0" onclick="toggleViewMode()" title="Toggle wall view">
+        <button id="view-toggle" class="hidden md:inline-flex items-center justify-center w-8 h-8 text-on-surface-v hover:text-primary transition-colors shrink-0" onclick="toggleViewMode()" data-i18n-title="collection.viewToggle.wall" title="Toggle wall view">
           <i class="bi bi-grid-3x3"></i>
         </button>
       </div>
@@ -187,8 +187,8 @@
     <!-- Empty state -->
     <div id="collection-empty" class="hidden text-center py-20 text-outline">
       <i class="bi bi-vinyl text-5xl text-outline-v block mb-4"></i>
-      <h4 class="text-on-surface-v font-medium text-lg">No records yet</h4>
-      <p class="text-outline mt-2">Tap <strong class="text-primary">Add</strong> to add your first vinyl</p>
+      <h4 class="text-on-surface-v font-medium text-lg" data-i18n="collection.empty.title">No records yet</h4>
+      <p class="text-outline mt-2" data-i18n="collection.empty.subtitle">Tap <strong class="text-primary">Add</strong> to add your first vinyl</p>
     </div>
 
     <!-- Grid -->
@@ -212,7 +212,7 @@
     <button onclick="closeScanner()" class="w-10 h-10 flex items-center justify-center text-on-surface rounded-full bg-black/40 hover:bg-black/60 transition-colors">
       <i class="bi bi-x-lg"></i>
     </button>
-    <h1 class="font-headline font-bold text-on-surface text-lg tracking-tight">Scan &amp; Discover</h1>
+    <h1 class="font-headline font-bold text-on-surface text-lg tracking-tight" data-i18n="scanner.title">Scan &amp; Discover</h1>
     <button onclick="toggleFlashlight()" id="scanner-flash-btn" class="w-10 h-10 flex items-center justify-center text-primary rounded-full bg-black/40 hover:bg-black/60 transition-colors">
       <i class="bi bi-lightning-fill"></i>
     </button>
@@ -220,7 +220,7 @@
 
   <!-- Frame area -->
   <div id="scanner-frame-wrap" class="relative z-10 flex-1 flex flex-col items-center justify-center px-8">
-    <p id="scanner-guidance" class="font-label text-[10px] uppercase tracking-[0.2em] text-primary-dim mb-6 text-center">Align barcode within frame</p>
+    <p id="scanner-guidance" class="font-label text-[10px] uppercase tracking-[0.2em] text-primary-dim mb-6 text-center" data-i18n="scanner.guidance.barcode">Align barcode within frame</p>
     <div id="scanner-frame" class="scanner-frame relative max-w-sm md:max-w-lg lg:max-w-xl w-full aspect-[4/3] rounded-xl flex items-center justify-center">
       <!-- Corner accents -->
       <span class="absolute -top-[2px] -left-[2px] w-8 h-8 border-t-4 border-l-4 border-primary rounded-tl-lg"></span>
@@ -232,9 +232,9 @@
     </div>
     <!-- Camera error fallback -->
     <div id="scanner-cam-error" class="hidden text-center mt-6">
-      <p class="text-on-surface-v text-sm mb-3">Camera unavailable</p>
+      <p class="text-on-surface-v text-sm mb-3" data-i18n="scanner.camera.unavailable">Camera unavailable</p>
       <button onclick="document.getElementById('scanner-file-input').click()" class="btn-primary-new">
-        <i class="bi bi-upload mr-1"></i>Upload a photo instead
+        <i class="bi bi-upload mr-1"></i><span data-i18n="scanner.camera.uploadInstead">Upload a photo instead</span>
       </button>
     </div>
   </div>
@@ -249,24 +249,24 @@
     </button>
     <!-- Upload link (photo mode) -->
     <button id="scanner-upload-btn" onclick="document.getElementById('scanner-file-input').click()" class="hidden text-primary-dim text-xs uppercase tracking-widest font-bold hover:text-primary transition-colors">
-      <i class="bi bi-upload mr-1"></i>Upload from library
+      <i class="bi bi-upload mr-1"></i><span data-i18n="scanner.camera.uploadFromLibrary">Upload from library</span>
     </button>
     <!-- Mode toggle -->
     <nav id="scanner-mode-toggle" class="flex items-center gap-1 p-1.5 bg-surface-top/60 backdrop-blur-md rounded-full shadow-lg">
-      <button data-mode="barcode" onclick="switchScannerMode('barcode')" class="scanner-mode-btn active">Barcode</button>
-      <button data-mode="photo" onclick="switchScannerMode('photo')" class="scanner-mode-btn">Photo</button>
-      <button data-mode="search" onclick="switchScannerMode('search')" class="scanner-mode-btn">Search</button>
+      <button data-mode="barcode" onclick="switchScannerMode('barcode')" class="scanner-mode-btn active" data-i18n="scanner.mode.barcode">Barcode</button>
+      <button data-mode="photo" onclick="switchScannerMode('photo')" class="scanner-mode-btn" data-i18n="scanner.mode.photo">Photo</button>
+      <button data-mode="search" onclick="switchScannerMode('search')" class="scanner-mode-btn" data-i18n="scanner.mode.search">Search</button>
     </nav>
   </div>
 
   <!-- Search panel (search mode) -->
   <div id="scanner-search-panel" class="hidden absolute bottom-0 left-0 right-0 z-30 bg-bg/95 backdrop-blur-xl rounded-t-2xl p-6 pt-4 transition-transform duration-300" style="max-height:70dvh; overflow-y:auto">
     <div class="w-10 h-1 bg-outline-v/40 rounded-full mx-auto mb-4"></div>
-    <h3 class="font-headline font-bold text-xl text-on-surface mb-4">Search Discogs</h3>
+    <h3 class="font-headline font-bold text-xl text-on-surface mb-4" data-i18n="scanner.search.title">Search Discogs</h3>
     <div class="flex gap-2 mb-4">
       <input id="scanner-search-input"
              class="flex-1 bg-transparent border-b border-outline-v/40 py-2 px-0 text-on-surface font-body focus:outline-none focus:border-primary transition-colors placeholder:text-outline"
-             placeholder="Artist, album, label…"
+             data-i18n-placeholder="scanner.search.placeholder" placeholder="Artist, album, label…"
              onkeydown="if(event.key==='Enter') scannerDoSearch()">
       <button class="btn-primary-new px-4" onclick="scannerDoSearch()">
         <i class="bi bi-search"></i>
@@ -291,7 +291,7 @@
 <!-- ── DISCOGS SYNC OVERLAY ─────────────────────────────────── -->
 <div id="sync-overlay" class="fixed inset-0 z-[60] bg-bg" style="display:none;flex-direction:column">
   <div class="flex items-center justify-between px-6 py-4 border-b border-outline-v/10">
-    <h2 class="font-headline font-bold text-xl text-on-surface">Discogs Sync</h2>
+    <h2 class="font-headline font-bold text-xl text-on-surface" data-i18n="sync.title">Discogs Sync</h2>
     <button onclick="closeSyncOverlay()" class="text-outline hover:text-on-surface transition-colors">
       <i class="bi bi-x-lg text-xl"></i>
     </button>
@@ -307,15 +307,15 @@
 <nav id="bottom-nav" class="md:hidden fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 pb-6 pt-3 bg-surface/80 backdrop-blur-xl shadow-[0_-4px_20px_rgba(14,14,14,0.4)]">
   <a href="#dashboard" data-view="dashboard" class="bottom-nav-item active">
     <i class="bi bi-house-fill text-xl"></i>
-    <span class="font-label text-[10px] uppercase tracking-[0.1em] font-bold">Home</span>
+    <span class="font-label text-[10px] uppercase tracking-[0.1em] font-bold" data-i18n="nav.home">Home</span>
   </a>
   <a href="#collection" data-view="collection" class="bottom-nav-item">
     <i class="bi bi-collection-fill text-xl"></i>
-    <span class="font-label text-[10px] uppercase tracking-[0.1em] font-bold">Collection</span>
+    <span class="font-label text-[10px] uppercase tracking-[0.1em] font-bold" data-i18n="nav.collection">Collection</span>
   </a>
   <a href="#" data-view="add" onclick="openScanner();return false" class="bottom-nav-item">
     <i class="bi bi-plus-circle-fill text-xl"></i>
-    <span class="font-label text-[10px] uppercase tracking-[0.1em] font-bold">Add</span>
+    <span class="font-label text-[10px] uppercase tracking-[0.1em] font-bold" data-i18n="nav.add">Add</span>
   </a>
 </nav>
 
@@ -342,42 +342,54 @@
 
         <!-- Header -->
         <div class="flex items-center justify-between">
-          <h2 class="font-headline text-xl text-on-surface">Settings</h2>
+          <h2 class="font-headline text-xl text-on-surface" data-i18n="settings.title">Settings</h2>
           <button data-dismiss="modal" class="text-outline hover:text-on-surface transition-colors">
             <i class="bi bi-x-lg text-xl"></i>
           </button>
         </div>
 
+        <!-- Language -->
+        <div class="flex items-center justify-between">
+          <h3 class="font-label text-xs uppercase tracking-widest text-outline" data-i18n="settings.language.title">Language</h3>
+          <select id="settings-language" onchange="setLocale(this.value)"
+            class="bg-surface-high border border-outline-v/20 rounded-lg px-3 py-1.5 text-on-surface text-sm cursor-pointer">
+            <option value="en">&#x1F1EC;&#x1F1E7; English</option>
+            <option value="ja">&#x1F1EF;&#x1F1F5; 日本語</option>
+            <option value="fr">&#x1F1EB;&#x1F1F7; Français</option>
+            <option value="de">&#x1F1E9;&#x1F1EA; Deutsch</option>
+          </select>
+        </div>
+
         <!-- Discogs -->
         <div class="space-y-4">
-          <h3 class="font-label text-xs uppercase tracking-widest text-outline">Discogs</h3>
+          <h3 class="font-label text-xs uppercase tracking-widest text-outline" data-i18n="settings.discogs.title">Discogs</h3>
 
           <!-- Discogs token -->
           <div class="space-y-2">
             <div class="flex items-center justify-between">
-              <label class="text-sm text-on-surface-v">Token</label>
+              <label class="text-sm text-on-surface-v" data-i18n="settings.discogs.tokenLabel">Token</label>
               <span id="settings-discogs-mask" class="text-xs text-outline font-mono"></span>
             </div>
             <div id="settings-discogs-input-wrap" class="hidden">
               <div class="relative">
-                <input id="settings-discogs-token" type="text" placeholder="Paste new token"
+                <input id="settings-discogs-token" type="text" data-i18n-placeholder="settings.discogs.tokenPlaceholder" placeholder="Paste new token"
                   class="w-full bg-surface-high border border-on-surface/20 rounded-lg px-3 py-2.5 pr-10 text-on-surface text-sm focus:border-primary focus:outline-none">
                 <span id="settings-discogs-status" class="absolute right-3 top-1/2 -translate-y-1/2 text-base"></span>
               </div>
               <p id="settings-discogs-error" class="text-xs text-danger mt-1 hidden"></p>
             </div>
             <button id="settings-discogs-change" onclick="settingsToggleToken('discogs')"
-              class="text-xs text-primary hover:text-primary-dim transition-colors">Change token</button>
+              class="text-xs text-primary hover:text-primary-dim transition-colors" data-i18n="settings.discogs.changeToken">Change token</button>
           </div>
 
           <!-- Format filter -->
           <div class="flex items-center gap-3">
-            <label class="text-sm text-on-surface-v">Search filter</label>
+            <label class="text-sm text-on-surface-v" data-i18n="settings.discogs.searchFilter">Search filter</label>
             <select id="settings-format-filter" onchange="settingsSaveFormat(this.value)"
               class="bg-surface-high border border-on-surface/20 rounded-lg px-3 py-2 text-on-surface text-sm focus:border-primary focus:outline-none">
-              <option value="Vinyl">Vinyl</option>
-              <option value="CD">CD</option>
-              <option value="All">All formats</option>
+              <option value="Vinyl" data-i18n="settings.discogs.vinyl">Vinyl</option>
+              <option value="CD" data-i18n="settings.discogs.cd">CD</option>
+              <option value="All" data-i18n="settings.discogs.allFormats">All formats</option>
             </select>
           </div>
 
@@ -385,38 +397,38 @@
           <div id="settings-sync-section">
             <button id="settings-sync-btn" onclick="startDiscogsSync()"
               class="flex items-center gap-2 text-sm text-primary hover:text-primary-dim transition-colors">
-              <i class="bi bi-arrow-repeat"></i> Import from Discogs
+              <i class="bi bi-arrow-repeat"></i> <span data-i18n="settings.discogs.importBtn">Import from Discogs</span>
             </button>
-            <p class="text-xs text-on-surface-v mt-1">Import records from your Discogs collection that aren't in More'Wax yet.</p>
+            <p class="text-xs text-on-surface-v mt-1" data-i18n="settings.discogs.importDesc">Import records from your Discogs collection that aren't in More'Wax yet.</p>
             <p id="settings-sync-status" class="text-xs text-outline mt-1"></p>
           </div>
         </div>
 
         <!-- Claude AI -->
         <div class="space-y-4">
-          <h3 class="font-label text-xs uppercase tracking-widest text-outline">Claude AI</h3>
+          <h3 class="font-label text-xs uppercase tracking-widest text-outline" data-i18n="settings.claude.title">Claude AI</h3>
 
           <!-- Anthropic key -->
           <div class="space-y-2">
             <div class="flex items-center justify-between">
-              <label class="text-sm text-on-surface-v">API Key</label>
+              <label class="text-sm text-on-surface-v" data-i18n="settings.claude.apiKeyLabel">API Key</label>
               <span id="settings-anthropic-mask" class="text-xs text-outline font-mono"></span>
             </div>
             <div id="settings-anthropic-input-wrap" class="hidden">
               <div class="relative">
-                <input id="settings-anthropic-key" type="text" placeholder="Paste new API key"
+                <input id="settings-anthropic-key" type="text" data-i18n-placeholder="settings.claude.apiKeyPlaceholder" placeholder="Paste new API key"
                   class="w-full bg-surface-high border border-on-surface/20 rounded-lg px-3 py-2.5 pr-10 text-on-surface text-sm focus:border-primary focus:outline-none">
                 <span id="settings-anthropic-status" class="absolute right-3 top-1/2 -translate-y-1/2 text-base"></span>
               </div>
               <p id="settings-anthropic-error" class="text-xs text-danger mt-1 hidden"></p>
             </div>
             <button id="settings-anthropic-change" onclick="settingsToggleToken('anthropic')"
-              class="text-xs text-primary hover:text-primary-dim transition-colors">Change key</button>
+              class="text-xs text-primary hover:text-primary-dim transition-colors" data-i18n="settings.claude.changeKey">Change key</button>
           </div>
 
           <!-- Vision model -->
           <div class="space-y-2">
-            <label class="text-sm text-on-surface-v">Model</label>
+            <label class="text-sm text-on-surface-v" data-i18n="settings.claude.modelLabel">Model</label>
             <select id="settings-vision-model" onchange="settingsSaveModel(this.value)"
               class="w-full bg-surface-high border border-on-surface/20 rounded-lg px-3 py-2.5 text-on-surface text-sm focus:border-primary focus:outline-none">
             </select>
@@ -425,54 +437,54 @@
 
         <!-- Authentication -->
         <div class="space-y-4">
-          <h3 class="font-label text-xs uppercase tracking-widest text-outline">Authentication</h3>
-          <p class="text-xs text-on-surface-v">Optional. Enable Google Sign-In to protect your app when exposed to the internet.</p>
+          <h3 class="font-label text-xs uppercase tracking-widest text-outline" data-i18n="settings.auth.title">Authentication</h3>
+          <p class="text-xs text-on-surface-v" data-i18n="settings.auth.description">Optional. Enable Google Sign-In to protect your app when exposed to the internet.</p>
 
           <!-- Auth enabled state (shown when auth is active) -->
           <div id="settings-auth-active" class="hidden space-y-4">
             <div class="flex items-center gap-2 text-sm text-green-400">
               <i class="bi bi-shield-check"></i>
-              <span>Google Sign-In is active</span>
+              <span data-i18n="settings.auth.active">Google Sign-In is active</span>
             </div>
             <div class="space-y-2">
-              <label class="text-sm text-on-surface-v">Allowed Emails</label>
-              <input id="settings-allowed-emails" type="text" placeholder="email@example.com (auto-set on first login)"
+              <label class="text-sm text-on-surface-v" data-i18n="settings.auth.allowedEmails">Allowed Emails</label>
+              <input id="settings-allowed-emails" type="text" data-i18n-placeholder="settings.auth.allowedEmailsPlaceholder" placeholder="email@example.com (auto-set on first login)"
                 class="w-full bg-surface-high border border-on-surface/20 rounded-lg px-3 py-2.5 text-on-surface text-sm focus:border-primary focus:outline-none"
                 onchange="settingsSaveAllowedEmails(this.value)">
-              <p class="text-xs text-on-surface-v/60">Comma-separated. Leave blank for first-login-locks (first user to sign in becomes the owner).</p>
+              <p class="text-xs text-on-surface-v/60" data-i18n="settings.auth.allowedEmailsHint">Comma-separated. Leave blank for first-login-locks (first user to sign in becomes the owner).</p>
             </div>
             <button onclick="settingsDisableAuth()"
               class="text-xs text-red-400 hover:text-red-300 transition-colors">
-              <i class="bi bi-shield-slash"></i> Disable authentication
+              <i class="bi bi-shield-slash"></i> <span data-i18n="settings.auth.disableBtn">Disable authentication</span>
             </button>
           </div>
 
           <!-- Auth setup form (shown when auth is not active) -->
           <div id="settings-auth-setup" class="space-y-3">
             <div class="space-y-2">
-              <label class="text-sm text-on-surface-v">Google Client ID</label>
-              <input id="settings-google-client-id" type="text" placeholder="xxxx.apps.googleusercontent.com"
+              <label class="text-sm text-on-surface-v" data-i18n="settings.auth.clientId">Google Client ID</label>
+              <input id="settings-google-client-id" type="text" data-i18n-placeholder="settings.auth.clientIdPlaceholder" placeholder="xxxx.apps.googleusercontent.com"
                 class="w-full bg-surface-high border border-on-surface/20 rounded-lg px-3 py-2.5 text-on-surface text-sm focus:border-primary focus:outline-none">
             </div>
             <div class="space-y-2">
-              <label class="text-sm text-on-surface-v">Google Client Secret</label>
-              <input id="settings-google-client-secret" type="text" placeholder="GOCSPX-xxxx"
+              <label class="text-sm text-on-surface-v" data-i18n="settings.auth.clientSecret">Google Client Secret</label>
+              <input id="settings-google-client-secret" type="text" data-i18n-placeholder="settings.auth.clientSecretPlaceholder" placeholder="GOCSPX-xxxx"
                 class="w-full bg-surface-high border border-on-surface/20 rounded-lg px-3 py-2.5 text-on-surface text-sm focus:border-primary focus:outline-none">
             </div>
             <p id="settings-auth-error" class="text-xs text-red-400 hidden"></p>
             <button id="settings-auth-enable-btn" onclick="settingsEnableAuth()" disabled
               class="w-full px-4 py-2.5 bg-primary text-bg rounded-lg font-label text-sm uppercase tracking-wider hover:brightness-110 transition disabled:opacity-40 disabled:cursor-not-allowed">
-              <i class="bi bi-shield-lock"></i> Enable Authentication
+              <i class="bi bi-shield-lock"></i> <span data-i18n="settings.auth.enableBtn">Enable Authentication</span>
             </button>
           </div>
         </div>
 
         <!-- Data -->
         <div class="space-y-2">
-          <h3 class="font-label text-xs uppercase tracking-widest text-outline">Data</h3>
+          <h3 class="font-label text-xs uppercase tracking-widest text-outline" data-i18n="settings.data.title">Data</h3>
           <button onclick="settingsExport()"
             class="flex items-center gap-2 text-sm text-primary hover:text-primary-dim transition-colors">
-            <i class="bi bi-download"></i> Export collection (JSON)
+            <i class="bi bi-download"></i> <span data-i18n="settings.data.exportBtn">Export collection (JSON)</span>
           </button>
         </div>
 
@@ -500,6 +512,7 @@
 <script src="/static/js/api.js"></script>
 <script src="/static/js/router.js"></script>
 <script src="/static/js/dashboard.js"></script>
+<script src="/static/js/i18n.js"></script>
 <script src="/static/js/flags.js"></script>
 <script src="/static/js/smart-filter.js"></script>
 <script src="/static/js/view-shelf.js"></script>

@@ -54,40 +54,40 @@ function _renderStatus() {
   el.innerHTML = `
     <div class="bg-surface-low rounded-xl p-6 space-y-3">
       <div class="flex items-center justify-between mb-3">
-        <h4 class="font-label text-xs uppercase tracking-widest text-outline">Connections</h4>
-        <button onclick="openSettings()" class="text-outline hover:text-on-surface transition-colors" title="Settings">
+        <h4 class="font-label text-xs uppercase tracking-widest text-outline">${t('dash.status.connections')}</h4>
+        <button onclick="openSettings()" class="text-outline hover:text-on-surface transition-colors" title="${t('dash.status.settings')}">
           <i class="bi bi-gear text-sm"></i>
         </button>
       </div>
       <div class="flex items-center text-sm">
         ${dot(status.discogs_connected)}
-        <span class="text-on-surface-v">Discogs</span>
-        <span class="ml-auto text-outline text-xs">${status.format_filter && status.format_filter !== 'All' ? status.format_filter.toLowerCase() + ' only' : 'All formats'}</span>
-        ${status.discogs_username ? `<span class="ml-2 font-headline text-on-surface">${esc(status.discogs_username)}</span>` : '<span class="ml-2 text-outline">Not connected</span>'}
+        <span class="text-on-surface-v">${t('dash.status.discogs')}</span>
+        <span class="ml-auto text-outline text-xs">${status.format_filter && status.format_filter !== 'All' ? t('dash.status.formatOnly', { format: status.format_filter.toLowerCase() }) : t('dash.status.allFormats')}</span>
+        ${status.discogs_username ? `<span class="ml-2 font-headline text-on-surface">${esc(status.discogs_username)}</span>` : `<span class="ml-2 text-outline">${t('dash.status.notConnected')}</span>`}
       </div>
       <div class="flex items-center text-sm">
         ${dot(status.anthropic_key_set)}
-        <span class="text-on-surface-v">Claude AI</span>
+        <span class="text-on-surface-v">${t('dash.status.claudeAi')}</span>
         <span class="ml-auto text-outline text-xs">${status.anthropic_key_set && status.vision_model ? status.vision_model : ''}</span>
-        <span class="ml-2 ${status.anthropic_key_set ? 'font-headline text-on-surface' : 'text-outline'}">${status.anthropic_key_set ? 'connected' : 'Not configured'}</span>
+        <span class="ml-2 ${status.anthropic_key_set ? 'font-headline text-on-surface' : 'text-outline'}">${status.anthropic_key_set ? t('dash.status.connected') : t('dash.status.notConfigured')}</span>
       </div>
       ${status.version ? `<div class="text-xs pt-2 border-t border-outline-v/10 mt-3 text-outline text-end">
-        More'Wax <code class="text-on-surface/60">${esc(status.version)}</code>${status.build_date ? ', built on ' + new Date(status.build_date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }) : ''}${status.git_revision ? ', <code class="text-on-surface/60">' + esc(status.git_revision.slice(0, 7)) + '</code>' : ''}
+        More'Wax <code class="text-on-surface/60">${esc(status.version)}</code>${status.build_date ? ', ' + t('dash.status.builtOn', { date: new Date(status.build_date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }) }) : ''}${status.git_revision ? ', <code class="text-on-surface/60">' + esc(status.git_revision.slice(0, 7)) + '</code>' : ''}
       </div>` : ''}
     </div>
     <div class="bg-surface-low rounded-xl p-6 space-y-3">
-      <h4 class="font-label text-xs uppercase tracking-widest text-outline mb-3">Collection Stats</h4>
+      <h4 class="font-label text-xs uppercase tracking-widest text-outline mb-3">${t('dash.status.collectionStats')}</h4>
       <div class="flex items-center text-sm">
-        <span class="text-on-surface-v">Estimated value</span>
+        <span class="text-on-surface-v">${t('dash.status.estimatedValue')}</span>
         <span class="ml-auto font-headline text-on-surface">${withPrices ? '$' + totalValue.toFixed(0) : '—'}</span>
       </div>
       <div class="flex items-center text-sm">
-        <span class="text-on-surface-v">Avg rating</span>
+        <span class="text-on-surface-v">${t('dash.status.avgRating')}</span>
         <span class="ml-auto font-headline text-on-surface">${avgStr}</span>
       </div>
       <div class="flex items-center text-sm">
-        <span class="text-on-surface-v">Priced</span>
-        <span class="ml-auto font-headline text-on-surface">${withPrices} / ${collection.length}</span>
+        <span class="text-on-surface-v">${t('dash.status.priced')}</span>
+        <span class="ml-auto font-headline text-on-surface">${t('dash.status.pricedValue', { priced: withPrices, total: collection.length })}</span>
       </div>
     </div>`;
 }

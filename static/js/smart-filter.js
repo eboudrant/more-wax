@@ -2,15 +2,15 @@
 //  SMART FILTERS — is: prefix autocomplete
 // ─────────────────────────────────────────────────────────────────
 const SMART_FILTERS = [
-  { key: 'is:missing-tracklist', label: 'Missing tracklist', fn: r => !r.discogs_extra },
-  { key: 'is:missing-cover', label: 'Missing cover', fn: r => !r.cover_image_url },
-  { key: 'is:no-rating', label: 'No rating', fn: r => !r.rating_average || r.rating_average === 0 },
-  { key: 'is:no-price', label: 'No price', fn: r => !r.price_median || r.price_median === '0' || r.price_median === '0.00' },
-  { key: 'is:duplicate', label: 'Duplicate pressings', fn: r => {
+  { key: 'is:missing-tracklist', get label() { return t('smartFilter.missingTracklist'); }, fn: r => !r.discogs_extra },
+  { key: 'is:missing-cover', get label() { return t('smartFilter.missingCover'); }, fn: r => !r.cover_image_url },
+  { key: 'is:no-rating', get label() { return t('smartFilter.noRating'); }, fn: r => !r.rating_average || r.rating_average === 0 },
+  { key: 'is:no-price', get label() { return t('smartFilter.noPrice'); }, fn: r => !r.price_median || r.price_median === '0' || r.price_median === '0.00' },
+  { key: 'is:duplicate', get label() { return t('smartFilter.duplicate'); }, fn: r => {
     if (!r.master_id || r.master_id === '0') return false;
     return collection.filter(o => o.master_id === r.master_id).length > 1;
   }},
-  { key: 'is:liked', label: 'Has liked tracks', fn: r => r.liked_tracks && r.liked_tracks.length > 0 },
+  { key: 'is:liked', get label() { return t('smartFilter.liked'); }, fn: r => r.liked_tracks && r.liked_tracks.length > 0 },
 ];
 
 /** Update smart filter font styling on the input. */

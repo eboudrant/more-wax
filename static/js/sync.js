@@ -64,7 +64,7 @@ function _showSyncMessage(icon, title, subtitle) {
     </div>`;
   const f = _syncFooter();
   if (f) f.innerHTML = `
-    <button onclick="closeSyncOverlay()" class="btn-primary-new w-full py-3 font-bold">Close</button>`;
+    <button onclick="closeSyncOverlay()" class="btn-primary-new w-full py-3 font-bold">${t('sync.diff.close')}</button>`;
 }
 
 function _showSyncDiff(diff) {
@@ -92,10 +92,10 @@ function _renderSyncDiff() {
     html += `
       <div class="mb-4 flex items-center justify-between">
         <p class="text-on-surface-v text-sm">
-          <strong class="text-on-surface">${newRecords.length}</strong> new record${newRecords.length === 1 ? '' : 's'}
+          ${t('sync.diff.newRecords', { count: newRecords.length })}
         </p>
         <button onclick="_toggleSyncAllNew()" class="text-xs text-primary hover:text-primary-dim transition-colors">
-          ${allNewSelected ? 'Deselect all' : 'Select all'}
+          ${allNewSelected ? t('sync.diff.deselectAll') : t('sync.diff.selectAll')}
         </button>
       </div>
       <div class="space-y-2 mb-6">
@@ -108,8 +108,8 @@ function _renderSyncDiff() {
     html += `
       <div class="mb-4">
         <p class="text-on-surface-v text-sm">
-          <strong class="text-on-surface">${dupes.length}</strong> possible duplicate${dupes.length === 1 ? '' : 's'}
-          <span class="text-outline text-xs ml-1">(different pressing)</span>
+          ${t('sync.diff.duplicates', { count: dupes.length })}
+          <span class="text-outline text-xs ml-1">${t('sync.diff.duplicateNote')}</span>
         </p>
       </div>
       <div class="space-y-2">
@@ -118,7 +118,7 @@ function _renderSyncDiff() {
   }
 
   if (newRecords.length === 0 && dupes.length === 0) {
-    html = `<p class="text-on-surface-v text-sm text-center py-8">No records to import.</p>`;
+    html = `<p class="text-on-surface-v text-sm text-center py-8">${t('sync.diff.noRecords')}</p>`;
   }
 
   c.innerHTML = html;
@@ -126,9 +126,9 @@ function _renderSyncDiff() {
   const f = _syncFooter();
   if (f) f.innerHTML = `
     <div class="flex gap-3">
-      <button onclick="closeSyncOverlay()" class="flex-1 py-3 rounded-full border border-outline-v/20 text-on-surface-v font-medium hover:bg-surface-high transition-colors">Cancel</button>
+      <button onclick="closeSyncOverlay()" class="flex-1 py-3 rounded-full border border-outline-v/20 text-on-surface-v font-medium hover:bg-surface-high transition-colors">${t('sync.import.cancel')}</button>
       <button onclick="_startSyncImport()" class="flex-1 btn-primary-new py-3 font-bold" ${totalSelected === 0 ? 'disabled' : ''}>
-        Import ${totalSelected} selected
+        ${t('sync.import.btn', { count: totalSelected })}
       </button>
     </div>`;
 }
@@ -160,10 +160,10 @@ function _renderDuplicateRow(r) {
   const replacing = _syncReplace.has(r.discogs_id);
   const local = r._local_match || {};
 
-  let actionLabel = 'Skip';
+  let actionLabel = t('sync.diff.skip');
   let actionClass = 'text-outline';
-  if (selected && replacing) { actionLabel = 'Replace'; actionClass = 'text-amber-400'; }
-  else if (selected) { actionLabel = 'Keep both'; actionClass = 'text-primary'; }
+  if (selected && replacing) { actionLabel = t('sync.diff.replace'); actionClass = 'text-amber-400'; }
+  else if (selected) { actionLabel = t('sync.diff.keepBoth'); actionClass = 'text-primary'; }
 
   let html = `
     <div class="rounded-xl bg-surface overflow-hidden ${selected ? 'ring-1 ring-primary/30' : ''}">
@@ -191,9 +191,9 @@ function _renderDuplicateRow(r) {
         <!-- Comparison -->
         <div class="grid grid-cols-2 gap-3 text-xs">
           <div>
-            <div class="font-label text-outline uppercase tracking-wider mb-2">In your collection</div>
+            <div class="font-label text-outline uppercase tracking-wider mb-2">${t('sync.diff.inYourCollection')}</div>
             <div class="space-y-1 text-on-surface-v">
-              <div>${esc(local.label || 'Unknown label')}</div>
+              <div>${esc(local.label || t('sync.diff.unknownLabel'))}</div>
               <div>${esc(local.catalog_number || '')}</div>
               <div>${esc(local.format || '')}</div>
               <div>${esc(local.year || '')}</div>
@@ -204,9 +204,9 @@ function _renderDuplicateRow(r) {
             </div>
           </div>
           <div>
-            <div class="font-label text-outline uppercase tracking-wider mb-2">On Discogs</div>
+            <div class="font-label text-outline uppercase tracking-wider mb-2">${t('sync.diff.onDiscogs')}</div>
             <div class="space-y-1 text-on-surface-v">
-              <div>${esc(r.label || 'Unknown label')}</div>
+              <div>${esc(r.label || t('sync.diff.unknownLabel'))}</div>
               <div>${esc(r.catalog_number || '')}</div>
               <div>${esc(r.format || '')}</div>
               <div>${esc(r.year || '')}</div>
@@ -221,15 +221,15 @@ function _renderDuplicateRow(r) {
         <div class="flex gap-2">
           <button onclick="_syncDupeAction('${esc(r.discogs_id)}', 'skip')"
             class="flex-1 py-2 rounded-lg text-xs font-medium transition-colors ${!selected ? 'bg-surface-high text-on-surface' : 'text-outline hover:bg-surface-high'}">
-            Skip
+            ${t('sync.diff.skip')}
           </button>
           <button onclick="_syncDupeAction('${esc(r.discogs_id)}', 'both')"
             class="flex-1 py-2 rounded-lg text-xs font-medium transition-colors ${selected && !replacing ? 'bg-primary/20 text-primary' : 'text-outline hover:bg-surface-high'}">
-            Keep both
+            ${t('sync.diff.keepBoth')}
           </button>
           <button onclick="_syncDupeAction('${esc(r.discogs_id)}', 'replace')"
             class="flex-1 py-2 rounded-lg text-xs font-medium transition-colors ${replacing ? 'bg-amber-400/20 text-amber-400' : 'text-outline hover:bg-surface-high'}">
-            Replace
+            ${t('sync.diff.replace')}
           </button>
         </div>
       </div>`;
@@ -284,12 +284,12 @@ async function _startSyncImport() {
   if (selected.length === 0) return;
   const replace = [..._syncReplace];
   const total = selected.length;
-  _showSyncLoading(`Importing 0 of ${total} records (0%)…`);
+  _showSyncLoading(t('sync.loading.importing', { progress: 0, total, percent: 0 }));
 
   try {
     const res = await apiPost('/api/sync/import', { selected, replace });
     if (res.error) {
-      _showSyncMessage('bi-exclamation-triangle', 'Import failed', esc(res.error));
+      _showSyncMessage('bi-exclamation-triangle', t('sync.import.title'), esc(res.error));
       return;
     }
 
@@ -303,7 +303,7 @@ async function _startSyncImport() {
       s = await apiGet('/api/sync/status');
       const prog = s.progress || 0;
       const pct = total > 0 ? Math.round((prog / total) * 100) : 0;
-      _showSyncLoading(`Importing ${prog} of ${total} records (${pct}%)…`);
+      _showSyncLoading(t('sync.loading.importing', { progress: prog, total, percent: pct }));
       if (++polls >= maxPolls) { s.status = 'timeout'; break; }
     } while (s.status === 'importing');
     imported = s.imported || 0;
@@ -316,24 +316,24 @@ async function _startSyncImport() {
       window._syncJustImported = true;  // suppress background price refresh
     }
     let parts = [];
-    if (replaced > 0) parts.push(`${replaced} replaced`);
-    if (skipped > 0) parts.push(`${skipped} skipped`);
-    let subtitle = 'Prices and ratings will update in the background.';
+    if (replaced > 0) parts.push(t('sync.diff.replaced', { count: replaced }));
+    if (skipped > 0) parts.push(t('sync.diff.skipped', { count: skipped }));
+    let subtitle = t('sync.import.pricesNote');
     if (parts.length > 0) subtitle = parts.join(', ') + '. ' + subtitle;
 
     if (failed.length > 0) {
-      subtitle += `<br><br><span class="text-danger">${failed.length} record${failed.length === 1 ? '' : 's'} could not be imported:</span>`;
+      subtitle += `<br><br><span class="text-danger">${t('sync.import.failedCount', { count: failed.length })}</span>`;
       subtitle += '<ul class="text-left text-sm mt-2 space-y-1">';
       for (const f of failed) {
         subtitle += `<li class="text-outline">• ${esc(f.artist || '?')} — ${esc(f.title || '?')}</li>`;
       }
       subtitle += '</ul>';
-      subtitle += `<button onclick="_downloadFailedRecords()" class="mt-3 text-sm text-primary hover:text-primary-dim transition-colors"><i class="bi bi-download mr-1"></i>Download as JSON</button>`;
+      subtitle += `<button onclick="_downloadFailedRecords()" class="mt-3 text-sm text-primary hover:text-primary-dim transition-colors"><i class="bi bi-download mr-1"></i>${t('sync.import.downloadFailed')}</button>`;
     }
 
-    _showSyncMessage('bi-check-circle', `Imported ${imported} record${imported === 1 ? '' : 's'}`, subtitle);
+    _showSyncMessage('bi-check-circle', t('sync.import.successTitle', { count: imported }), subtitle);
   } catch (e) {
-    _showSyncMessage('bi-exclamation-triangle', 'Import failed', esc(e.message));
+    _showSyncMessage('bi-exclamation-triangle', t('sync.import.title'), esc(e.message));
   }
 }
 
@@ -342,21 +342,21 @@ async function _startSyncImport() {
 async function startDiscogsSync() {
   AppModal.hide('settings-modal');
   _showSyncOverlay();
-  _showSyncLoading('Fetching your Discogs collection...');
+  _showSyncLoading(t('sync.loading.fetching'));
 
   try {
     const res = await apiPost('/api/sync/fetch', {});
     if (res.error) {
-      _showSyncMessage('bi-exclamation-triangle', 'Sync failed', esc(res.error));
+      _showSyncMessage('bi-exclamation-triangle', t('sync.failed.title'), esc(res.error));
       return;
     }
     if (!res.diff || res.diff.length === 0) {
-      _showSyncMessage('bi-check-circle', 'Already in sync!',
-        `All ${res.total_in_discogs} Discogs records are in your collection.`);
+      _showSyncMessage('bi-check-circle', t('sync.alreadyInSync.title'),
+        t('sync.alreadyInSync.subtitle', { count: res.total_in_discogs }));
       return;
     }
     _showSyncDiff(res.diff);
   } catch (e) {
-    _showSyncMessage('bi-exclamation-triangle', 'Sync failed', esc(e.message));
+    _showSyncMessage('bi-exclamation-triangle', t('sync.failed.title'), esc(e.message));
   }
 }

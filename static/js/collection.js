@@ -9,9 +9,9 @@ if (_viewMode === 'shelf' && !FLAGS.shelfView) _viewMode = 'grid';
 const _VIEW_MODES = FLAGS.shelfView ? ['grid', 'wall', 'shelf'] : ['grid', 'wall'];
 const _VIEW_ICONS = { grid: 'bi-grid-3x3-gap', wall: 'bi-grid-3x3', shelf: 'bi-vinyl' };
 const _VIEW_LABELS = {
-  grid:  'Switch to wall view',
-  wall:  FLAGS.shelfView ? 'Switch to shelf view' : 'Switch to card view',
-  shelf: 'Switch to card view',
+  grid:  () => t('collection.viewToggle.switchWall'),
+  wall:  () => FLAGS.shelfView ? t('collection.viewToggle.switchShelf') : t('collection.viewToggle.switchCard'),
+  shelf: () => t('collection.viewToggle.switchCard'),
 };
 
 let _resizeTimer;
@@ -37,14 +37,14 @@ function _updateViewToggleIcon() {
   if (!icon) return;
   const next = _VIEW_MODES[(_VIEW_MODES.indexOf(_viewMode) + 1) % _VIEW_MODES.length];
   icon.className = 'bi ' + _VIEW_ICONS[next];
-  btn.title = _VIEW_LABELS[_viewMode];
+  btn.title = _VIEW_LABELS[_viewMode]();
 }
 
 async function loadCollection() {
   try {
     collection = await apiGet('/api/collection');
   } catch (e) {
-    toast('Could not load collection: ' + e.message, 'error');
+    toast(t('collection.loadError', { error: e.message }), 'error');
     collection = [];
   }
   renderCollection();
@@ -110,8 +110,7 @@ function renderCollection() {
   const badge = document.getElementById('nav-badge');
   document.getElementById('loading').style.display = 'none';
 
-  const label = `${collection.length} record${collection.length !== 1 ? 's' : ''}`;
-  badge.textContent = label;
+  badge.textContent = t('collection.badge', { count: collection.length });
 
   _updateViewToggleIcon();
 
