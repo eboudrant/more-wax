@@ -106,8 +106,6 @@ class TestListens(unittest.TestCase):
         m = self._mod()
         m.listens_add(7)
         m.listens_add(7)
-        # Force re-read by clearing internal state — since _load reads from disk
-        # every time, just calling listens_list again exercises the path.
         self.assertEqual(len(m.listens_list(record_id=7)), 2)
 
 

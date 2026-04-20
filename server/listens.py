@@ -54,9 +54,11 @@ def _save(data: dict) -> None:
 def listens_list(record_id: int | None = None) -> list:
     """Return listens, newest first. Filter by record_id when given."""
     with _lock:
-        items = list(_load()["listens"])
-    if record_id is not None:
-        items = [r for r in items if r.get("record_id") == record_id]
+        items = _load()["listens"]
+        if record_id is not None:
+            items = [r for r in items if r.get("record_id") == record_id]
+        else:
+            items = list(items)
     items.sort(key=lambda r: r.get("listened_at", ""), reverse=True)
     return items
 
@@ -76,26 +78,22 @@ def listens_add(record_id: int) -> dict:
         return row
 
 
-def listens_delete(listen_id: int) -> bool:
+def _delete_where(predicate) -> int:
+    """Drop every listen where predicate(row) is true. Returns count removed."""
     with _lock:
         data = _load()
         before = len(data["listens"])
-        data["listens"] = [r for r in data["listens"] if r["id"] != listen_id]
-        if len(data["listens"]) < before:
-            _save(data)
-            return True
-        return False
-
-
-def listens_delete_for_record(record_id: int) -> int:
-    """Cascade delete when a record is removed. Returns how many were dropped."""
-    with _lock:
-        data = _load()
-        before = len(data["listens"])
-        data["listens"] = [
-            r for r in data["listens"] if r.get("record_id") != record_id
-        ]
+        data["listens"] = [r for r in data["listens"] if not predicate(r)]
         removed = before - len(data["listens"])
         if removed:
             _save(data)
         return removed
+
+
+def listens_delete(listen_id: int) -> bool:
+    return _delete_where(lambda r: r.get("id") == listen_id) > 0
+
+
+def listens_delete_for_record(record_id: int) -> int:
+    """Cascade delete when a record is removed. Returns how many were dropped."""
+    return _delete_where(lambda r: r.get("record_id") == record_id)
