@@ -47,7 +47,7 @@
   "collection.viewToggle.switchShelf": "Switch to shelf view",
   "collection.viewToggle.switchCard": "Switch to card view",
   "collection.empty.title": "No records yet",
-  "collection.empty.subtitle": "Tap <strong>{addLabel}</strong> to add your first vinyl",
+  "collection.empty.subtitle": "Tap {addLabel} to add your first vinyl",
   "collection.badge": "{count, plural, one {# record} other {# records}}",
   "collection.loadError": "Could not load collection: {error}",
 

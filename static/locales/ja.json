@@ -47,7 +47,7 @@
   "collection.viewToggle.switchShelf": "シェルフ表示に切替",
   "collection.viewToggle.switchCard": "カード表示に切替",
   "collection.empty.title": "レコードがありません",
-  "collection.empty.subtitle": "<strong>{addLabel}</strong>をタップして最初のレコードを追加しましょう",
+  "collection.empty.subtitle": "{addLabel}をタップして最初のレコードを追加しましょう",
   "collection.badge": "{count, plural, other {#枚のレコード}}",
   "collection.loadError": "コレクションを読み込めませんでした: {error}",
 

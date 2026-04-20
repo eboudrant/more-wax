@@ -47,7 +47,7 @@
   "collection.viewToggle.switchShelf": "Passer en vue étagère",
   "collection.viewToggle.switchCard": "Passer en vue carte",
   "collection.empty.title": "Aucun disque pour le moment",
-  "collection.empty.subtitle": "Appuie sur <strong>{addLabel}</strong> pour ajouter ton premier vinyle",
+  "collection.empty.subtitle": "Appuie sur {addLabel} pour ajouter ton premier vinyle",
   "collection.badge": "{count, plural, one {# disque} other {# disques}}",
   "collection.loadError": "Impossible de charger la collection : {error}",
 
