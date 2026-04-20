@@ -11,14 +11,14 @@ async function _checkStatus() {
       return;
     }
     if (!status.discogs_connected) {
-      showSetupWizard('Your Discogs token is no longer valid. Please enter a new one.');
+      showSetupWizard(t('init.error.discogsTokenInvalid'));
       return;
     }
     if (status.anthropic_key_set && status.anthropic_key_valid === false) {
       showSetupWizard();
       // Skip to step 2 with error
       _setupError = '';
-      _renderStep2('Your Anthropic API key is no longer valid.');
+      _renderStep2(t('init.error.anthropicKeyInvalid'));
     }
     // Re-render status cards now that _serverStatus is populated
     if (typeof _renderStatus === 'function') _renderStatus();
