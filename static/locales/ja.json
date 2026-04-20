@@ -135,6 +135,16 @@
   "detail.notes.title": "メモ",
   "detail.loadingDetails": "詳細を読み込み中…",
 
+  "detail.listens.title": "再生履歴",
+  "detail.listens.empty": "再生履歴なし",
+  "detail.listens.count": "{count, plural, other {#回再生}}",
+  "detail.listens.logBtn": "再生を記録",
+  "detail.listens.delete": "この記録を削除",
+  "detail.listens.logged": "♪「{title}」を記録しました",
+  "detail.listens.logError": "再生を記録できませんでした: {error}",
+  "detail.listens.loadError": "再生履歴を読み込めませんでした: {error}",
+  "detail.listens.deleteError": "記録を削除できませんでした: {error}",
+
   "detail.price.median": "中央値",
   "detail.price.low": "最安",
   "detail.price.high": "最高",

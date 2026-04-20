@@ -298,6 +298,29 @@ test.describe('Detail Modal', () => {
 
     await expect(page).toHaveScreenshot('detail-liked-tracks.png');
   });
+
+  test('listens section shows history and log button', async ({ page }) => {
+    await mockApi(page);
+    await page.goto('/#collection');
+    await waitForCollection(page);
+
+    page.evaluate(() => showDetail(collection[0].id)).catch(() => {});
+    await page.waitForSelector('#detail-modal', { state: 'visible', timeout: 10_000 });
+    // Wait for the listens section to be populated (record 1 has 3 mocked listens)
+    await page.waitForFunction(
+      () => document.querySelector('#detail-listens-1 ul li') !== null,
+      null,
+      { timeout: 10_000 },
+    );
+    await page.waitForTimeout(TRANSITION);
+
+    const section = page.locator('#detail-listens-1');
+    await expect(section).toBeVisible();
+    await expect(section.locator('li')).toHaveCount(3);
+    await expect(section).toContainText(/Log a listen/i);
+
+    await expect(section).toHaveScreenshot('detail-listens.png');
+  });
 });
 
 // ─────────────────────────────────────────────────────────────────

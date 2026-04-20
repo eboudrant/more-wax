@@ -135,6 +135,16 @@
   "detail.notes.title": "Notes",
   "detail.loadingDetails": "Chargement des détails…",
 
+  "detail.listens.title": "Écoutes",
+  "detail.listens.empty": "Jamais écouté",
+  "detail.listens.count": "{count, plural, one {# écoute} other {# écoutes}}",
+  "detail.listens.logBtn": "Ajouter une écoute",
+  "detail.listens.delete": "Supprimer cette écoute",
+  "detail.listens.logged": "♪ « {title} » ajouté",
+  "detail.listens.logError": "Impossible d'ajouter l'écoute : {error}",
+  "detail.listens.loadError": "Impossible de charger les écoutes : {error}",
+  "detail.listens.deleteError": "Impossible de supprimer l'écoute : {error}",
+
   "detail.price.median": "médian",
   "detail.price.low": "bas",
   "detail.price.high": "haut",

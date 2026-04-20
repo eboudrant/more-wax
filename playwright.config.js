@@ -19,6 +19,9 @@ module.exports = defineConfig({
     viewport: { width: 390, height: 844 },  // iPhone 14 size
     deviceScaleFactor: 1,
     colorScheme: 'dark',
+    // Pin timezone + locale so formatted dates are byte-stable across dev + CI
+    timezoneId: 'UTC',
+    locale: 'en-US',
   },
   projects: [
     {
