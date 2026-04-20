@@ -119,6 +119,11 @@ function renderCollection() {
   if (items.length === 0) {
     grid.innerHTML = '';
     grid.className = 'grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-12';
+    const sub = document.getElementById('collection-empty-subtitle');
+    if (sub) {
+      const addLabel = `<strong class="text-primary">${t('nav.add')}</strong>`;
+      sub.innerHTML = t('collection.empty.subtitle', { addLabel });
+    }
     empty.classList.remove('hidden');
     return;
   }
