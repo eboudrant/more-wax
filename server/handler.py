@@ -42,6 +42,12 @@ from server.discogs import (
     discogs_search,
 )
 from server.images import convert_image, identify_cover, upload_cover
+from server.listens import (
+    listens_add,
+    listens_delete,
+    listens_delete_for_record,
+    listens_list,
+)
 from server.sync import sync_get_state, sync_start_fetch, sync_start_import
 
 MAX_BODY_BYTES = 20 * 1024 * 1024  # 20 MB cap on request bodies
@@ -287,6 +293,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
         elif p.startswith("/api/discogs/in-collection/"):
             rid = p.split("/")[-1]
             self.send_json({"in_collection": discogs_check_collection(rid)})
+        elif p == "/api/listens":
+            self._api_listens_list()
         else:
             self._404()
 
@@ -321,6 +329,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
             self._api_sync_fetch()
         elif p == "/api/sync/import":
             self._api_sync_import()
+        elif p == "/api/listens":
+            self._api_listens_add()
         else:
             self._404()
 
@@ -342,7 +352,13 @@ class Handler(http.server.BaseHTTPRequestHandler):
             ok = discogs_remove_from_collection(rid)
             self.send_json({"success": ok})
         elif p.startswith("/api/collection/"):
-            ok = db_delete(self._tail_id(p))
+            rid = self._tail_id(p)
+            ok = db_delete(rid)
+            if ok:
+                listens_delete_for_record(rid)
+            self.send_json({"success": ok})
+        elif p.startswith("/api/listens/"):
+            ok = listens_delete(self._tail_id(p))
             self.send_json({"success": ok})
         else:
             self._404()
@@ -726,6 +742,35 @@ class Handler(http.server.BaseHTTPRequestHandler):
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         self.wfile.write(body)
+
+    # ── listens endpoints ────────────────────────────────────────
+
+    def _api_listens_list(self):
+        """Return listens, newest first. Optional ?record_id=N filter."""
+        qs = urllib.parse.urlparse(self.path).query
+        params = urllib.parse.parse_qs(qs)
+        rid_param = params.get("record_id", [None])[0]
+        record_id = None
+        if rid_param is not None:
+            try:
+                record_id = int(rid_param)
+            except ValueError:
+                self.send_json({"error": "record_id must be an integer"}, 400)
+                return
+        self.send_json(listens_list(record_id))
+
+    def _api_listens_add(self):
+        """Log a listen for a record. Body: {record_id: int}."""
+        data = self.read_json()
+        try:
+            record_id = int(data.get("record_id"))
+        except (TypeError, ValueError):
+            self.send_json({"error": "record_id is required"}, 400)
+            return
+        if db_get(record_id) is None:
+            self.send_json({"error": "Record not found"}, 404)
+            return
+        self.send_json(listens_add(record_id), 201)
 
     # ── sync endpoints ────────────────────────────────────────────
 
