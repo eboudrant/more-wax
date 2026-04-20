@@ -72,13 +72,16 @@ function _renderPanelHtml(r, peek = false) {
         <p class="font-body text-on-surface-v text-sm leading-relaxed">${esc(r.notes)}</p>
       </div>` : ''}
 
-      <!-- Discogs Extra (lazy loaded) + Delete -->
+      <!-- Discogs Extra (lazy loaded) -->
       <div ${peek ? '' : `id="detail-extra-${r.id}"`} class="space-y-4">
-        ${r.discogs_extra ? _renderDiscogsExtra(r.discogs_extra, r) + (r.id ? _deleteButton(r.id) : '') : (r.discogs_id ? '' : (r.id ? _deleteButton(r.id) : ''))}
+        ${r.discogs_extra ? _renderDiscogsExtra(r.discogs_extra, r) : ''}
       </div>
 
       <!-- Listens (loaded after render) -->
       ${peek || !r.id ? '' : `<div id="detail-listens-${r.id}"></div>`}
+
+      <!-- Delete — always last -->
+      ${peek || !r.id ? '' : _deleteButton(r.id)}
     </div>
   </div>`;
 }
@@ -633,7 +636,7 @@ async function _loadDiscogsExtra(r) {
     if (extra.error) throw new Error(extra.error);
     r.discogs_extra = extra;
     const el = document.getElementById(`detail-extra-${r.id}`);
-    if (el) el.innerHTML = _renderDiscogsExtra(extra, r) + _deleteButton(r.id);
+    if (el) el.innerHTML = _renderDiscogsExtra(extra, r);
   } catch (e) {
     clearTimeout(spinTimer);
     console.warn('Could not load release details:', e.message);
@@ -641,7 +644,7 @@ async function _loadDiscogsExtra(r) {
       toast('Discogs rate limit — try again in a minute', 'error');
     }
     const el = document.getElementById(`detail-extra-${r.id}`);
-    if (el) el.innerHTML = _deleteButton(r.id);
+    if (el) el.innerHTML = '';
   }
 }
 
