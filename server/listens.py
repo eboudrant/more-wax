@@ -1,0 +1,97 @@
+"""
+More'Wax — Listens store
+Thread-safe JSON file storage for listen events.
+Schema: {"schema_version": "1.0", "listens": [...], "next_id": 1}
+Each listen: {"id": int, "record_id": int, "listened_at": ISO8601 str}
+"""
+
+import json
+import os
+import threading
+from datetime import datetime, timezone
+
+from server.config import LISTENS_FILE
+
+_lock = threading.Lock()
+
+CURRENT_SCHEMA = "1.0"
+
+
+def _load() -> dict:
+    if LISTENS_FILE.exists():
+        try:
+            with open(LISTENS_FILE) as f:
+                data = json.load(f)
+            if isinstance(data, dict) and "listens" in data:
+                if "schema_version" not in data:
+                    data["schema_version"] = CURRENT_SCHEMA
+                if "next_id" not in data:
+                    existing_ids = [r.get("id", 0) for r in data["listens"]]
+                    data["next_id"] = max(existing_ids, default=0) + 1
+                    _save(data)
+                return data
+            print(f"  ⚠️ [listens] Invalid structure in {LISTENS_FILE}, resetting")
+        except (json.JSONDecodeError, OSError) as e:
+            print(f"  ⚠️ [listens] Failed to load {LISTENS_FILE}: {e}")
+            backup = LISTENS_FILE.with_suffix(".json.bak")
+            try:
+                LISTENS_FILE.rename(backup)
+                print(f"  ⚠️ [listens] Corrupted file backed up to {backup}")
+            except OSError:
+                pass
+    return {"schema_version": CURRENT_SCHEMA, "listens": [], "next_id": 1}
+
+
+def _save(data: dict) -> None:
+    tmp = LISTENS_FILE.with_suffix(".tmp")
+    with open(tmp, "w") as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
+    os.replace(tmp, LISTENS_FILE)
+
+
+def listens_list(record_id: int | None = None) -> list:
+    """Return listens, newest first. Filter by record_id when given."""
+    with _lock:
+        items = list(_load()["listens"])
+    if record_id is not None:
+        items = [r for r in items if r.get("record_id") == record_id]
+    items.sort(key=lambda r: r.get("listened_at", ""), reverse=True)
+    return items
+
+
+def listens_add(record_id: int) -> dict:
+    """Append a listen with server-side UTC timestamp. Returns the new row."""
+    with _lock:
+        data = _load()
+        row = {
+            "id": data["next_id"],
+            "record_id": record_id,
+            "listened_at": datetime.now(timezone.utc).isoformat(),
+        }
+        data["next_id"] += 1
+        data["listens"].append(row)
+        _save(data)
+        return row
+
+
+def listens_delete(listen_id: int) -> bool:
+    with _lock:
+        data = _load()
+        before = len(data["listens"])
+        data["listens"] = [r for r in data["listens"] if r["id"] != listen_id]
+        if len(data["listens"]) < before:
+            _save(data)
+            return True
+        return False
+
+
+def listens_delete_for_record(record_id: int) -> int:
+    """Cascade delete when a record is removed. Returns how many were dropped."""
+    with _lock:
+        data = _load()
+        before = len(data["listens"])
+        data["listens"] = [r for r in data["listens"] if r.get("record_id") != record_id]
+        removed = before - len(data["listens"])
+        if removed:
+            _save(data)
+        return removed

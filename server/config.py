@@ -13,6 +13,7 @@ DATA_DIR = (
 )
 COVERS_DIR = DATA_DIR / "covers"
 DB_FILE = DATA_DIR / "collection.json"
+LISTENS_FILE = DATA_DIR / "listens.json"
 
 # Ensure data directories exist
 DATA_DIR.mkdir(exist_ok=True)
