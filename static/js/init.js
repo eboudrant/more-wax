@@ -76,6 +76,14 @@ window.addEventListener('DOMContentLoaded', async () => {
   window.addEventListener('locale-changed', () => {
     renderDashboard();
     renderCollection();
+    // Re-render open modals whose content is built from t() at render time
+    if (AppModal.getInstance('detail-modal')) {
+      const r = _detailList[_detailIndex];
+      if (r) _renderDetailBody(r);
+    }
+    if (AppModal.getInstance('settings-modal')) {
+      _renderSettings();
+    }
   });
 });
 
