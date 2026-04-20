@@ -47,7 +47,7 @@
   "collection.viewToggle.switchShelf": "Zur Regalansicht wechseln",
   "collection.viewToggle.switchCard": "Zur Kartenansicht wechseln",
   "collection.empty.title": "Noch keine Platten",
-  "collection.empty.subtitle": "Tippe auf <strong>{addLabel}</strong>, um deine erste Platte hinzuzufuegen",
+  "collection.empty.subtitle": "Tippe auf {addLabel}, um deine erste Platte hinzuzufuegen",
   "collection.badge": "{count, plural, one {# Platte} other {# Platten}}",
   "collection.loadError": "Sammlung konnte nicht geladen werden: {error}",
 
