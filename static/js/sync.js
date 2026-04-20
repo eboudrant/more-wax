@@ -34,7 +34,7 @@ async function closeSyncOverlay() {
   if (_syncDidImport) {
     _syncDidImport = false;
     await loadCollection();
-    navigateTo('home');
+    navigateTo('dashboard');
   }
 }
 
