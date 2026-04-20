@@ -72,13 +72,13 @@ function _renderPanelHtml(r, peek = false) {
         <p class="font-body text-on-surface-v text-sm leading-relaxed">${esc(r.notes)}</p>
       </div>` : ''}
 
-      <!-- Listens (loaded after render) -->
-      ${peek || !r.id ? '' : `<div id="detail-listens-${r.id}"></div>`}
-
       <!-- Discogs Extra (lazy loaded) + Delete -->
       <div ${peek ? '' : `id="detail-extra-${r.id}"`} class="space-y-4">
         ${r.discogs_extra ? _renderDiscogsExtra(r.discogs_extra, r) + (r.id ? _deleteButton(r.id) : '') : (r.discogs_id ? '' : (r.id ? _deleteButton(r.id) : ''))}
       </div>
+
+      <!-- Listens (loaded after render) -->
+      ${peek || !r.id ? '' : `<div id="detail-listens-${r.id}"></div>`}
     </div>
   </div>`;
 }
