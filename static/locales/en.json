@@ -135,6 +135,16 @@
   "detail.notes.title": "Notes",
   "detail.loadingDetails": "Loading details…",
 
+  "detail.listens.title": "Listens",
+  "detail.listens.empty": "Never played",
+  "detail.listens.count": "{count, plural, one {# listen} other {# listens}}",
+  "detail.listens.logBtn": "Log a listen",
+  "detail.listens.delete": "Remove this listen",
+  "detail.listens.logged": "♪ Logged “{title}”",
+  "detail.listens.logError": "Could not log listen: {error}",
+  "detail.listens.loadError": "Could not load listens: {error}",
+  "detail.listens.deleteError": "Could not remove listen: {error}",
+
   "detail.price.median": "median",
   "detail.price.low": "low",
   "detail.price.high": "high",

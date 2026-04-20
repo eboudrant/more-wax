@@ -135,6 +135,16 @@
   "detail.notes.title": "Notizen",
   "detail.loadingDetails": "Details werden geladen…",
 
+  "detail.listens.title": "Hoervorgaenge",
+  "detail.listens.empty": "Noch nie gespielt",
+  "detail.listens.count": "{count, plural, one {# Hoervorgang} other {# Hoervorgaenge}}",
+  "detail.listens.logBtn": "Hoervorgang erfassen",
+  "detail.listens.delete": "Diesen Hoervorgang entfernen",
+  "detail.listens.logged": "♪ \"{title}\" erfasst",
+  "detail.listens.logError": "Hoervorgang konnte nicht erfasst werden: {error}",
+  "detail.listens.loadError": "Hoervorgaenge konnten nicht geladen werden: {error}",
+  "detail.listens.deleteError": "Hoervorgang konnte nicht entfernt werden: {error}",
+
   "detail.price.median": "Median",
   "detail.price.low": "Niedrig",
   "detail.price.high": "Hoch",

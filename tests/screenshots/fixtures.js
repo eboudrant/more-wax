@@ -262,6 +262,43 @@ async function mockApi(page) {
     });
   });
 
+  // Mock listens endpoint — record 1 has 3 fixed-timestamp listens, others empty
+  const LISTENS_BY_RECORD = {
+    1: [
+      { id: 11, record_id: 1, listened_at: '2026-04-15T18:30:00Z' },
+      { id: 10, record_id: 1, listened_at: '2026-04-10T21:05:00Z' },
+      { id: 9,  record_id: 1, listened_at: '2026-04-03T10:12:00Z' },
+    ],
+  };
+  await page.route('**/api/listens**', (route) => {
+    const req = route.request();
+    const method = req.method();
+    const url = new URL(req.url());
+    if (method === 'GET') {
+      const rid = Number(url.searchParams.get('record_id'));
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(LISTENS_BY_RECORD[rid] || []),
+      });
+    }
+    if (method === 'POST') {
+      return route.fulfill({
+        status: 201,
+        contentType: 'application/json',
+        body: JSON.stringify({ id: 99, record_id: 1, listened_at: '2026-04-20T12:00:00Z' }),
+      });
+    }
+    if (method === 'DELETE') {
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true }),
+      });
+    }
+    return route.fulfill({ status: 405 });
+  });
+
   // Mock settings endpoint
   await page.route('**/api/settings', (route) => {
     if (route.request().method() === 'GET') {

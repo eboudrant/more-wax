@@ -72,6 +72,9 @@ function _renderPanelHtml(r, peek = false) {
         <p class="font-body text-on-surface-v text-sm leading-relaxed">${esc(r.notes)}</p>
       </div>` : ''}
 
+      <!-- Listens (loaded after render) -->
+      ${peek || !r.id ? '' : `<div id="detail-listens-${r.id}"></div>`}
+
       <!-- Discogs Extra (lazy loaded) + Delete -->
       <div ${peek ? '' : `id="detail-extra-${r.id}"`} class="space-y-4">
         ${r.discogs_extra ? _renderDiscogsExtra(r.discogs_extra, r) + (r.id ? _deleteButton(r.id) : '') : (r.discogs_id ? '' : (r.id ? _deleteButton(r.id) : ''))}
@@ -133,6 +136,7 @@ function _renderDetailBody(r) {
       ${_renderPanelHtml(r)}
       <div class="absolute top-0 left-full w-full overflow-hidden max-h-[90vh]">${next ? _renderPanelHtml(next, true) : ''}</div>
     </div>`;
+  _loadListensForDetail(r);
 }
 
 async function showDetail(id) {
@@ -167,6 +171,85 @@ function _lazyLoadDetailData(r) {
   }
   if (r.discogs_id) {
     _checkDiscogsCollection(r.discogs_id);
+  }
+}
+
+// ── Listens section ──────────────────────────────────────────────
+
+function _formatListenTime(iso) {
+  try {
+    return new Intl.DateTimeFormat(getLocale(), {
+      dateStyle: 'medium',
+      timeStyle: 'short',
+    }).format(new Date(iso));
+  } catch {
+    return iso;
+  }
+}
+
+function _renderListensSection(r, listens) {
+  const count = listens.length;
+  const countLabel = count === 0
+    ? esc(t('detail.listens.empty'))
+    : esc(t('detail.listens.count', { count }));
+  const rows = listens.slice(0, 5).map(l => `
+    <li class="flex items-center justify-between gap-3 py-1.5 border-b border-outline-v/10 last:border-b-0">
+      <span class="font-body text-sm text-on-surface-v">${esc(_formatListenTime(l.listened_at))}</span>
+      <button onclick="_deleteListenForDetail(${l.id})" class="text-outline hover:text-danger transition-colors shrink-0" title="${esc(t('detail.listens.delete'))}" aria-label="${esc(t('detail.listens.delete'))}">
+        <i class="bi bi-x text-base"></i>
+      </button>
+    </li>`).join('');
+  return `
+    <div class="bg-surface-top/30 rounded-xl p-5">
+      <div class="flex items-center justify-between mb-3">
+        <h4 class="font-headline italic text-lg text-on-surface">${esc(t('detail.listens.title'))}</h4>
+        <span class="text-xs font-label text-outline">${countLabel}</span>
+      </div>
+      ${rows ? `<ul class="mb-4">${rows}</ul>` : ''}
+      <button onclick="_logListenForDetail(${r.id})" class="w-full inline-flex items-center justify-center gap-2 py-2 rounded-full border border-primary/40 text-primary hover:bg-primary/10 transition-colors text-sm font-label">
+        <i class="bi bi-music-note-beamed"></i>
+        ${esc(t('detail.listens.logBtn'))}
+      </button>
+    </div>`;
+}
+
+async function _loadListensForDetail(r) {
+  if (!r || !r.id) return;
+  const el = document.getElementById(`detail-listens-${r.id}`);
+  if (!el) return;
+  try {
+    const listens = await apiGet(`/api/listens?record_id=${r.id}`);
+    el.innerHTML = _renderListensSection(r, listens);
+  } catch (e) {
+    el.innerHTML = `<p class="text-sm text-outline">${esc(t('detail.listens.loadError', { error: e.message }))}</p>`;
+  }
+}
+
+async function _logListenForDetail(recordId) {
+  const r = _detailList[_detailIndex];
+  try {
+    await apiPost('/api/listens', { record_id: recordId });
+    await _loadListensForDetail(r);
+    if (typeof toast === 'function' && r) {
+      toast(t('detail.listens.logged', { title: r.title || '' }), 'success');
+    }
+  } catch (e) {
+    if (typeof toast === 'function') {
+      toast(t('detail.listens.logError', { error: e.message }), 'error');
+    }
+  }
+}
+
+async function _deleteListenForDetail(listenId) {
+  const r = _detailList[_detailIndex];
+  if (!r) return;
+  try {
+    await apiDelete(`/api/listens/${listenId}`);
+    await _loadListensForDetail(r);
+  } catch (e) {
+    if (typeof toast === 'function') {
+      toast(t('detail.listens.deleteError', { error: e.message }), 'error');
+    }
   }
 }
 
