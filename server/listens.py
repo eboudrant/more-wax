@@ -5,6 +5,8 @@ Schema: {"schema_version": "1.0", "listens": [...], "next_id": 1}
 Each listen: {"id": int, "record_id": int, "listened_at": ISO8601 str}
 """
 
+from __future__ import annotations
+
 import json
 import os
 import threading
@@ -90,7 +92,9 @@ def listens_delete_for_record(record_id: int) -> int:
     with _lock:
         data = _load()
         before = len(data["listens"])
-        data["listens"] = [r for r in data["listens"] if r.get("record_id") != record_id]
+        data["listens"] = [
+            r for r in data["listens"] if r.get("record_id") != record_id
+        ]
         removed = before - len(data["listens"])
         if removed:
             _save(data)
