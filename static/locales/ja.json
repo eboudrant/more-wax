@@ -274,6 +274,20 @@
   "settings.auth.disable.cancel": "キャンセル",
   "settings.auth.disable.confirm": "無効にする",
 
+  "settings.backup.title": "Driveバックアップ",
+  "settings.backup.description": "コレクションが変更されるたびに、自動的にGoogle Driveへバックアップします。",
+  "settings.backup.unavailable": "Driveバックアップを利用するには、上のGoogle Sign-Inを有効にしてください。",
+  "settings.backup.connectBtn": "Google Driveに接続",
+  "settings.backup.connectedAs": "{email} にバックアップ中",
+  "settings.backup.lastBackup": "最終バックアップ: {date}",
+  "settings.backup.never": "バックアップはまだありません",
+  "settings.backup.pending": "変更が保留中",
+  "settings.backup.nowBtn": "今すぐバックアップ",
+  "settings.backup.nowSuccess": "☁ バックアップをアップロードしました",
+  "settings.backup.nowError": "バックアップに失敗しました: {error}",
+  "settings.backup.disconnectBtn": "接続解除",
+  "settings.backup.error": "前回のバックアップに失敗しました: {error}",
+
   "settings.data.title": "データ",
   "settings.data.exportBtn": "コレクションをエクスポート（JSON）",
 

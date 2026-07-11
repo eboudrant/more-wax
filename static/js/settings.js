@@ -2,6 +2,7 @@
 //  SETTINGS MODAL
 // ─────────────────────────────────────────────────────────────────
 let _settingsData = null;
+let _backupStatus = null;
 
 async function openSettings() {
   AppModal.show('settings-modal');
@@ -11,6 +12,17 @@ async function openSettings() {
   } catch (e) {
     console.warn('Failed to load settings', e);
   }
+  _refreshBackupStatus();
+}
+
+async function _refreshBackupStatus() {
+  try {
+    _backupStatus = await apiGet('/api/backup/status');
+  } catch (e) {
+    console.warn('Failed to load backup status', e);
+    _backupStatus = null;
+  }
+  _renderBackup();
 }
 
 function _renderSettings() {
@@ -87,6 +99,82 @@ function _renderSettings() {
       syncStatus.textContent = '';
     }
   }
+
+  // Backup section — re-render from cached status (locale-changed re-runs us)
+  _renderBackup();
+}
+
+// ── Drive backup ─────────────────────────────────────────────────
+
+function _renderBackup() {
+  const el = document.getElementById('settings-backup-body');
+  if (!el) return;
+  const s = _backupStatus;
+  if (!s) { el.innerHTML = ''; return; }
+
+  if (!s.available) {
+    el.innerHTML = `<p class="text-xs text-outline">${esc(t('settings.backup.unavailable'))}</p>`;
+    return;
+  }
+
+  if (!s.connected) {
+    el.innerHTML = `
+      <button onclick="window.location.href='/auth/drive/connect'"
+        class="w-full px-4 py-2.5 bg-primary text-bg rounded-lg font-label text-sm uppercase tracking-wider hover:brightness-110 transition">
+        <i class="bi bi-google"></i> <span>${esc(t('settings.backup.connectBtn'))}</span>
+      </button>`;
+    return;
+  }
+
+  const last = s.last_backup_at
+    ? t('settings.backup.lastBackup', { date: _formatListenTime(s.last_backup_at) })
+    : t('settings.backup.never');
+  el.innerHTML = `
+    <div class="space-y-3">
+      <div class="flex items-center gap-2 text-sm text-green-400">
+        <i class="bi bi-cloud-check"></i>
+        <span>${esc(t('settings.backup.connectedAs', { email: s.email }))}</span>
+      </div>
+      <p class="text-xs text-on-surface-v">
+        ${esc(last)}${s.pending ? ` · ${esc(t('settings.backup.pending'))}` : ''}
+      </p>
+      ${s.last_error ? `<p class="text-xs text-danger">${esc(t('settings.backup.error', { error: s.last_error }))}</p>` : ''}
+      <div class="flex items-center gap-4">
+        <button id="settings-backup-now" onclick="settingsBackupNow(this)"
+          class="flex items-center gap-2 text-sm text-primary hover:text-primary-dim transition-colors">
+          <i class="bi bi-cloud-upload"></i> <span>${esc(t('settings.backup.nowBtn'))}</span>
+        </button>
+        <button onclick="settingsBackupDisconnect()"
+          class="text-xs text-red-400 hover:text-red-300 transition-colors">
+          <i class="bi bi-cloud-slash"></i> <span>${esc(t('settings.backup.disconnectBtn'))}</span>
+        </button>
+      </div>
+    </div>`;
+}
+
+async function settingsBackupNow(btn) {
+  if (btn) btn.disabled = true;
+  try {
+    const res = await apiPost('/api/backup/now', {});
+    if (res.success) {
+      toast(t('settings.backup.nowSuccess'), 'success');
+    } else {
+      toast(t('settings.backup.nowError', { error: res.error || '' }), 'error');
+    }
+  } catch (e) {
+    toast(t('settings.backup.nowError', { error: e.message }), 'error');
+  }
+  if (btn) btn.disabled = false;
+  _refreshBackupStatus();
+}
+
+async function settingsBackupDisconnect() {
+  try {
+    await apiPost('/api/backup/disconnect', {});
+  } catch (e) {
+    console.warn('Backup disconnect failed', e);
+  }
+  _refreshBackupStatus();
 }
 
 function settingsToggleToken(type) {

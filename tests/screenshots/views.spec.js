@@ -1,6 +1,6 @@
 // @ts-check
 const { test, expect } = require('@playwright/test');
-const { mockApi, mockEmptyApi, mockStatus, mockAuth, mockSettingsWithAuth, mockSyncApi, mockSyncWithFailed } = require('./fixtures');
+const { mockApi, mockEmptyApi, mockStatus, mockAuth, mockSettingsWithAuth, mockBackupConnected, mockSyncApi, mockSyncWithFailed } = require('./fixtures');
 
 // ── Helper: wait for the collection to load ────────────────────
 async function waitForCollection(page) {
@@ -456,6 +456,42 @@ test.describe('Settings', () => {
     await expect(page.locator('#settings-allowed-emails')).toHaveValue('user@example.com');
 
     await expect(page).toHaveScreenshot('settings-auth-active.png');
+  });
+
+  test('drive backup shows connected state with actions', async ({ page }) => {
+    await mockApi(page);
+    await mockSettingsWithAuth(page);
+    await mockBackupConnected(page);
+    await page.goto('/');
+    await waitForCollection(page);
+    await page.waitForTimeout(TRANSITION);
+
+    await page.locator('#dash-status button[onclick="openSettings()"]').click();
+    await page.waitForSelector('#settings-modal.app-modal-visible', { timeout: 5_000 });
+    // Backup status loads async after settings
+    await page.waitForSelector('#settings-backup-now', { timeout: 5_000 });
+    await page.waitForTimeout(TRANSITION);
+
+    const section = page.locator('#settings-backup-body');
+    await expect(section).toContainText('user@example.com');
+    await expect(section).toContainText(/Last backup/i);
+    await expect(section).toContainText(/Back up now/i);
+    await expect(section).toContainText(/Disconnect/i);
+
+    await expect(section).toHaveScreenshot('settings-backup-connected.png');
+  });
+
+  test('drive backup hidden behind auth hint when Google not configured', async ({ page }) => {
+    await mockApi(page);
+    await page.goto('/');
+    await waitForCollection(page);
+    await page.waitForTimeout(TRANSITION);
+
+    await page.locator('#dash-status button[onclick="openSettings()"]').click();
+    await page.waitForSelector('#settings-modal.app-modal-visible', { timeout: 5_000 });
+    await page.waitForTimeout(TRANSITION);
+
+    await expect(page.locator('#settings-backup-body')).toContainText(/Enable Google Sign-In/i);
   });
 });
 
