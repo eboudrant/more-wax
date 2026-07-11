@@ -274,6 +274,20 @@
   "settings.auth.disable.cancel": "Annuler",
   "settings.auth.disable.confirm": "Désactiver",
 
+  "settings.backup.title": "Sauvegarde Drive",
+  "settings.backup.description": "Sauvegarde automatiquement ta collection sur ton Google Drive à chaque modification.",
+  "settings.backup.unavailable": "Active Google Sign-In ci-dessus pour débloquer les sauvegardes Drive.",
+  "settings.backup.connectBtn": "Connecter Google Drive",
+  "settings.backup.connectedAs": "Sauvegarde vers {email}",
+  "settings.backup.lastBackup": "Dernière sauvegarde : {date}",
+  "settings.backup.never": "Aucune sauvegarde pour le moment",
+  "settings.backup.pending": "modifications en attente",
+  "settings.backup.nowBtn": "Sauvegarder maintenant",
+  "settings.backup.nowSuccess": "☁ Sauvegarde envoyée",
+  "settings.backup.nowError": "Échec de la sauvegarde : {error}",
+  "settings.backup.disconnectBtn": "Déconnecter",
+  "settings.backup.error": "La dernière sauvegarde a échoué : {error}",
+
   "settings.data.title": "Données",
   "settings.data.exportBtn": "Exporter la collection (JSON)",
 

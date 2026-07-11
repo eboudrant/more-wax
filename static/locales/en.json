@@ -274,6 +274,20 @@
   "settings.auth.disable.cancel": "Cancel",
   "settings.auth.disable.confirm": "Disable",
 
+  "settings.backup.title": "Drive Backup",
+  "settings.backup.description": "Automatically back up your collection to your Google Drive whenever it changes.",
+  "settings.backup.unavailable": "Enable Google Sign-In above to unlock Drive backups.",
+  "settings.backup.connectBtn": "Connect Google Drive",
+  "settings.backup.connectedAs": "Backing up to {email}",
+  "settings.backup.lastBackup": "Last backup: {date}",
+  "settings.backup.never": "No backup yet",
+  "settings.backup.pending": "changes pending",
+  "settings.backup.nowBtn": "Back up now",
+  "settings.backup.nowSuccess": "☁ Backup uploaded",
+  "settings.backup.nowError": "Backup failed: {error}",
+  "settings.backup.disconnectBtn": "Disconnect",
+  "settings.backup.error": "Last backup failed: {error}",
+
   "settings.data.title": "Data",
   "settings.data.exportBtn": "Export collection (JSON)",
 

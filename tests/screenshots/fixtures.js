@@ -299,6 +299,23 @@ async function mockApi(page) {
     return route.fulfill({ status: 405 });
   });
 
+  // Mock backup status — default: Google auth not configured
+  await page.route('**/api/backup/status', (route) => {
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        available: false,
+        connected: false,
+        email: '',
+        last_backup_at: null,
+        last_error: null,
+        retention: 14,
+        pending: false,
+      }),
+    });
+  });
+
   // Mock settings endpoint
   await page.route('**/api/settings', (route) => {
     if (route.request().method() === 'GET') {
@@ -644,4 +661,27 @@ async function mockSettingsWithAuth(page) {
   });
 }
 
-module.exports = { mockApi, mockEmptyApi, mockStatus, mockAuth, mockSettingsWithAuth, mockSyncApi, mockSyncWithFailed, MOCK_COLLECTION, MOCK_SEARCH_RESULTS, MOCK_SYNC_DIFF };
+/**
+ * Override backup-status mock to a connected Drive account.
+ * Call AFTER mockApi.
+ */
+async function mockBackupConnected(page) {
+  await page.unroute('**/api/backup/status');
+  await page.route('**/api/backup/status', (route) => {
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        available: true,
+        connected: true,
+        email: 'user@example.com',
+        last_backup_at: '2026-07-10T08:30:00Z',
+        last_error: null,
+        retention: 14,
+        pending: false,
+      }),
+    });
+  });
+}
+
+module.exports = { mockApi, mockEmptyApi, mockStatus, mockAuth, mockSettingsWithAuth, mockBackupConnected, mockSyncApi, mockSyncWithFailed, MOCK_COLLECTION, MOCK_SEARCH_RESULTS, MOCK_SYNC_DIFF };
