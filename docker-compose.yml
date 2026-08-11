@@ -8,8 +8,5 @@ services:
       - "8765:8765"
       - "8766:8766"
     volumes:
-      - morewax-data:/app/data
-    restart: unless-stopped
-
-volumes:
-  morewax-data:
+      - ./data:/app/data
+    restart: always
