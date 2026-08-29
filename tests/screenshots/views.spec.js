@@ -81,6 +81,43 @@ test.describe('Dashboard', () => {
 
     await expect(page.locator('#dash-status')).toHaveScreenshot('status-card.png');
   });
+
+  test('now playing section shows button and recent listens', async ({ page }) => {
+    await mockApi(page);
+    await page.goto('/');
+    await waitForCollection(page);
+
+    // Wait for recent-listens strip to populate (mocks return 3 listens for record 1)
+    await page.waitForFunction(
+      () => document.querySelectorAll('#dash-recent-listens button').length > 0,
+      null,
+      { timeout: 10_000 },
+    );
+
+    const section = page.locator('#dash-now-playing-section');
+    await expect(section).toBeVisible();
+    await expect(section).toContainText(/What are you listening to\?/i);
+    await expect(section).toContainText(/Recent Listens/i);
+
+    await expect(section).toHaveScreenshot('dashboard-now-playing.png');
+  });
+
+  test('picker modal opens with collection grid', async ({ page }) => {
+    await mockApi(page);
+    await page.goto('/');
+    await waitForCollection(page);
+
+    await page.click('#dash-now-playing-btn');
+    await page.waitForSelector('#picker-modal.active', { timeout: 5_000 });
+    await page.waitForTimeout(TRANSITION);
+
+    const modal = page.locator('#picker-modal');
+    await expect(modal).toBeVisible();
+    await expect(modal).toContainText(/What are you spinning\?/i);
+    await expect(page.locator('#picker-grid button').first()).toBeVisible();
+
+    await expect(modal.locator('.app-modal-dialog')).toHaveScreenshot('picker-modal.png');
+  });
 });
 
 // ─────────────────────────────────────────────────────────────────

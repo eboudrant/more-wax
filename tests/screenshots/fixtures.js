@@ -275,11 +275,20 @@ async function mockApi(page) {
     const method = req.method();
     const url = new URL(req.url());
     if (method === 'GET') {
-      const rid = Number(url.searchParams.get('record_id'));
+      const ridParam = url.searchParams.get('record_id');
+      let body;
+      if (ridParam === null) {
+        // No filter — return all listens flattened, newest first
+        body = Object.values(LISTENS_BY_RECORD).flat().sort(
+          (a, b) => b.listened_at.localeCompare(a.listened_at),
+        );
+      } else {
+        body = LISTENS_BY_RECORD[Number(ridParam)] || [];
+      }
       return route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify(LISTENS_BY_RECORD[rid] || []),
+        body: JSON.stringify(body),
       });
     }
     if (method === 'POST') {

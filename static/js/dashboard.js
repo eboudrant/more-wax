@@ -95,7 +95,12 @@ function _renderStatus() {
 function renderDashboard() {
   const empty = !collection.length;
   const emptyEl = document.getElementById('dash-empty');
-  const sections = ['dash-search-section', 'dash-picks-section', 'dash-recent-section'];
+  const sections = [
+    'dash-search-section',
+    'dash-now-playing-section',
+    'dash-picks-section',
+    'dash-recent-section',
+  ];
 
   if (emptyEl) emptyEl.classList.toggle('hidden', !empty);
   sections.forEach(id => {
@@ -108,11 +113,100 @@ function renderDashboard() {
   if (empty) return;
 
   _renderPicks();
+  _renderRecentListens();
 
   // Last 4 recently added
   const recent = [...collection].sort((a, b) => b.id - a.id).slice(0, 4);
   const recentGrid = document.getElementById('dash-recent');
   if (recentGrid) {
     recentGrid.innerHTML = recent.map(r => recordCardHtml(r)).join('');
+  }
+}
+
+// ── Now Playing + Recent Listens ────────────────────────────────
+
+async function _renderRecentListens() {
+  const el = document.getElementById('dash-recent-listens');
+  if (!el) return;
+  let listens;
+  try {
+    listens = await apiGet('/api/listens');
+  } catch {
+    el.innerHTML = '';
+    return;
+  }
+  const top = listens.slice(0, 8);
+  if (!top.length) {
+    el.innerHTML = `<p class="col-span-full text-sm text-outline">${esc(t('dash.recentListens.empty'))}</p>`;
+    return;
+  }
+  el.innerHTML = top.map(l => {
+    const r = collection.find(x => x.id === l.record_id);
+    if (!r) return '';
+    const cover = r.local_cover || r.cover_image_url;
+    const coverHtml = cover
+      ? `<img src="${esc(cover)}" class="w-full aspect-square object-cover" loading="lazy" onerror="this.style.display='none'">`
+      : `<div class="w-full aspect-square bg-surface-high flex items-center justify-center text-outline-v"><i class="bi bi-vinyl"></i></div>`;
+    return `<button onclick="showDetail(${r.id})" class="group relative rounded-lg overflow-hidden bg-surface" title="${esc(r.title)} — ${esc(r.artist)}">
+      ${coverHtml}
+    </button>`;
+  }).filter(Boolean).join('');
+}
+
+function openNowPlayingPicker() {
+  AppModal.show('picker-modal');
+  const input = document.getElementById('picker-filter');
+  if (input) input.value = '';
+  _renderPickerGrid('');
+  // Focus after show animation completes
+  setTimeout(() => input?.focus(), 120);
+}
+
+function _pickerFilterChanged() {
+  const input = document.getElementById('picker-filter');
+  _renderPickerGrid((input?.value || '').toLowerCase().trim());
+}
+
+function _renderPickerGrid(q) {
+  const grid = document.getElementById('picker-grid');
+  if (!grid) return;
+  const items = q
+    ? collection.filter(r =>
+        (r.title  || '').toLowerCase().includes(q) ||
+        (r.artist || '').toLowerCase().includes(q) ||
+        (r.label  || '').toLowerCase().includes(q))
+    : [...collection];
+  if (!items.length) {
+    grid.innerHTML = `<p class="col-span-full text-sm text-outline text-center py-8">${esc(t('picker.noResults'))}</p>`;
+    return;
+  }
+  grid.innerHTML = items.slice(0, 60).map(r => {
+    const cover = r.local_cover || r.cover_image_url;
+    const coverHtml = cover
+      ? `<img src="${esc(cover)}" class="w-full aspect-square object-cover" loading="lazy" onerror="this.style.display='none'">`
+      : `<div class="w-full aspect-square bg-surface-high flex items-center justify-center text-outline-v"><i class="bi bi-vinyl text-2xl"></i></div>`;
+    return `<button onclick="_pickerLog(${r.id})" class="text-left bg-surface rounded-lg overflow-hidden hover:ring-2 hover:ring-primary transition-all">
+      ${coverHtml}
+      <div class="p-2">
+        <div class="font-body text-sm text-on-surface truncate">${esc(r.title)}</div>
+        <div class="font-body text-xs text-on-surface-v truncate">${esc(r.artist)}</div>
+      </div>
+    </button>`;
+  }).join('');
+}
+
+async function _pickerLog(recordId) {
+  const r = collection.find(x => x.id === recordId);
+  try {
+    await apiPost('/api/listens', { record_id: recordId });
+    AppModal.hide('picker-modal');
+    if (typeof toast === 'function' && r) {
+      toast(t('picker.logged', { title: r.title || '' }), 'success');
+    }
+    _renderRecentListens();
+  } catch (e) {
+    if (typeof toast === 'function') {
+      toast(t('picker.logError', { error: e.message }), 'error');
+    }
   }
 }

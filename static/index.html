@@ -110,6 +110,22 @@
       </div>
     </section>
 
+    <!-- Now Playing -->
+    <section id="dash-now-playing-section" class="mb-16">
+      <div class="flex items-baseline gap-3 mb-6">
+        <h3 class="font-headline font-bold text-3xl text-on-surface" data-i18n="dash.nowPlaying.title">Now Playing</h3>
+      </div>
+      <button id="dash-now-playing-btn" onclick="openNowPlayingPicker()"
+              class="w-full inline-flex items-center justify-center gap-3 py-4 rounded-2xl bg-primary text-bg hover:brightness-110 transition-colors font-label text-sm uppercase tracking-wider">
+        <i class="bi bi-music-note-beamed text-lg"></i>
+        <span data-i18n="dash.nowPlaying.btn">What are you listening to?</span>
+      </button>
+      <div class="mt-8">
+        <h4 class="font-label text-xs uppercase tracking-widest text-outline mb-4" data-i18n="dash.recentListens.title">Recent Listens</h4>
+        <div id="dash-recent-listens" class="grid grid-cols-5 md:grid-cols-8 gap-2"></div>
+      </div>
+    </section>
+
     <!-- Random Picks -->
     <section id="dash-picks-section" class="mb-16">
       <div class="flex items-baseline gap-3 mb-10">
@@ -320,6 +336,28 @@
 </nav>
 
 <!-- add-modal removed — replaced by #view-scanner -->
+
+<!-- ════════════════════════════════════════════════════════════
+     NOW PLAYING PICKER MODAL
+     ════════════════════════════════════════════════════════════ -->
+<div class="app-modal" id="picker-modal">
+  <div class="app-modal-dialog">
+    <div class="app-modal-content bg-surface rounded-xl overflow-hidden">
+      <div class="p-6 space-y-4 max-h-[85vh] flex flex-col">
+        <div class="flex items-center justify-between">
+          <h2 class="font-headline text-xl text-on-surface" data-i18n="picker.title">What are you spinning?</h2>
+          <button data-dismiss="modal" class="text-outline hover:text-on-surface transition-colors">
+            <i class="bi bi-x-lg text-xl"></i>
+          </button>
+        </div>
+        <input id="picker-filter" type="text" oninput="_pickerFilterChanged()"
+               class="w-full bg-surface-high border border-outline-v/20 rounded-lg px-3 py-2.5 text-on-surface text-sm placeholder:text-outline focus:outline-none focus:border-primary"
+               data-i18n-placeholder="picker.placeholder" placeholder="Search your collection…">
+        <div id="picker-grid" class="grid grid-cols-2 sm:grid-cols-3 gap-3 overflow-y-auto"></div>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- ════════════════════════════════════════════════════════════
      RECORD DETAIL MODAL
