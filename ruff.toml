@@ -1,0 +1,4 @@
+[lint]
+# Pin to ruff's long-standing defaults so new upstream default rules
+# (e.g. ruff 0.17) don't break CI, which installs the latest ruff.
+select = ["E4", "E7", "E9", "F"]

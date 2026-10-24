@@ -39,6 +39,9 @@ While the Anthropic check is transient, `anthropic_key_valid` stays `null` ("not
 ### `tests/test_retry.py` (new)
 - 10 unit tests: backoff sequence, and settled vs transient outcomes for both checks. No network.
 
+### `ruff.toml` (new)
+- CI installs the latest ruff; ruff 0.17 widened its default rule set and failed lint with 65 findings across untouched files. Pins `select` to the previous defaults (`E4`, `E7`, `E9`, `F`) so lint stays stable across ruff releases.
+
 ## Verification
 
 - 252 unit tests pass; ruff clean; bandit findings unchanged from `main`.
@@ -53,3 +56,4 @@ While the Anthropic check is transient, `anthropic_key_valid` stays `null` ("not
 | `server/handler.py` | Anthropic check reports settled/transient |
 | `server.py` | Run startup checks with retry |
 | `tests/test_retry.py` | 10 unit tests |
+| `ruff.toml` | Pin lint rules to previous ruff defaults |
