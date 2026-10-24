@@ -420,15 +420,24 @@ def discogs_validate_token(token: str) -> dict:
         return {"valid": False, "error": str(e)}
 
 
-def discogs_fetch_identity():
-    """Fetch and cache the authenticated Discogs username."""
+def discogs_fetch_identity() -> bool:
+    """Fetch and cache the authenticated Discogs username.
+
+    Returns True once settled (success, or the token was rejected) and False
+    on a transient failure (network down, 5xx, rate limit) worth retrying.
+    """
     global _discogs_username
     try:
         data = _discogs_request("GET", "/oauth/identity")
         _discogs_username = data.get("username")
         print(f"  👤 [discogs] Authenticated as: {_discogs_username}")
+        return True
+    except urllib.error.HTTPError as e:
+        print(f"  ⚠️ [discogs] Could not fetch identity: {e}")
+        return e.code in (401, 403)
     except Exception as e:
         print(f"  ⚠️ [discogs] Could not fetch identity: {e}")
+        return False
 
 
 def discogs_fetch_collection() -> list:
