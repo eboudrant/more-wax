@@ -57,18 +57,27 @@ MAX_BODY_BYTES = 20 * 1024 * 1024  # 20 MB cap on request bodies
 _anthropic_key_valid = None
 
 
-def check_anthropic_key():
-    """Background check: validate the Anthropic key and cache the result."""
+def check_anthropic_key() -> bool:
+    """Background check: validate the Anthropic key and cache the result.
+
+    Returns True once settled and False on a transient failure (network down,
+    5xx, rate limit), leaving the cached state as "not yet checked".
+    """
     global _anthropic_key_valid
     if not _config.ANTHROPIC_API_KEY:
         _anthropic_key_valid = None
-        return
+        return True
     result = _validate_anthropic_key(_config.ANTHROPIC_API_KEY)
+    if result.get("transient"):
+        _anthropic_key_valid = None
+        print(f"  ⚠️ [anthropic] Could not validate API key: {result.get('error', '')}")
+        return False
     _anthropic_key_valid = result["valid"]
     if result["valid"]:
         print("  🤖 [anthropic] API key is valid")
     else:
         print(f"  ⚠️ [anthropic] API key invalid: {result.get('error', '')}")
+    return True
 
 
 def _validate_anthropic_key(key: str) -> dict:
@@ -85,9 +94,14 @@ def _validate_anthropic_key(key: str) -> dict:
         with _urllib_request.urlopen(req, timeout=10):  # nosec B310
             return {"valid": True}
     except urllib.error.HTTPError as e:
-        return {"valid": False, "error": f"Anthropic returned {e.code}"}
+        transient = e.code == 429 or e.code >= 500
+        return {
+            "valid": False,
+            "error": f"Anthropic returned {e.code}",
+            "transient": transient,
+        }
     except Exception as e:
-        return {"valid": False, "error": str(e)}
+        return {"valid": False, "error": str(e), "transient": True}
 
 
 class Handler(http.server.BaseHTTPRequestHandler):

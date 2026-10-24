@@ -15,6 +15,7 @@ from server.backup import start_watcher as _start_backup_watcher
 from server.config import ANTHROPIC_API_KEY, DATA_DIR, DISCOGS_TOKEN
 from server.discogs import discogs_fetch_identity
 from server.handler import Handler, check_anthropic_key
+from server.retry import retry_until_settled
 
 
 def _generate_cert():
@@ -87,7 +88,7 @@ def main():
     if DISCOGS_TOKEN:
 
         def _init_discogs():
-            discogs_fetch_identity()
+            retry_until_settled(discogs_fetch_identity, "discogs")
             # Backfill master_id for existing records (uses collection API, no per-record calls)
             from server.sync import backfill_master_ids
 
@@ -95,7 +96,11 @@ def main():
 
         threading.Thread(target=_init_discogs, daemon=True).start()
     if ANTHROPIC_API_KEY:
-        threading.Thread(target=check_anthropic_key, daemon=True).start()
+        threading.Thread(
+            target=retry_until_settled,
+            args=(check_anthropic_key, "anthropic"),
+            daemon=True,
+        ).start()
     # Session cleanup for OAuth
     _start_session_cleanup()
     # Google Drive backup watcher (no-op until the user connects Drive)
